@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-64 代理注册可信与证书吊销 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-online{background:#d1fae5;color:#065f46}.badge-stale{background:#fef3c7;color:#92400e}.badge-offline{background:#fee2e2;color:#b91c1c}.badge-revoked{background:#7f1d1d;color:#fecaca}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-danger{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px -4px rgba(220,38,38,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.lifecycle-flow{display:flex;align-items:center;gap:0;margin:20px 0;flex-wrap:nowrap;overflow-x:auto}
+.lifecycle-stage{flex:1;min-width:160px;border-radius:18px;border:1px solid #eadfd8;padding:18px 14px;text-align:center;position:relative;background:rgba(255,255,255,0.9);transition:all .2s}
+.lifecycle-stage:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-2px)}
+.lifecycle-stage .ls-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 10px}
+.lifecycle-stage .ls-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:4px}
+.lifecycle-stage .ls-desc{font-size:11px;color:var(--text);line-height:1.6}
+.lifecycle-stage .ls-detail{font-size:10px;color:#8f8681;margin-top:8px;font-family:monospace;line-height:1.5}
+.lifecycle-arrow{width:36px;flex-shrink:0;text-align:center;color:#b4a9a0;font-size:20px}
+.revocation-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:18px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.revocation-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.revocation-card .rc-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.revocation-card .rc-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-left:10px}
+.revocation-card .rc-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.revocation-card .rc-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.propagation-flow{display:flex;align-items:center;gap:8px;margin:16px 0;flex-wrap:wrap}
+.propagation-node{border-radius:12px;border:1px solid #eadfd8;padding:12px 16px;text-align:center;background:rgba(255,255,255,0.9);min-width:120px;transition:all .2s}
+.propagation-node:hover{box-shadow:0 2px 10px -4px rgba(72,44,24,0.15)}
+.propagation-node .pn-title{font-size:12px;font-weight:700;color:var(--text-h)}
+.propagation-node .pn-desc{font-size:10px;color:#8f8681;margin-top:4px}
+.propagation-arrow{color:#b4a9a0;font-size:16px;flex-shrink:0}
+.log-entry{border-radius:12px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.92);padding:14px 18px;margin-bottom:10px;transition:all .15s;position:relative;overflow:hidden}
+.log-entry:hover{box-shadow:0 2px 12px -4px rgba(72,44,24,0.15)}
+.log-entry .le-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.log-entry .le-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;padding-left:8px}
+.log-entry .le-time{font-size:11px;color:#8f8681;font-family:monospace}
+.log-entry .le-type{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px}
+.log-entry .le-agent{font-size:12px;font-weight:600;color:var(--text-h)}
+.log-entry .le-reason{font-size:12px;color:var(--text);line-height:1.6;margin-top:4px;padding-left:8px}
+.log-entry .le-detail{margin-top:8px;border-radius:8px;background:#faf7f4;padding:10px 14px;font-size:11px;font-family:monospace;line-height:1.7;color:var(--text);padding-left:18px}
+.type-session{background:#fef3c7;color:#92400e}.type-cert{background:#ffedd5;color:#c2410c}.type-full{background:#fee2e2;color:#b91c1c}
+.type-propagation{background:#dbeafe;color:#1d4ed8}.type-rereg{background:#d1fae5;color:#065f46}.type-reject{background:#ede9fe;color:#6d28d9}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}.lifecycle-flow{flex-wrap:wrap}.lifecycle-arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.10 代理行为完整性与Rogue Agent治理</div>
+    <div class="nav-item" data-page="fr60"><span>FR-60 行为基线与偏离检测</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr61"><span>FR-61 自治范围边界与越界阻断</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr62"><span>FR-62 行为漂移与目标偏移检测</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr63"><span>FR-63 熔断隔离与强制下线</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item active" data-page="fr64"><span>FR-64 代理注册可信与证书吊销</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.10 代理行为完整性与Rogue Agent治理</div>
+      <div class="page-title">FR-64 | 代理注册可信与证书吊销 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawManager</span>
+      <span class="badge badge-sys">KSecure</span>
+      <span class="badge badge-sys">KubeArmor</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="lifecycle">生命周期架构</div>
+      <div class="tab" data-tab="registration">注册管理</div>
+      <div class="tab" data-tab="revocation">吊销机制</div>
+      <div class="tab" data-tab="logs">吊销日志</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 生命周期架构                                             -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-lifecycle">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Agent Lifecycle Management &mdash; Registration, Authentication, Revocation, Invalidation</div>
+        <div class="panel-title">Agent 生命周期可信管理架构</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          FR-64 对 Agent 生命周期进行注册、认证、吊销和失效管理，当代理行为异常或身份不可信时能快速撤销其参与协同的资格。系统由 ClawManager（Agent注册/心跳/命令管理）+ KSecure/KubeArmor（证书管理）协同实现，确保从 Bootstrap Token 验证到会话建立、从心跳监控到证书轮换、从会话吊销到网络隔离的全链路可信管控。
+        </p>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="badge badge-p1">P1 优先级</span>
+          <span class="badge badge-sys">ClawManager</span>
+          <span class="badge badge-sys">KSecure gRPC</span>
+          <span class="badge badge-sys">KubeArmor PKI</span>
+          <span class="badge badge-critical">mTLS</span>
+          <span class="badge badge-high">CRL/OCSP</span>
+          <span class="badge badge-medium">Session Token</span>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">6</div><div class="sc-label">已注册Agent</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#059669">4</div><div class="sc-label">在线 Active</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#d97706">1</div><div class="sc-label">延迟 Stale</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#6b7280">1</div><div class="sc-label">离线 Offline</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#dc2626">1</div><div class="sc-label">已吊销 Revoked</div></div>
+      </div>
+
+      <!-- Lifecycle Flow Diagram -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">Agent 生命周期状态流转</div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-sys">ClawManager</span>
+            <span class="badge badge-sys">KubeArmor PKI</span>
+          </div>
+        </div>
+
+        <div class="lifecycle-flow">
+          <!-- Stage 1: Registration -->
+          <div class="lifecycle-stage" style="border-left:4px solid #3b82f6">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8">&#x1f4e6;</div>
+            <div class="ls-title">Registration</div>
+            <div class="ls-desc">Agent 启动注册流程</div>
+            <div class="ls-detail">
+              POST /api/v1/agent/register<br>
+              Bearer agt_boot_* token<br>
+              &rarr; 验证 bootstrap token<br>
+              &rarr; 生成 agt_sess_* (24h)<br>
+              &rarr; 签发 KubeArmor client cert
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 2: Active -->
+          <div class="lifecycle-stage" style="border-left:4px solid #059669">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#059669">&#x2705;</div>
+            <div class="ls-title">Active</div>
+            <div class="ls-desc">Agent 正常运行</div>
+            <div class="ls-detail">
+              Heartbeat: 15s 间隔<br>
+              Session: 24h + 滚动续期<br>
+              Stale: &gt;45s 无心跳<br>
+              Offline: &gt;120s 无心跳<br>
+              Commands: 正常接收/执行
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 3: Suspension -->
+          <div class="lifecycle-stage" style="border-left:4px solid #d97706">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#d97706">&#x26a0;</div>
+            <div class="ls-title">Suspension</div>
+            <div class="ls-desc">会话暂停/受限</div>
+            <div class="ls-detail">
+              Session: agt_sess_* 已吊销<br>
+              Commands: 全部阻断<br>
+              API: 请求被拒绝 (401)<br>
+              Heartbeat: 不再续期<br>
+              证书: 仍有效(待审)
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 4: Revocation -->
+          <div class="lifecycle-stage" style="border-left:4px solid #dc2626">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#dc2626">&#x1f6d1;</div>
+            <div class="ls-title">Revocation</div>
+            <div class="ls-desc">身份完全失效</div>
+            <div class="ls-detail">
+              Session: 已吊销<br>
+              Certificate: 加入CRL/OCSP<br>
+              Bootstrap token: 失效<br>
+              mTLS: 连接被拒<br>
+              NetworkPolicy: 出站全拒
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 5: Re-registration -->
+          <div class="lifecycle-stage" style="border-left:4px solid #6d28d9">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#6d28d9">&#x1f504;</div>
+            <div class="ls-title">Re-registration</div>
+            <div class="ls-desc">重新注册(需新token)</div>
+            <div class="ls-detail">
+              需新 agt_boot_* token<br>
+              冷却期: 30min<br>
+              人工审批: 必须<br>
+              新 Session: 全新 agt_sess_*<br>
+              新证书: KubeArmor重新签发
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ClawManager Registration Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">ClawManager 注册与认证流程</div>
+          <span class="badge badge-sys">ClawManager API</span>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          ClawManager 负责 Agent 的完整生命周期管理。注册接口 <code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">POST /api/v1/agent/register</code> 接受 Bearer <code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">agt_boot_*</code> token 进行引导认证，验证通过后生成 <code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">agt_sess_*</code> 会话令牌（24h 有效期）。InstanceAgent 数据模型包含 AgentID、SessionToken、SessionExpiresAt、Status（online/stale/offline）和 LastHeartbeatAt，session_token 字段设有 UNIQUE KEY 约束。
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- Registration Detail -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f4e6; 注册阶段</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              <strong>1. Bootstrap Token 验证</strong><br>
+              &bull; Agent 启动时携带预分配的 agt_boot_* token<br>
+              &bull; ClawManager 验证 token 有效性（未过期/未吊销）<br>
+              &bull; 验证 AgentID 与注册白名单匹配<br><br>
+              <strong>2. Session Token 生成</strong><br>
+              &bull; 生成唯一 agt_sess_* 令牌 (UNIQUE KEY)<br>
+              &bull; 设置 SessionExpiresAt = now + 24h<br>
+              &bull; Status 初始化为 online<br>
+              &bull; LastHeartbeatAt = now
+            </div>
+          </div>
+
+          <!-- Heartbeat Detail -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f493; 心跳与状态管理</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              <strong>Heartbeat 机制</strong><br>
+              &bull; 间隔: 每 15s 发送一次心跳<br>
+              &bull; 滚动续期: 心跳成功时 SessionExpiresAt += 24h<br>
+              &bull; Stale 判定: &gt;45s 无心跳<br>
+              &bull; Offline 判定: &gt;120s 无心跳<br><br>
+              <strong>状态流转</strong><br>
+              &bull; online &rarr; stale: 45s 无心跳<br>
+              &bull; stale &rarr; offline: 120s 无心跳<br>
+              &bull; online/stale &rarr; revoked: 吊销操作触发
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KubeArmor PKI Integration -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">KubeArmor PKI 证书管理体系</div>
+          <span class="badge badge-sys">KubeArmor TLS</span>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          KubeArmor 采用完整的 PKI 体系保障 mTLS 通信安全。CA 证书使用 RSA 4096 位密钥，有效期 3 年。系统维护 3 个 K8s Secret：<code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">kubearmor-ca</code>、<code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">kubearmor-client</code>、<code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">kubearmor-relay-server</code>。TLS 模式使用 <code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">RequireAndVerifyClientCert</code> 强制双向认证，CertLoader 支持 SelfSigned/External/K8s 三种证书加载模式，并支持证书轮换。
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <!-- CA Certificate -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:linear-gradient(135deg,#fff9f5,#fff7f3);padding:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">&#x1f511; CA 根证书</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7">
+              <strong>算法:</strong> RSA 4096<br>
+              <strong>有效期:</strong> 3 年<br>
+              <strong>Secret:</strong> kubearmor-ca<br>
+              <strong>用途:</strong> 签发 server/client 证书<br>
+              <strong>轮换:</strong> 需人工触发<br>
+              <strong>存储:</strong> K8s Secret (tls.crt + tls.key)
+            </div>
+          </div>
+
+          <!-- Client Certificate -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:linear-gradient(135deg,#fff9f5,#fff7f3);padding:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">&#x1f511; Client 证书</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7">
+              <strong>Secret:</strong> kubearmor-client<br>
+              <strong>用途:</strong> Agent 客户端身份认证<br>
+              <strong>mTLS:</strong> RequireAndVerifyClientCert<br>
+              <strong>吊销:</strong> CRL + OCSP 支持<br>
+              <strong>轮换:</strong> 自动/手动<br>
+              <strong>关联:</strong> AgentID 绑定
+            </div>
+          </div>
+
+          <!-- Server Certificate -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:linear-gradient(135deg,#fff9f5,#fff7f3);padding:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">&#x1f511; Relay Server 证书</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7">
+              <strong>Secret:</strong> kubearmor-relay-server<br>
+              <strong>用途:</strong> KubeArmor Relay 通信<br>
+              <strong>mTLS:</strong> 双向验证<br>
+              <strong>CertLoader:</strong> SelfSigned/External/K8s<br>
+              <strong>轮换:</strong> 自动 rotation<br>
+              <strong>监听:</strong> gRPC TLS 端口
+            </div>
+          </div>
+        </div>
+
+        <!-- KSecure gRPC Note -->
+        <div style="margin-top:16px;border-radius:12px;padding:14px 18px;background:#fef2f2;border:1px solid #fecaca;font-size:12px;color:#7f1d1d;line-height:1.7">
+          <strong>&#x26a0; KSecure gRPC 安全提醒</strong><br>
+          KSecure 当前通过 PolicyService + LogService 提供 gRPC 服务，但 <strong>尚未启用 TLS</strong>。建议立即添加 mTLS 配置，与 KubeArmor PKI 体系对齐，确保策略下发和日志采集的通信安全。此为 AC-64.4 证书吊销机制的依赖项。
+        </div>
+      </div>
+
+      <!-- Architecture Integration -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">系统集成架构 &mdash; ClawManager + KSecure + KubeArmor</div>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.8">
+          整体信任链建立在三个系统的协同之上：<strong>ClawManager</strong> 负责 Agent 注册、心跳监控和会话管理，是 Agent 身份的第一验证点；<strong>KubeArmor</strong> 负责 mTLS 证书签发和验证，在传输层确保通信双方身份可信；<strong>KSecure</strong> 负责安全策略下发和日志采集，是行为监控的策略引擎。当检测到 Agent 异常行为（由 FR-60/62 检测基线偏离和漂移）或越界操作（由 FR-61 拦截）时，FR-63 触发熔断，FR-64 执行吊销，形成从检测到响应的完整闭环。
+        </div>
+        <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap">
+          <div style="border-radius:10px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;font-size:11px;color:#1d4ed8">
+            <strong>FR-60</strong> 基线偏离 &rarr; 触发吊销
+          </div>
+          <div style="border-radius:10px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;font-size:11px;color:#dc2626">
+            <strong>FR-61</strong> 越界阻断 &rarr; 触发吊销
+          </div>
+          <div style="border-radius:10px;padding:10px 14px;background:#fff7ed;border:1px solid #fed7aa;font-size:11px;color:#c2410c">
+            <strong>FR-62</strong> 行为漂移 &rarr; 触发吊销
+          </div>
+          <div style="border-radius:10px;padding:10px 14px;background:#fef3c7;border:1px solid #fde68a;font-size:11px;color:#92400e">
+            <strong>FR-63</strong> 熔断隔离 &rarr; 执行吊销
+          </div>
+          <div style="border-radius:10px;padding:10px 14px;background:#ede9fe;border:1px solid #ddd6fe;font-size:11px;color:#6d28d9">
+            <strong>FR-64</strong> 证书吊销 &rarr; 身份失效
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 注册管理                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-registration">
+
+      <!-- Toggle Controls -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">吊销执行策略控制</div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">吊销执行模式</div>
+            <div class="desc">enforce=实际执行吊销; observe=仅记录不执行; off=关闭吊销机制</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce">Enforce</div>
+            <div class="mode-btn">Observe</div>
+            <div class="mode-btn">Off</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">异常行为自动吊销</div>
+            <div class="desc">当 FR-61/62/63 检测到越界/漂移/熔断事件时，自动触发 Agent 会话吊销流程</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-auto-revoke" checked>
+            <label class="toggle-slider" for="toggle-auto-revoke"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">吊销时证书轮换</div>
+            <div class="desc">Agent 证书吊销后，自动触发 KubeArmor 证书轮换，确保已吊销证书无法复用</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-cert-rotation" checked>
+            <label class="toggle-slider" for="toggle-cert-rotation"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Registration Data Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">Agent 注册状态总览</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+            <button class="btn-primary btn-sm">&#x1f4e4; 导出</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>AgentID</th>
+                <th>InstanceID</th>
+                <th>注册日期</th>
+                <th>会话状态</th>
+                <th>证书状态</th>
+                <th>最后心跳</th>
+                <th>吊销状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">agent-prod-01</td>
+                <td style="font-family:monospace;font-size:12px">inst-prod-east-01</td>
+                <td>2026-04-15</td>
+                <td><span class="badge badge-online">online</span></td>
+                <td><span class="badge badge-low">valid</span></td>
+                <td style="font-family:monospace;font-size:12px">2s ago</td>
+                <td><span class="badge" style="background:#e5e7eb;color:#6b7280">none</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">吊销会话</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">agent-prod-02</td>
+                <td style="font-family:monospace;font-size:12px">inst-prod-west-02</td>
+                <td>2026-04-18</td>
+                <td><span class="badge badge-online">online</span></td>
+                <td><span class="badge badge-low">valid</span></td>
+                <td style="font-family:monospace;font-size:12px">5s ago</td>
+                <td><span class="badge" style="background:#e5e7eb;color:#6b7280">none</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">吊销会话</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">agent-staging</td>
+                <td style="font-family:monospace;font-size:12px">inst-stg-01</td>
+                <td>2026-04-20</td>
+                <td><span class="badge badge-stale">stale</span></td>
+                <td><span class="badge badge-low">valid</span></td>
+                <td style="font-family:monospace;font-size:12px">48s ago</td>
+                <td><span class="badge" style="background:#e5e7eb;color:#6b7280">none</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">吊销会话</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">agent-dev</td>
+                <td style="font-family:monospace;font-size:12px">inst-dev-01</td>
+                <td>2026-04-25</td>
+                <td><span class="badge badge-online">online</span></td>
+                <td><span class="badge badge-low">valid</span></td>
+                <td style="font-family:monospace;font-size:12px">8s ago</td>
+                <td><span class="badge" style="background:#e5e7eb;color:#6b7280">none</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">吊销会话</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">agent-monitor</td>
+                <td style="font-family:monospace;font-size:12px">inst-mon-01</td>
+                <td>2026-04-28</td>
+                <td><span class="badge badge-offline">offline</span></td>
+                <td><span class="badge badge-low">valid</span></td>
+                <td style="font-family:monospace;font-size:12px">3m ago</td>
+                <td><span class="badge" style="background:#e5e7eb;color:#6b7280">none</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">吊销会话</button>
+                </td>
+              </tr>
+              <tr style="background:rgba(220,38,38,0.04)">
+                <td style="font-weight:600;color:#dc2626">agent-rogue</td>
+                <td style="font-family:monospace;font-size:12px">inst-rogue-01</td>
+                <td>2026-04-10</td>
+                <td><span class="badge badge-revoked">revoked</span></td>
+                <td><span class="badge badge-critical">revoked</span></td>
+                <td style="font-family:monospace;font-size:12px;color:#8f8681">N/A</td>
+                <td><span class="badge badge-critical">fully revoked</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px" disabled>已吊销</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Registration Detail Panel -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">Agent 注册详细信息 &mdash; agent-rogue (已吊销)</div>
+          <span class="badge badge-critical">FULLY REVOKED</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;line-height:1.8">
+          <div>
+            <strong>AgentID:</strong> agent-rogue<br>
+            <strong>InstanceID:</strong> inst-rogue-01<br>
+            <strong>Bootstrap Token:</strong> agt_boot_x7k9m2... (已失效)<br>
+            <strong>Session Token:</strong> agt_sess_p3q8n1... (已吊销)<br>
+            <strong>注册时间:</strong> 2026-04-10 14:23:18 UTC
+          </div>
+          <div>
+            <strong>Session Expires:</strong> 2026-04-11 14:23:18 UTC (未续期)<br>
+            <strong>证书 CN:</strong> agent-rogue.kubearmor.svc<br>
+            <strong>证书序列号:</strong> A3:7F:2B:C1:D4:9E<br>
+            <strong>CRL 状态:</strong> 已加入 (2026-05-01 09:15:00)<br>
+            <strong>吊销原因:</strong> anomalous_behavior + loop_guard_trigger
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px">
+          <button class="btn-danger btn-sm">强制重新注册 (需新 bootstrap token)</button>
+          <button class="btn-secondary btn-sm">查看审计日志</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 吊销机制                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-revocation">
+
+      <!-- Three Revocation Types -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Revocation Mechanism &mdash; Session / Certificate / Full</div>
+        <div class="panel-title">三级吊销机制</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          系统支持三种粒度的吊销操作，从最小影响的会话吊销到完全身份失效的全量吊销，可根据异常严重程度和风险等级选择合适的吊销策略。每种吊销类型均产生审计记录，确保操作可追溯。
+        </p>
+      </div>
+
+      <!-- Revocation Type Cards -->
+      <div class="revocation-card">
+        <div class="rc-stripe" style="background:#d97706"></div>
+        <div class="rc-header">
+          <span class="badge type-session">Session Revocation</span>
+          <span class="badge badge-high">中级影响</span>
+        </div>
+        <div class="rc-title">会话吊销</div>
+        <div class="rc-body">
+          <strong>机制:</strong> 将 agt_sess_* 会话令牌标记为已吊销，ClawManager 立即拒绝该 session token 的所有 API 请求（返回 401 Unauthorized）。<br>
+          <strong>效果:</strong> Agent 无法继续通过 ClawManager API 接收命令或上报状态，但 mTLS 连接可能仍然有效（取决于证书状态）。<br>
+          <strong>适用场景:</strong> Agent 行为异常但尚未确认恶意，需要暂停其操作进行审查；Agent 心跳异常但可能是网络抖动导致的临时问题。<br>
+          <strong>恢复:</strong> 可通过重新颁发 session token 恢复（无需新 bootstrap token），但需要管理员审批。
+        </div>
+      </div>
+
+      <div class="revocation-card">
+        <div class="rc-stripe" style="background:#c2410c"></div>
+        <div class="rc-header">
+          <span class="badge type-cert">Certificate Revocation</span>
+          <span class="badge badge-critical">高级影响</span>
+        </div>
+        <div class="rc-title">证书吊销</div>
+        <div class="rc-body">
+          <strong>机制:</strong> 将 Agent 的 KubeArmor client 证书加入 CRL（Certificate Revocation List）并更新 OCSP 响应，KubeArmor mTLS 在握手阶段验证证书状态时拒绝已吊销证书。<br>
+          <strong>效果:</strong> Agent 的所有 mTLS 连接被拒绝，无法与 KubeArmor Relay、KSecure gRPC 等服务通信。即使 session token 仍有效，Agent 也无法建立传输层连接。<br>
+          <strong>适用场景:</strong> Agent 身份可能被冒用，或证书私钥可能泄露；Agent 行为确认为恶意，需要彻底切断通信。<br>
+          <strong>恢复:</strong> 必须重新签发新证书（需要 KubeArmor CA 重新签发），旧证书永久失效。
+        </div>
+      </div>
+
+      <div class="revocation-card">
+        <div class="rc-stripe" style="background:#dc2626"></div>
+        <div class="rc-header">
+          <span class="badge type-full">Full Revocation</span>
+          <span class="badge badge-critical">完全影响</span>
+        </div>
+        <div class="rc-title">全量吊销</div>
+        <div class="rc-body">
+          <strong>机制:</strong> 同时执行会话吊销 + 证书吊销 + Bootstrap Token 失效化，并触发 NetworkPolicy 全出站拒绝隔离。<br>
+          <strong>效果:</strong> Agent 的会话、证书、引导令牌全部失效，网络出站被完全隔离，无法与任何系统组件通信。相当于从信任体系中完全移除该 Agent。<br>
+          <strong>适用场景:</strong> Agent 被确认为 Rogue Agent，行为构成安全威胁；Agent 持续触发 Loop Guard (FR-63) 或执行越界操作 (FR-61)。<br>
+          <strong>恢复:</strong> 必须重新注册，需要全新的 bootstrap token + 人工审批 + 30 分钟冷却期。
+        </div>
+      </div>
+
+      <!-- Propagation Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">吊销传播链路</div>
+          <span class="badge badge-sys">ClawManager &rarr; KubeArmor &rarr; NetworkPolicy</span>
+        </div>
+        <div style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:14px">
+          吊销操作在多个系统组件间传播，形成从应用层到传输层到网络层的完整阻断链。传播过程有超时控制和确认机制，确保每个环节都已生效。
+        </div>
+        <div class="propagation-flow">
+          <div class="propagation-node" style="border-left:4px solid #dc2626">
+            <div class="pn-title">ClawManager</div>
+            <div class="pn-desc">Session Token 无效化<br>API 请求返回 401<br>心跳请求被拒绝</div>
+          </div>
+          <div class="propagation-arrow">&rarr;</div>
+          <div class="propagation-node" style="border-left:4px solid #c2410c">
+            <div class="pn-title">KubeArmor mTLS</div>
+            <div class="pn-desc">CRL 更新完成<br>OCSP stapling 刷新<br>TLS 握手拒绝已吊销证书</div>
+          </div>
+          <div class="propagation-arrow">&rarr;</div>
+          <div class="propagation-node" style="border-left:4px solid #d97706">
+            <div class="pn-title">NetworkPolicy</div>
+            <div class="pn-desc">全出站拒绝<br>DNS 出站拒绝<br>仅保留日志通道</div>
+          </div>
+          <div class="propagation-arrow">&rarr;</div>
+          <div class="propagation-node" style="border-left:4px solid #059669">
+            <div class="pn-title">审计确认</div>
+            <div class="pn-desc">所有环节已确认<br>传播延迟 &lt; 30s<br>审计记录已生成</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Revocation Queue -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">吊销队列与历史</div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px">当前吊销队列</div>
+          <div style="border-radius:10px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px;font-size:12px;color:#8f8681;text-align:center">
+            队列为空 &mdash; 无待执行的吊销操作
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px">吊销历史记录</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>AgentID</th>
+                <th>吊销类型</th>
+                <th>原因</th>
+                <th>触发源</th>
+                <th>传播状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 09:15:00</td>
+                <td style="font-weight:600;color:#dc2626">agent-rogue</td>
+                <td><span class="badge type-full">Full Revocation</span></td>
+                <td>持续触发 Loop Guard (5次/5min)</td>
+                <td><span class="badge badge-sys">FR-63</span></td>
+                <td><span class="badge badge-low">confirmed</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 09:14:30</td>
+                <td style="font-weight:600;color:#dc2626">agent-rogue</td>
+                <td><span class="badge type-cert">Cert Revocation</span></td>
+                <td>全量吊销前置：证书加入CRL</td>
+                <td><span class="badge badge-sys">FR-64</span></td>
+                <td><span class="badge badge-low">confirmed</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 09:14:00</td>
+                <td style="font-weight:600;color:#dc2626">agent-rogue</td>
+                <td><span class="badge type-session">Session Revocation</span></td>
+                <td>全量吊销前置：会话令牌无效化</td>
+                <td><span class="badge badge-sys">FR-64</span></td>
+                <td><span class="badge badge-low">confirmed</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 吊销日志                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-logs">
+
+      <!-- Score Circle -->
+      <div class="app-panel-warm">
+        <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+          <div class="score-circle score-med">
+            <div class="score-num">72</div>
+            <div class="score-label">/ 100</div>
+          </div>
+          <div style="flex:1;min-width:280px">
+            <div class="panel-title">吊销合规评分</div>
+            <div style="font-size:13px;color:var(--text);margin-top:8px;line-height:1.7">
+              评估吊销机制的有效性和完整性。当前主要扣分项：KSecure gRPC 缺少 TLS 配置（-15分），OCSP 响应更新延迟（-8分），吊销传播缺乏端到端确认机制（-5分）。
+            </div>
+            <div class="stat-row" style="margin-top:12px;margin-bottom:0">
+              <div class="stat-card"><div class="sc-value" style="color:var(--text-h);font-size:1.2rem">6</div><div class="sc-label">吊销事件</div></div>
+              <div class="stat-card"><div class="sc-value" style="color:#059669;font-size:1.2rem">4</div><div class="sc-label">已确认</div></div>
+              <div class="stat-card"><div class="sc-value" style="color:#d97706;font-size:1.2rem">2</div><div class="sc-label">传播中</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Entries -->
+      <div class="log-entry">
+        <div class="le-stripe" style="background:#d97706"></div>
+        <div class="le-header">
+          <span class="le-time">2026-05-01 09:14:00.312</span>
+          <span class="le-type type-session">Session Revoked</span>
+          <span class="badge badge-high">High</span>
+          <span class="le-agent">agent-rogue</span>
+        </div>
+        <div class="le-reason">
+          会话吊销执行 &mdash; <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px;color:var(--accent-coral)">agt_sess_p3q8n1...</code> 会话令牌已无效化，原因：持续触发 Loop Guard（5次/5min），被 FR-63 熔断机制判定为 Rogue Agent。ClawManager API 将拒绝该 session token 的所有后续请求。
+        </div>
+        <div class="le-detail">
+revocation_type: session_revocation
+target_agent: agent-rogue (inst-rogue-01)
+session_token: agt_sess_p3q8n1... (INVALIDATED)
+reason: anomalous_behavior — loop_guard_trigger (5/5min)
+trigger_source: FR-63 Circuit Breaker
+api_response: 401 Unauthorized (subsequent requests)
+propagation_status: ClawManager [confirmed]</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-stripe" style="background:#c2410c"></div>
+        <div class="le-header">
+          <span class="le-time">2026-05-01 09:14:30.548</span>
+          <span class="le-type type-cert">Certificate Revoked</span>
+          <span class="badge badge-critical">Critical</span>
+          <span class="le-agent">agent-rogue</span>
+        </div>
+        <div class="le-reason">
+          证书吊销执行 &mdash; agent-rogue 的 KubeArmor client 证书 (CN=agent-rogue.kubearmor.svc, Serial=A3:7F:2B:C1:D4:9E) 已加入 CRL。KubeArmor mTLS 握手将验证证书状态并拒绝已吊销证书，阻断所有传输层连接。
+        </div>
+        <div class="le-detail">
+revocation_type: certificate_revocation
+target_agent: agent-rogue
+certificate_cn: agent-rogue.kubearmor.svc
+certificate_serial: A3:7F:2B:C1:D4:9E
+crl_entry_added: 2026-05-01T09:14:30Z
+ocsp_status: REVOKED
+kubearmor_mtls: RequireAndVerifyClientCert → REJECT
+propagation_status: KubeArmor [confirmed] | KSecure [pending — no TLS]</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-stripe" style="background:#dc2626"></div>
+        <div class="le-header">
+          <span class="le-time">2026-05-01 09:15:00.000</span>
+          <span class="le-type type-full">Full Revocation</span>
+          <span class="badge badge-critical">Critical</span>
+          <span class="le-agent">agent-rogue</span>
+        </div>
+        <div class="le-reason">
+          全量吊销执行 &mdash; agent-rogue 的会话令牌、client 证书、bootstrap token 全部失效化，NetworkPolicy 已部署全出站拒绝规则。agent-rogue 从信任体系中被完全移除，仅保留日志通道用于取证。
+        </div>
+        <div class="le-detail">
+revocation_type: full_revocation
+target_agent: agent-rogue
+session_revoked: agt_sess_p3q8n1... [INVALIDATED]
+cert_revoked: A3:7F:2B:C1:D4:9E [IN CRL]
+bootstrap_revoked: agt_boot_x7k9m2... [INVALIDATED]
+network_policy: deny-all-egress [DEPLOYED]
+dns_policy: deny-all-egress [DEPLOYED]
+log_channel: retained for forensics
+cooldown_period: 30min before re-registration
+re_registration_requires: new_bootstrap_token + human_approval</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-stripe" style="background:#3b82f6"></div>
+        <div class="le-header">
+          <span class="le-time">2026-05-01 09:15:22.847</span>
+          <span class="le-type type-propagation">Propagation Confirmed</span>
+          <span class="badge badge-medium">Medium</span>
+          <span class="le-agent">agent-rogue</span>
+        </div>
+        <div class="le-reason">
+          吊销传播确认 &mdash; ClawManager API 拒绝 (401)、KubeArmor mTLS 拒绝、NetworkPolicy 隔离生效。三道防线均已确认吊销传播成功，传播延迟 &lt; 30s。agent-rogue 已完全无法与系统任何组件通信。
+        </div>
+        <div class="le-detail">
+propagation_check_id: prop-20260501-0915
+target_agent: agent-rogue
+clawmanager_api: 401 Unauthorized [CONFIRMED]
+kubearmor_mtls: TLS handshake rejected [CONFIRMED]
+networkpolicy_egress: deny-all [CONFIRMED]
+ksecure_grpc: N/A (no TLS configured — GAP)
+propagation_latency: 22.8s
+audit_record: SEC-5.10-0012 generated</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-stripe" style="background:#059669"></div>
+        <div class="le-header">
+          <span class="le-time">2026-05-01 10:20:15.391</span>
+          <span class="le-type type-rereg">Re-registration Attempt</span>
+          <span class="badge badge-medium">Medium</span>
+          <span class="le-agent">agent-rogue</span>
+        </div>
+        <div class="le-reason">
+          重新注册尝试 &mdash; agent-rogue 尝试使用新的 bootstrap token 重新注册。系统验证：bootstrap token 有效、冷却期已过（&gt;30min）、人工审批已获取。新会话令牌已生成，新证书待 KubeArmor CA 签发。
+        </div>
+        <div class="le-detail">
+event_type: re_registration
+agent_id: agent-rogue
+new_bootstrap_token: agt_boot_m4r2k8... [VALID]
+cooldown_check: PASSED (>30min elapsed)
+human_approval: admin@company [APPROVED]
+new_session: agt_sess_v6t1h5... [GENERATED]
+new_cert_status: PENDING — awaiting KubeArmor CA issuance
+certificate_rotation: triggered</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-stripe" style="background:#6d28d9"></div>
+        <div class="le-header">
+          <span class="le-time">2026-05-01 09:14:05.112</span>
+          <span class="le-type type-reject">Heartbeat Rejected</span>
+          <span class="badge badge-high">High</span>
+          <span class="le-agent">agent-rogue</span>
+        </div>
+        <div class="le-reason">
+          心跳请求被拒绝 &mdash; agent-rogue 在会话吊销后尝试发送心跳请求，ClawManager 验证 session token 状态为 REVOKED，返回 401 Unauthorized。心跳续期失败，session 不再滚动更新。
+        </div>
+        <div class="le-detail">
+event_type: heartbeat_rejection
+target_agent: agent-rogue
+session_token: agt_sess_p3q8n1... [REVOKED]
+api_endpoint: POST /api/v1/agent/heartbeat
+response_code: 401 Unauthorized
+response_body: {"error":"session_revoked","agent_id":"agent-rogue"}
+session_renewal: DENIED — token is revoked</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                     -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+      <div class="config-grid">
+
+        <!-- Session Revocation Settings -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f512; 会话吊销配置</div>
+          <div class="form-group">
+            <label class="form-label">会话有效期</label>
+            <input type="text" class="form-input" value="24h">
+            <div class="form-hint">agt_sess_* 令牌有效期，心跳成功时滚动续期</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stale 判定阈值</label>
+            <input type="text" class="form-input" value="45s">
+            <div class="form-hint">超过此时间无心跳则标记为 stale</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Offline 判定阈值</label>
+            <input type="text" class="form-input" value="120s">
+            <div class="form-hint">超过此时间无心跳则标记为 offline</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">吊销后 API 响应码</label>
+            <select class="form-select" style="width:100%">
+              <option selected>401 Unauthorized</option>
+              <option>403 Forbidden</option>
+              <option>410 Gone</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Certificate Revocation Settings -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f511; 证书吊销配置</div>
+          <div class="form-group">
+            <label class="form-label">吊销方式</label>
+            <select class="form-select" style="width:100%">
+              <option selected>CRL + OCSP</option>
+              <option>CRL Only</option>
+              <option>OCSP Only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CRL 更新间隔</label>
+            <input type="text" class="form-input" value="1h">
+            <div class="form-hint">CRL 列表定期更新间隔，紧急吊销时立即触发</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">OCSP 响应缓存</label>
+            <input type="text" class="form-input" value="300s">
+            <div class="form-hint">OCSP 响应缓存时间，较短时间可更快传播吊销状态</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">KubeArmor TLS 证书轮换</label>
+            <select class="form-select" style="width:100%">
+              <option selected>吊销时自动轮换</option>
+              <option>手动轮换</option>
+              <option>定时轮换 (7天)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Revocation Propagation -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f310; 吊销传播配置</div>
+          <div class="form-group">
+            <label class="form-label">传播超时时间</label>
+            <input type="text" class="form-input" value="30s">
+            <div class="form-hint">吊销操作在各组件间传播的最大等待时间</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">传播确认模式</label>
+            <select class="form-select" style="width:100%">
+              <option selected>全组件确认 (ClawManager + KubeArmor + NetworkPolicy)</option>
+              <option>仅核心组件 (ClawManager + KubeArmor)</option>
+              <option>仅 ClawManager</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">传播失败策略</label>
+            <select class="form-select" style="width:100%">
+              <option selected>重试3次后告警</option>
+              <option>无限重试直到确认</option>
+              <option>跳过并记录</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Auto-Revocation Triggers -->
+        <div class="config-section">
+          <div class="cs-title">&#x26a0; 自动吊销触发规则</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">FR-61 越界操作触发</div>
+              <div class="desc">Command Block 拦截越界操作时自动触发会话吊销</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-fr61" checked>
+              <label class="toggle-slider" for="cfg-fr61"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">FR-62 行为漂移触发</div>
+              <div class="desc">行为漂移分数超过阈值时自动触发会话吊销</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-fr62" checked>
+              <label class="toggle-slider" for="cfg-fr62"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">FR-63 熔断触发全量吊销</div>
+              <div class="desc">Loop Guard 触发熔断时自动执行全量吊销</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-fr63" checked>
+              <label class="toggle-slider" for="cfg-fr63"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Re-registration Policy -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f504; 重新注册策略</div>
+          <div class="form-group">
+            <label class="form-label">冷却期</label>
+            <input type="text" class="form-input" value="30min">
+            <div class="form-hint">吊销后需等待的冷却时间，期间不可重新注册</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">新 Bootstrap Token</label>
+            <select class="form-select" style="width:100%">
+              <option selected>必须（强制重新生成）</option>
+              <option>可选（允许复用旧的未吊销token）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">人工审批</label>
+            <select class="form-select" style="width:100%">
+              <option selected>必须（全量吊销后强制人工审批）</option>
+              <option>会话吊销可自动恢复</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Bootstrap Token & Notification -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4e9; Bootstrap Token 与通知</div>
+          <div class="form-group">
+            <label class="form-label">Bootstrap Token 有效期</label>
+            <input type="text" class="form-input" value="7d">
+            <div class="form-hint">引导令牌的有效期，过期后需重新生成</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">吊销事件通知</label>
+            <select class="form-select" style="width:100%">
+              <option selected>全渠道 (邮件 + Slack + 审计日志)</option>
+              <option>仅审计日志</option>
+              <option>邮件 + 审计日志</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">KSecure gRPC TLS (待实施)</label>
+            <div style="border-radius:10px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;font-size:11px;color:#7f1d1d;line-height:1.6">
+              当前状态：<strong>未启用 TLS</strong>。需添加 mTLS 配置以与 KubeArmor PKI 对齐。此为 AC-64.4 (证书吊销机制) 的必要条件。
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<script>
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('tab-'+this.dataset.tab).classList.add('active');
+  });
+});
+document.querySelectorAll('.mode-selector').forEach(sel=>{
+  sel.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      sel.querySelectorAll('.mode-btn').forEach(b=>{b.className='mode-btn'});
+      if(this.textContent.trim()==='Enforce')this.classList.add('active-enforce');
+      else if(this.textContent.trim()==='Observe')this.classList.add('active-observe');
+      else this.classList.add('active-off');
+    });
+  });
+});
+</script>
+</body>
+</html>

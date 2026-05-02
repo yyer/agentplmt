@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-69 安全事件联动处置与实例自愈恢复 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-online{background:#d1fae5;color:#065f46}.badge-stale{background:#fef3c7;color:#92400e}.badge-offline{background:#fee2e2;color:#b91c1c}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-danger{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px -4px rgba(220,38,38,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.lifecycle-flow{display:flex;align-items:center;gap:0;margin:20px 0;flex-wrap:nowrap;overflow-x:auto}
+.lifecycle-stage{flex:1;min-width:160px;border-radius:18px;border:1px solid #eadfd8;padding:18px 14px;text-align:center;position:relative;background:rgba(255,255,255,0.9);transition:all .2s}
+.lifecycle-stage:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-2px)}
+.lifecycle-stage .ls-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 10px}
+.lifecycle-stage .ls-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:4px}
+.lifecycle-stage .ls-desc{font-size:11px;color:var(--text);line-height:1.6}
+.lifecycle-stage .ls-detail{font-size:10px;color:#8f8681;margin-top:8px;font-family:monospace;line-height:1.5}
+.lifecycle-arrow{width:36px;flex-shrink:0;text-align:center;color:#b4a9a0;font-size:20px}
+.action-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:18px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.action-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.action-card .ac-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.action-card .ac-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-left:10px}
+.action-card .ac-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.action-card .ac-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.log-entry{border-radius:12px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.92);padding:14px 18px;margin-bottom:10px;transition:all .15s;position:relative;overflow:hidden}
+.log-entry:hover{box-shadow:0 2px 12px -4px rgba(72,44,24,0.15)}
+.log-entry .le-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.log-entry .le-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;padding-left:8px}
+.log-entry .le-time{font-size:11px;color:#8f8681;font-family:monospace}
+.log-entry .le-type{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px}
+.log-entry .le-agent{font-size:12px;font-weight:600;color:var(--text-h)}
+.log-entry .le-reason{font-size:12px;color:var(--text);line-height:1.6;margin-top:4px;padding-left:8px}
+.log-entry .le-detail{margin-top:8px;border-radius:8px;background:#faf7f4;padding:10px 14px;font-size:11px;font-family:monospace;line-height:1.7;color:var(--text);padding-left:18px}
+.type-auto{background:#fee2e2;color:#b91c1c}.type-manual{background:#fef3c7;color:#92400e}.type-recovery{background:#d1fae5;color:#065f46}.type-approval{background:#dbeafe;color:#1d4ed8}.type-rebuild{background:#ede9fe;color:#6d28d9}.type-network{background:#ffedd5;color:#c2410c}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}.lifecycle-flow{flex-wrap:wrap}.lifecycle-arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.11 审计追踪与运营治理</div>
+    <div class="nav-item" data-page="fr65"><span>FR-65 安全事件全链路审计</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr66"><span>FR-66 合规基线与持续核查</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr67"><span>FR-67 策略版本管理与回滚</span><span class="fr-badge">P2</span></div>
+    <div class="nav-item" data-page="fr68"><span>FR-68 运营指标与SLA看板</span><span class="fr-badge">P2</span></div>
+    <div class="nav-item active" data-page="fr69"><span>FR-69 安全事件联动处置与自愈</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr70"><span>FR-70 证据固化与取证回放</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr71"><span>FR-71 安全运营SOP与工单</span><span class="fr-badge">P2</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.11 审计追踪与运营治理</div>
+      <div class="page-title">FR-69 | 安全事件联动处置与实例自愈恢复 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawManager</span>
+      <span class="badge badge-sys">KSecure</span>
+      <span class="badge badge-sys">KubeArmor</span>
+      <span class="badge badge-sys">OpenClaw</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">联动处置架构</div>
+      <div class="tab" data-tab="rules">响应规则</div>
+      <div class="tab" data-tab="playbook">自愈剧本</div>
+      <div class="tab" data-tab="monitor">处置监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 联动处置架构                                             -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Automated Incident Response &amp; Self-Healing &mdash; Detect, Classify, Respond, Notify, Recover</div>
+        <div class="panel-title">安全事件联动处置与实例自愈恢复架构</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          FR-69 基于风险检测结果自动执行断网、隔离、冻结、摘流量、重建和恢复等动作，实现从威胁检测到自动处置再到审批恢复的全闭环响应。系统由 ClawManager（Agent 命令下发 &mdash; quarantine_skill / stop_openclaw / restart_openclaw + K8s 实例管理）+ KSecure（主机一键网络隔离 + ProcessBlackType 进程清理）+ KubeArmor（DefaultPosture audit&rarr;block 硬化 + NetworkPolicyEnforcer nftables）协同实现，确保高危事件在秒级触发自动隔离，恢复操作需经审批流程后方可执行。
+        </p>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="badge badge-p1">P1 优先级</span>
+          <span class="badge badge-sys">ClawManager</span>
+          <span class="badge badge-sys">KSecure</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="badge badge-sys">OpenClaw</span>
+          <span class="badge badge-critical">自动隔离</span>
+          <span class="badge badge-high">审批恢复</span>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">47</div><div class="sc-label">今日事件总数</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#dc2626">12</div><div class="sc-label">自动处置</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#d97706">3</div><div class="sc-label">人工干预</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#059669">94%</div><div class="sc-label">恢复成功率</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#6d28d9">2.3s</div><div class="sc-label">平均响应时延</div></div>
+      </div>
+
+      <!-- Response Playbook Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">事件响应流程 &mdash; 检测 &rarr; 分级 &rarr; 处置 &rarr; 通知 &rarr; 恢复</div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-sys">ClawAegis</span>
+            <span class="badge badge-sys">KubeArmor</span>
+            <span class="badge badge-sys">KSecure</span>
+          </div>
+        </div>
+
+        <div class="lifecycle-flow">
+          <!-- Stage 1: Detection -->
+          <div class="lifecycle-stage" style="border-left:4px solid #3b82f6">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8">&#x1f50d;</div>
+            <div class="ls-title">检测 Detection</div>
+            <div class="ls-desc">多源安全事件接入</div>
+            <div class="ls-detail">
+              ClawAegis: Loop Guard / Dispatch Guard<br>
+              KubeArmor: Alert (44 fields)<br>
+              KSecure: SecLog / ProcessBlackType<br>
+              ClawManager: Risk Detection
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 2: Classification -->
+          <div class="lifecycle-stage" style="border-left:4px solid #d97706">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#d97706">&#x2696;</div>
+            <div class="ls-title">分级 Classification</div>
+            <div class="ls-desc">威胁等级判定</div>
+            <div class="ls-detail">
+              Critical: 即时自动响应<br>
+              High: 自动处置 + 通知<br>
+              Medium: 通知 + 建议处置<br>
+              Low: 记录 + 观察
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 3: Automated Response -->
+          <div class="lifecycle-stage" style="border-left:4px solid #dc2626">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#dc2626">&#x26a1;</div>
+            <div class="ls-title">自动处置 Response</div>
+            <div class="ls-desc">执行遏制动作</div>
+            <div class="ls-detail">
+              quarantine_skill: 隔离Agent<br>
+              stop_openclaw: 冻结实例<br>
+              NetworkPolicy: 全量出站拒绝<br>
+              KSecure: 主机网络隔离<br>
+              KubeArmor: audit&rarr;block
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 4: Human Notification -->
+          <div class="lifecycle-stage" style="border-left:4px solid #6d28d9">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#6d28d9">&#x1f514;</div>
+            <div class="ls-title">通知 Notification</div>
+            <div class="ls-desc">人工确认与决策</div>
+            <div class="ls-detail">
+              Critical/High: 即时推送<br>
+              Channel: 钉钉/企微/邮件<br>
+              内容: 事件详情+处置记录<br>
+              升级: 15min未响应升级
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 5: Recovery -->
+          <div class="lifecycle-stage" style="border-left:4px solid #059669">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#059669">&#x1f504;</div>
+            <div class="ls-title">恢复 Recovery</div>
+            <div class="ls-desc">审批后恢复运行</div>
+            <div class="ls-detail">
+              restart_openclaw: 重启实例<br>
+              DesiredPowerState: running<br>
+              NetworkPolicy: 恢复出站<br>
+              KSecure: 解除隔离<br>
+              审批: 必须 (Critical/High)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 Response Actions -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">六大联动处置动作</div>
+          <span class="badge badge-sys">ClawManager Commands</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+
+          <!-- Action 1: Network Disconnect -->
+          <div class="action-card">
+            <div class="ac-stripe" style="background:#dc2626"></div>
+            <div class="ac-header">
+              <span style="font-size:18px">&#x1f310;</span>
+              <div>
+                <div class="ac-title">断网 Network Disconnect</div>
+                <span class="badge badge-critical">Critical</span>
+              </div>
+            </div>
+            <div class="ac-body">
+              <strong>执行方式:</strong> ClawManager 下发 K8s NetworkPolicy，全量拒绝出站流量<br>
+              <strong>白名单:</strong> DNS(53) + 系统端口(80,443,8443,9001,3128) 可选保留或全拒<br>
+              <strong>KSecure:</strong> 主机级网络隔离 iptables/nftables<br>
+              <strong>KubeArmor:</strong> NetworkPolicyEnforcer (nftables) 强制执行<br>
+              <strong>触发条件:</strong> 数据外泄链、C2通信检测<br>
+              <strong>恢复:</strong> 需审批后恢复 NetworkPolicy egress 规则
+            </div>
+          </div>
+
+          <!-- Action 2: Quarantine -->
+          <div class="action-card">
+            <div class="ac-stripe" style="background:#c2410c"></div>
+            <div class="ac-header">
+              <span style="font-size:18px">&#x1f6d1;</span>
+              <div>
+                <div class="ac-title">隔离 Quarantine</div>
+                <span class="badge badge-high">High</span>
+              </div>
+            </div>
+            <div class="ac-body">
+              <strong>执行方式:</strong> ClawManager 下发 <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">quarantine_skill</code> 命令<br>
+              <strong>效果:</strong> Agent 被标记为隔离态，禁止执行任何 Skill<br>
+              <strong>关联:</strong> <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">handle_skill_risk</code> + <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">disable_skill</code> 配合<br>
+              <strong>触发条件:</strong> 高危风险检测、漂移评分 &gt;0.8<br>
+              <strong>恢复:</strong> 需审批解除隔离状态
+            </div>
+          </div>
+
+          <!-- Action 3: Freeze -->
+          <div class="action-card">
+            <div class="ac-stripe" style="background:#d97706"></div>
+            <div class="ac-header">
+              <span style="font-size:18px">&#x2744;</span>
+              <div>
+                <div class="ac-title">冻结 Freeze</div>
+                <span class="badge badge-high">High</span>
+              </div>
+            </div>
+            <div class="ac-body">
+              <strong>执行方式:</strong> <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">stop_openclaw</code> + DesiredPowerState=stopped<br>
+              <strong>效果:</strong> OpenClaw 实例停止运行，Pod 保留不删除<br>
+              <strong>ClawManager:</strong> InstanceDesiredState 切换至 stopped<br>
+              <strong>触发条件:</strong> 持续循环（Loop Guard 5+触发）、Rogue Agent<br>
+              <strong>恢复:</strong> <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">restart_openclaw</code> + DesiredPowerState=running
+            </div>
+          </div>
+
+          <!-- Action 4: Drain Traffic -->
+          <div class="action-card">
+            <div class="ac-stripe" style="background:#6d28d9"></div>
+            <div class="ac-header">
+              <span style="font-size:18px">&#x1f6e2;</span>
+              <div>
+                <div class="ac-title">摘流量 Drain Traffic</div>
+                <span class="badge badge-medium">Medium</span>
+              </div>
+            </div>
+            <div class="ac-body">
+              <strong>执行方式:</strong> 从 K8s Service 后端移除 Pod<br>
+              <strong>效果:</strong> 实例不再接收新流量，已有连接优雅关闭<br>
+              <strong>K8s:</strong> 调整 Service selector / Endpoint 切片<br>
+              <strong>触发条件:</strong> 中等风险事件、可疑行为观察<br>
+              <strong>恢复:</strong> 重新加入 Service 后端，流量逐步恢复
+            </div>
+          </div>
+
+          <!-- Action 5: Rebuild -->
+          <div class="action-card">
+            <div class="ac-stripe" style="background:#1d4ed8"></div>
+            <div class="ac-header">
+              <span style="font-size:18px">&#x1f527;</span>
+              <div>
+                <div class="ac-title">重建 Rebuild</div>
+                <span class="badge badge-critical">Critical</span>
+              </div>
+            </div>
+            <div class="ac-body">
+              <strong>执行方式:</strong> 删除并重新创建 Pod<br>
+              <strong>效果:</strong> 实例从干净镜像重建，丢弃所有运行时状态<br>
+              <strong>ClawManager:</strong> K8s Pod delete + recreate<br>
+              <strong>触发条件:</strong> 勒索软件检测、实例被完全入侵<br>
+              <strong>前置:</strong> 证据固化完成（FR-70）+ 审批通过<br>
+              <strong>恢复:</strong> 新 Pod 就绪后自动加入服务
+            </div>
+          </div>
+
+          <!-- Action 6: Restore -->
+          <div class="action-card">
+            <div class="ac-stripe" style="background:#059669"></div>
+            <div class="ac-header">
+              <span style="font-size:18px">&#x2705;</span>
+              <div>
+                <div class="ac-title">恢复 Restore</div>
+                <span class="badge badge-low">Recovery</span>
+              </div>
+            </div>
+            <div class="ac-body">
+              <strong>执行方式:</strong> restart_openclaw + 恢复 NetworkPolicy<br>
+              <strong>效果:</strong> 实例恢复运行，网络策略恢复到正常状态<br>
+              <strong>ClawManager:</strong> DesiredPowerState&rarr;running, egress restore<br>
+              <strong>KSecure:</strong> 解除主机网络隔离<br>
+              <strong>KubeArmor:</strong> DefaultPosture 恢复 audit 模式<br>
+              <strong>审批:</strong> Critical/High 事件恢复必须审批
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Integration Architecture -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">系统集成架构 &mdash; ClawManager + KSecure + KubeArmor + OpenClaw</div>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          联动处置的核心在于 ClawManager 作为编排中枢：检测事件从 ClawAegis（Loop Guard 持续触发 &rarr; 自动冻结）和 KubeArmor/KSecure（安全告警 &rarr; 自动隔离）汇聚，ClawManager 根据预设规则自动选择处置动作组合，通过 InstanceCommand 下发 <code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">quarantine_skill</code>、<code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">stop_openclaw</code>、<code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">restart_openclaw</code>、<code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">handle_skill_risk</code>、<code style="background:#faf7f4;padding:2px 6px;border-radius:4px;font-size:12px;color:var(--accent-coral)">disable_skill</code> 等命令，同时通过 K8s API 管理 NetworkPolicy 和 Pod 生命周期。KSecure 提供主机级网络隔离兜底，KubeArmor 通过 DefaultPosture 切换和 NetworkPolicyEnforcer 提供内核级策略执行。
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f3af; ClawManager 命令体系</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              <strong>InstanceCommand 类型:</strong><br>
+              &bull; quarantine_skill &mdash; Agent 隔离，禁止 Skill 执行<br>
+              &bull; stop_openclaw &mdash; 停止 OpenClaw 实例运行<br>
+              &bull; restart_openclaw &mdash; 重启 OpenClaw 实例<br>
+              &bull; handle_skill_risk &mdash; 风险 Skill 处置指令<br>
+              &bull; disable_skill &mdash; 禁用指定 Skill<br><br>
+              <strong>InstanceDesiredState:</strong><br>
+              &bull; DesiredPowerState: running / stopped<br>
+              &bull; 配合 InstanceCommand 实现冻结/恢复
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f6e1; K8s + KSecure + KubeArmor 协同</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              <strong>K8s NetworkPolicy:</strong><br>
+              &bull; 断网: egress 全量 deny (可保留 DNS 53)<br>
+              &bull; 限制: 仅允许 80,443,8443,9001,3128<br>
+              &bull; 恢复: restore 原始 egress 规则<br><br>
+              <strong>KSecure:</strong> 主机级 iptables/nftables 网络隔离<br>
+              <strong>KubeArmor:</strong> DefaultPosture audit&rarr;block 即时硬化<br>
+              &bull; NetworkPolicyEnforcer (nftables) 执行策略
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 响应规则                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- Auto-Response Toggle -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">自动响应策略控制</div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">自动响应模式</div>
+            <div class="desc">enforce=自动执行处置动作; observe=仅记录不执行; off=关闭自动响应</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce">Enforce</div>
+            <div class="mode-btn">Observe</div>
+            <div class="mode-btn">Off</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Critical 级别自动处置</div>
+            <div class="desc">Critical 威胁事件自动执行隔离/断网，无需人工确认（ClawAegis + KubeArmor 触发）</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-critical-auto" checked>
+            <label class="toggle-slider" for="toggle-critical-auto"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">KubeArmor DefaultPosture 自动切换</div>
+            <div class="desc">检测到高危事件时自动将 DefaultPosture 从 audit 切换为 block 模式即时硬化</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-kubearmor-posture" checked>
+            <label class="toggle-slider" for="toggle-kubearmor-posture"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">恢复操作审批</div>
+            <div class="desc">Critical/High 级别事件恢复操作必须经过审批流程后方可执行</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-recovery-approval" checked>
+            <label class="toggle-slider" for="toggle-recovery-approval"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response Rule Cards -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">自动化响应规则</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">+ 新增规则</button>
+            <button class="btn-secondary btn-sm">&#x21bb; 同步</button>
+          </div>
+        </div>
+
+        <!-- Rule 1: Critical Risk Detection -->
+        <div class="action-card" style="margin-bottom:16px">
+          <div class="ac-stripe" style="background:#dc2626"></div>
+          <div class="ac-header">
+            <span style="font-size:18px">&#x26a0;</span>
+            <div style="flex:1">
+              <div class="ac-title">Critical 风险检测自动隔离</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-critical">Critical</span>
+                <span class="badge badge-enforce">Enforce</span>
+                <span class="badge badge-sys">ClawAegis</span>
+                <span class="badge badge-sys">KubeArmor</span>
+              </div>
+            </div>
+            <div class="toggle-switch" style="margin-left:auto">
+              <input type="checkbox" id="rule1" checked>
+              <label class="toggle-slider" for="rule1"></label>
+            </div>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:8px">
+              <div><strong style="color:var(--text-h)">触发条件</strong><br>AI Gateway 阻断 + KubeArmor 高危 Alert</div>
+              <div><strong style="color:var(--text-h)">响应动作</strong><br>quarantine_skill + NetworkPolicy 全量 deny</div>
+              <div><strong style="color:var(--text-h)">升级策略</strong><br>30s 未处置 &rarr; stop_openclaw + KSecure 隔离</div>
+              <div><strong style="color:var(--text-h)">冷却时间</strong><br>300s (5 min) 同一实例不重复触发</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule 2: Persistent Loop -->
+        <div class="action-card" style="margin-bottom:16px">
+          <div class="ac-stripe" style="background:#d97706"></div>
+          <div class="ac-header">
+            <span style="font-size:18px">&#x1f501;</span>
+            <div style="flex:1">
+              <div class="ac-title">持续循环自动冻结</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-enforce">Enforce</span>
+                <span class="badge badge-sys">ClawAegis Loop Guard</span>
+              </div>
+            </div>
+            <div class="toggle-switch" style="margin-left:auto">
+              <input type="checkbox" id="rule2" checked>
+              <label class="toggle-slider" for="rule2"></label>
+            </div>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:8px">
+              <div><strong style="color:var(--text-h)">触发条件</strong><br>Loop Guard 5+ 次持续触发</div>
+              <div><strong style="color:var(--text-h)">响应动作</strong><br>stop_openclaw + DesiredPowerState=stopped</div>
+              <div><strong style="color:var(--text-h)">升级策略</strong><br>持续 10+ 次 &rarr; quarantine_skill + 通知</div>
+              <div><strong style="color:var(--text-h)">冷却时间</strong><br>600s (10 min) 冷却期</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule 3: Exfiltration Chain -->
+        <div class="action-card" style="margin-bottom:16px">
+          <div class="ac-stripe" style="background:#dc2626"></div>
+          <div class="ac-header">
+            <span style="font-size:18px">&#x1f4e4;</span>
+            <div style="flex:1">
+              <div class="ac-title">数据外泄链自动断网</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-critical">Critical</span>
+                <span class="badge badge-enforce">Enforce</span>
+                <span class="badge badge-sys">ClawAegis</span>
+                <span class="badge badge-sys">KSecure</span>
+              </div>
+            </div>
+            <div class="toggle-switch" style="margin-left:auto">
+              <input type="checkbox" id="rule3" checked>
+              <label class="toggle-slider" for="rule3"></label>
+            </div>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:8px">
+              <div><strong style="color:var(--text-h)">触发条件</strong><br>高置信度外泄链检测 (ClawAegis 关联分析)</div>
+              <div><strong style="color:var(--text-h)">响应动作</strong><br>NetworkPolicy 全量 deny + KSecure 主机隔离</div>
+              <div><strong style="color:var(--text-h)">升级策略</strong><br>立即 KSecure 全隔离 + 证据固化(FR-70)</div>
+              <div><strong style="color:var(--text-h)">冷却时间</strong><br>0s (立即执行，不设冷却)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule 4: Command Block Hit -->
+        <div class="action-card" style="margin-bottom:16px">
+          <div class="ac-stripe" style="background:#c2410c"></div>
+          <div class="ac-header">
+            <span style="font-size:18px">&#x1f6ab;</span>
+            <div style="flex:1">
+              <div class="ac-title">高危命令拦截自动隔离</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-enforce">Enforce</span>
+                <span class="badge badge-sys">ClawAegis Dispatch Guard</span>
+              </div>
+            </div>
+            <div class="toggle-switch" style="margin-left:auto">
+              <input type="checkbox" id="rule4" checked>
+              <label class="toggle-slider" for="rule4"></label>
+            </div>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:8px">
+              <div><strong style="color:var(--text-h)">触发条件</strong><br>HIGH_RISK_COMMAND_PATTERNS 命中阻断</div>
+              <div><strong style="color:var(--text-h)">响应动作</strong><br>quarantine_skill + disable_skill</div>
+              <div><strong style="color:var(--text-h)">升级策略</strong><br>3+ 次命令阻断 &rarr; stop_openclaw 冻结</div>
+              <div><strong style="color:var(--text-h)">冷却时间</strong><br>180s (3 min)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule 5: Drift Critical -->
+        <div class="action-card" style="margin-bottom:16px">
+          <div class="ac-stripe" style="background:#d97706"></div>
+          <div class="ac-header">
+            <span style="font-size:18px">&#x1f4c8;</span>
+            <div style="flex:1">
+              <div class="ac-title">漂移评分超限自动隔离</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-observe">Observe</span>
+                <span class="badge badge-sys">ClawAegis</span>
+              </div>
+            </div>
+            <div class="toggle-switch" style="margin-left:auto">
+              <input type="checkbox" id="rule5" checked>
+              <label class="toggle-slider" for="rule5"></label>
+            </div>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:8px">
+              <div><strong style="color:var(--text-h)">触发条件</strong><br>漂移评分 drift_score &gt; 0.8 (FR-62)</div>
+              <div><strong style="color:var(--text-h)">响应动作</strong><br>quarantine_skill + 通知安全团队</div>
+              <div><strong style="color:var(--text-h)">升级策略</strong><br>drift_score &gt; 0.95 &rarr; stop_openclaw</div>
+              <div><strong style="color:var(--text-h)">冷却时间</strong><br>600s (10 min)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 自愈剧本                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-playbook">
+
+      <!-- Playbook Cards -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">自愈剧本库 &mdash; 常见安全场景自动化处置</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">+ 新建剧本</button>
+            <button class="btn-primary btn-sm">&#x25b6; 测试演练</button>
+          </div>
+        </div>
+
+        <!-- Playbook 1: Ransomware -->
+        <div class="action-card" style="margin-bottom:18px">
+          <div class="ac-stripe" style="background:#dc2626"></div>
+          <div class="ac-header">
+            <span style="font-size:20px">&#x1f512;</span>
+            <div style="flex:1">
+              <div class="ac-title">勒索软件检测 Ransomware Detected</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-critical">Critical</span>
+                <span class="badge badge-sys">KSecure</span>
+                <span class="badge badge-sys">KubeArmor</span>
+                <span class="badge badge-sys">ClawManager</span>
+              </div>
+            </div>
+            <span class="badge badge-enforce">Enforce</span>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;margin-top:8px">
+              <div>
+                <strong style="color:var(--text-h)">处置步骤</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  <strong>1.</strong> KSecure 检测异常进程加密行为 (ProcessBlackType)<br>
+                  <strong>2.</strong> 自动执行 KSecure 主机网络隔离 (iptables DROP ALL)<br>
+                  <strong>3.</strong> ClawManager 下发 <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">stop_openclaw</code> + DesiredPowerState=stopped 冻结实例<br>
+                  <strong>4.</strong> KubeArmor DefaultPosture 切换 audit&rarr;block 即时硬化<br>
+                  <strong>5.</strong> 触发证据固化 (FR-70) &mdash; 保留配置快照 + 执行链<br>
+                  <strong>6.</strong> 通知安全团队 (Critical 通道: 钉钉 + 电话)<br>
+                  <strong>7.</strong> 审批后删除 Pod + 重建 (Rebuild)<br>
+                  <strong>8.</strong> 新 Pod 就绪 + 恢复验证 + 加入服务
+                </div>
+              </div>
+              <div>
+                <strong style="color:var(--text-h)">恢复路径</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  证据固化完成 &rarr;<br>
+                  人工审批通过 &rarr;<br>
+                  Pod delete + recreate &rarr;<br>
+                  健康检查通过 &rarr;<br>
+                  DesiredPowerState=running &rarr;<br>
+                  NetworkPolicy 恢复 &rarr;<br>
+                  KSecure 解除隔离 &rarr;<br>
+                  全链路验证
+                </div>
+              </div>
+              <div>
+                <strong style="color:var(--text-h)">SLA 目标</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  检测&to;隔离: &le;5s<br>
+                  隔离&to;通知: &le;10s<br>
+                  通知&to;审批: &le;15min<br>
+                  审批&to;重建: &le;5min<br>
+                  重建&to;就绪: &le;3min<br>
+                  总恢复RTO: &le;30min
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playbook 2: Data Exfiltration -->
+        <div class="action-card" style="margin-bottom:18px">
+          <div class="ac-stripe" style="background:#c2410c"></div>
+          <div class="ac-header">
+            <span style="font-size:20px">&#x1f4e4;</span>
+            <div style="flex:1">
+              <div class="ac-title">数据外泄 Data Exfiltration</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-critical">Critical</span>
+                <span class="badge badge-sys">ClawAegis</span>
+                <span class="badge badge-sys">KSecure</span>
+                <span class="badge badge-sys">ClawManager</span>
+              </div>
+            </div>
+            <span class="badge badge-enforce">Enforce</span>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;margin-top:8px">
+              <div>
+                <strong style="color:var(--text-h)">处置步骤</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  <strong>1.</strong> ClawAegis 检测高置信度数据外泄链 (关联分析)<br>
+                  <strong>2.</strong> 立即执行 NetworkPolicy 全量 egress deny (保留 DNS 53)<br>
+                  <strong>3.</strong> KSecure 主机级网络隔离 (双重保障)<br>
+                  <strong>4.</strong> ClawManager <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">quarantine_skill</code> 隔离 Agent<br>
+                  <strong>5.</strong> 证据固化 &mdash; 保留外泄数据流日志 + 配置快照<br>
+                  <strong>6.</strong> 通知安全团队 (数据外泄专项通道)<br>
+                  <strong>7.</strong> 保留证据 &rarr; 审批后恢复 (带限制性 NetworkPolicy)<br>
+                  <strong>8.</strong> 恢复后仅允许白名单出站 (80,443,8443,9001,3128)
+                </div>
+              </div>
+              <div>
+                <strong style="color:var(--text-h)">恢复路径</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  证据审查完成 &rarr;<br>
+                  外泄范围确认 &rarr;<br>
+                  人工审批通过 &rarr;<br>
+                  限制性 NetworkPolicy &rarr;<br>
+                  KSecure 解除隔离 &rarr;<br>
+                  quarantine 解除 &rarr;<br>
+                  持续监控 (7天)
+                </div>
+              </div>
+              <div>
+                <strong style="color:var(--text-h)">SLA 目标</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  检测&to;断网: &le;3s<br>
+                  断网&to;隔离: &le;5s<br>
+                  隔离&to;通知: &le;10s<br>
+                  通知&to;审批: &le;30min<br>
+                  恢复后监控: 7天<br>
+                  总恢复RTO: &le;1h
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playbook 3: Rogue Agent -->
+        <div class="action-card" style="margin-bottom:18px">
+          <div class="ac-stripe" style="background:#d97706"></div>
+          <div class="ac-header">
+            <span style="font-size:20px">&#x1f916;</span>
+            <div style="flex:1">
+              <div class="ac-title">Rogue Agent 失控代理</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-high">High</span>
+                <span class="badge badge-sys">ClawAegis</span>
+                <span class="badge badge-sys">ClawManager</span>
+              </div>
+            </div>
+            <span class="badge badge-enforce">Enforce</span>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;margin-top:8px">
+              <div>
+                <strong style="color:var(--text-h)">处置步骤</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  <strong>1.</strong> ClawAegis 检测 drift_score &gt;0.8 + Loop Guard 持续触发<br>
+                  <strong>2.</strong> 自动执行 <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">stop_openclaw</code> + DesiredPowerState=stopped 冻结实例<br>
+                  <strong>3.</strong> <code style="background:#faf7f4;padding:1px 5px;border-radius:3px;font-size:11px">quarantine_skill</code> 隔离 Agent，禁止 Skill 执行<br>
+                  <strong>4.</strong> 通知安全团队 &mdash; 提供漂移分析报告<br>
+                  <strong>5.</strong> 人工审查: 评估 Agent 行为偏离程度<br>
+                  <strong>6.</strong> 决策: 重建 (Pod delete+recreate) 或 恢复 (restart + 矫正)<br>
+                  <strong>7.</strong> 恢复后持续监控 drift_score 变化
+                </div>
+              </div>
+              <div>
+                <strong style="color:var(--text-h)">恢复路径</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  路径A (重建):<br>
+                  证据固化 &rarr; 审批 &rarr;<br>
+                  Pod rebuild &rarr; 验证 &rarr; 上线<br><br>
+                  路径B (恢复):<br>
+                  配置矫正 &rarr; 审批 &rarr;<br>
+                  restart_openclaw &rarr;<br>
+                  drift 监控 (48h)
+                </div>
+              </div>
+              <div>
+                <strong style="color:var(--text-h)">SLA 目标</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  检测&to;冻结: &le;10s<br>
+                  冻结&to;通知: &le;15s<br>
+                  通知&to;审查: &le;30min<br>
+                  重建RTO: &le;15min<br>
+                  恢复监控: 48h
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playbook 4: Config Drift -->
+        <div class="action-card" style="margin-bottom:18px">
+          <div class="ac-stripe" style="background:#6d28d9"></div>
+          <div class="ac-header">
+            <span style="font-size:20px">&#x2699;</span>
+            <div style="flex:1">
+              <div class="ac-title">配置漂移 Config Drift</div>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <span class="badge badge-medium">Medium</span>
+                <span class="badge badge-sys">ClawManager</span>
+                <span class="badge badge-sys">KubeArmor</span>
+              </div>
+            </div>
+            <span class="badge badge-observe">Observe</span>
+          </div>
+          <div class="ac-body" style="padding-left:10px">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;margin-top:8px">
+              <div>
+                <strong style="color:var(--text-h)">处置步骤</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  <strong>1.</strong> ClawManager 检测 DesiredState 与实际状态不一致<br>
+                  <strong>2.</strong> 对比 InstanceConfigRevision (SHA256 checksum)<br>
+                  <strong>3.</strong> 低风险: 自动对齐 (auto-align) DesiredState<br>
+                  <strong>4.</strong> 高风险: 通知安全团队 + 暂停自动对齐<br>
+                  <strong>5.</strong> KubeArmor 策略版本对比 (FR-67)<br>
+                  <strong>6.</strong> 确认后执行配置回滚或更新
+                </div>
+              </div>
+              <div>
+                <strong style="color:var(--text-h)">恢复路径</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  低风险: 自动对齐 &rarr;<br>
+                  验证 checksum &rarr; 完成<br><br>
+                  高风险: 人工审查 &rarr;<br>
+                  配置回滚/更新 &rarr;<br>
+                  验证 &rarr; 完成
+                </div>
+              </div>
+              <div>
+                <strong style="color:var(--text-h)">SLA 目标</strong><br>
+                <div style="margin-top:6px;font-size:12px;line-height:1.9">
+                  检测&to;对齐: &le;60s (低风险)<br>
+                  检测&to;通知: &le;30s (高风险)<br>
+                  通知&to;处置: &le;1h<br>
+                  配置回滚: &le;5min
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 处置监控                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- Score + Stats -->
+      <div style="display:flex;gap:22px;margin-bottom:22px;align-items:flex-start">
+        <div class="app-panel" style="flex:0 0 auto;text-align:center;padding:26px 30px">
+          <div class="score-circle score-high">
+            <div class="score-num">94</div>
+            <div class="score-label">处置效率</div>
+          </div>
+          <div style="font-size:11px;color:#8f8681;margin-top:10px">响应有效率评分</div>
+        </div>
+        <div style="flex:1">
+          <div class="stat-row" style="margin-bottom:0">
+            <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">47</div><div class="sc-label">今日事件总数</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#dc2626">12</div><div class="sc-label">自动处置</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#d97706">3</div><div class="sc-label">人工干预</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#059669">94%</div><div class="sc-label">恢复成功率</div></div>
+          </div>
+          <div class="stat-row" style="margin-top:16px;margin-bottom:0">
+            <div class="stat-card"><div class="sc-value" style="color:#6d28d9">2.3s</div><div class="sc-label">平均响应时延</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#059669">8.7min</div><div class="sc-label">平均恢复时间</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">5</div><div class="sc-label">活跃事件</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#dc2626">1</div><div class="sc-label">待审批恢复</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Response Log -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">处置日志</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x1f50d; 筛选</button>
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="le-stripe" style="background:#dc2626"></div>
+          <div class="le-header">
+            <span class="le-time">2026-05-01 14:32:18</span>
+            <span class="le-type type-auto">自动隔离</span>
+            <span class="le-agent">inst-prod-east-01</span>
+            <span class="badge badge-critical">Critical</span>
+          </div>
+          <div class="le-reason">AI Gateway 检测高危风险指令，自动执行 quarantine_skill 隔离 Agent，下发 NetworkPolicy 全量 egress deny</div>
+          <div class="le-detail">
+            command: quarantine_skill<br>
+            instance: inst-prod-east-01<br>
+            network_policy: deny-all-egress (DNS 53 retained)<br>
+            kubearmor_posture: audit &rarr; block<br>
+            response_time: 1.8s<br>
+            status: COMPLETED
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="le-stripe" style="background:#c2410c"></div>
+          <div class="le-header">
+            <span class="le-time">2026-05-01 14:32:20</span>
+            <span class="le-type type-network">网络隔离</span>
+            <span class="le-agent">inst-prod-east-01</span>
+            <span class="badge badge-critical">Critical</span>
+          </div>
+          <div class="le-reason">KSecure 主机级网络隔离已生效，iptables DROP ALL 非白名单流量，双重保障网络切断</div>
+          <div class="le-detail">
+            ksecure_action: host_network_isolate<br>
+            method: iptables DROP ALL (except lo)<br>
+            instance: inst-prod-east-01<br>
+            response_time: 0.5s after quarantine<br>
+            status: COMPLETED
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="le-stripe" style="background:#d97706"></div>
+          <div class="le-header">
+            <span class="le-time">2026-05-01 13:15:42</span>
+            <span class="le-type type-auto">自动冻结</span>
+            <span class="le-agent">inst-prod-west-02</span>
+            <span class="badge badge-high">High</span>
+          </div>
+          <div class="le-reason">ClawAegis Loop Guard 检测 7 次持续触发，自动执行 stop_openclaw + DesiredPowerState=stopped 冻结实例</div>
+          <div class="le-detail">
+            trigger: loop_guard (7 persistent triggers)<br>
+            command: stop_openclaw<br>
+            desired_state: stopped<br>
+            instance: inst-prod-west-02<br>
+            response_time: 3.1s<br>
+            status: COMPLETED
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="le-stripe" style="background:#059669"></div>
+          <div class="le-header">
+            <span class="le-time">2026-05-01 12:45:33</span>
+            <span class="le-type type-recovery">恢复启动</span>
+            <span class="le-agent">inst-staging-01</span>
+            <span class="badge badge-medium">Medium</span>
+          </div>
+          <div class="le-reason">安全审查通过，执行 restart_openclaw + 恢复 NetworkPolicy egress 规则，实例恢复正常运行</div>
+          <div class="le-detail">
+            command: restart_openclaw<br>
+            desired_state: running<br>
+            network_policy: egress-restore (80,443,8443,9001,3128)<br>
+            kubearmor_posture: block &rarr; audit<br>
+            approval: security-team/zhangwei@2026-05-01T12:40:00Z<br>
+            status: COMPLETED
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="le-stripe" style="background:#6d28d9"></div>
+          <div class="le-header">
+            <span class="le-time">2026-05-01 11:20:15</span>
+            <span class="le-type type-rebuild">实例重建</span>
+            <span class="le-agent">inst-prod-south-03</span>
+            <span class="badge badge-critical">Critical</span>
+          </div>
+          <div class="le-reason">勒索软件检测后证据固化完成，审批通过执行 Pod 重建，新 Pod 就绪并通过健康检查</div>
+          <div class="le-detail">
+            action: pod_delete + recreate<br>
+            evidence_preserved: FR-70 snapshot-20260501-1120<br>
+            approval: ciso/liuchen@2026-05-01T11:15:00Z<br>
+            new_pod_ready: 2026-05-01T11:22:30Z<br>
+            health_check: PASSED<br>
+            rebuild_time: 2min 15s
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="le-stripe" style="background:#1d4ed8"></div>
+          <div class="le-header">
+            <span class="le-time">2026-05-01 10:55:08</span>
+            <span class="le-type type-approval">审批通过</span>
+            <span class="le-agent">inst-prod-south-03</span>
+            <span class="badge badge-low">Approval</span>
+          </div>
+          <div class="le-reason">CISO 刘晨审批通过 inst-prod-south-03 重建请求，批准 Pod 删除并从干净镜像重建</div>
+          <div class="le-detail">
+            request_id: APR-20260501-003<br>
+            approver: ciso/liuchen<br>
+            action: rebuild_pod<br>
+            incident: INC-20260501-007 (Ransomware)<br>
+            evidence_snapshot: snapshot-20260501-1120<br>
+            approved_at: 2026-05-01T11:15:00Z
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Incidents Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">活跃事件</div>
+          <span class="badge badge-critical" style="font-size:12px">5 Active</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>事件ID</th>
+                <th>实例</th>
+                <th>类型</th>
+                <th>等级</th>
+                <th>处置动作</th>
+                <th>状态</th>
+                <th>持续时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">INC-20260501-012</td>
+                <td style="font-family:monospace;font-size:12px">inst-prod-east-01</td>
+                <td><span class="badge badge-critical">高风险指令</span></td>
+                <td>Critical</td>
+                <td>隔离 + 断网</td>
+                <td><span class="badge badge-stale">处置中</span></td>
+                <td>2h 28min</td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">审批恢复</button>
+                  <button class="btn-danger btn-sm" style="padding:3px 8px;font-size:11px">重建</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">INC-20260501-009</td>
+                <td style="font-family:monospace;font-size:12px">inst-prod-west-02</td>
+                <td><span class="badge badge-high">持续循环</span></td>
+                <td>High</td>
+                <td>冻结</td>
+                <td><span class="badge badge-stale">冻结中</span></td>
+                <td>3h 17min</td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">审批恢复</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">审查</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">INC-20260501-008</td>
+                <td style="font-family:monospace;font-size:12px">inst-staging-02</td>
+                <td><span class="badge badge-medium">配置漂移</span></td>
+                <td>Medium</td>
+                <td>摘流量</td>
+                <td><span class="badge badge-online">观察中</span></td>
+                <td>5h 42min</td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">自动对齐</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">回滚</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">INC-20260501-007</td>
+                <td style="font-family:monospace;font-size:12px">inst-prod-south-03</td>
+                <td><span class="badge badge-critical">勒索软件</span></td>
+                <td>Critical</td>
+                <td>隔离+断网+冻结</td>
+                <td><span class="badge badge-low">重建完成</span></td>
+                <td>4h 40min</td>
+                <td>
+                  <button class="btn-primary btn-sm" style="padding:3px 8px;font-size:11px">验证上线</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">INC-20260501-005</td>
+                <td style="font-family:monospace;font-size:12px">inst-dev-01</td>
+                <td><span class="badge badge-high">数据外泄</span></td>
+                <td>High</td>
+                <td>断网+隔离</td>
+                <td><span class="badge badge-stale">待审批</span></td>
+                <td>6h 05min</td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">审批恢复</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看证据</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+      <div class="config-grid">
+
+        <!-- Auto-Response Triggers -->
+        <div class="config-section">
+          <div class="cs-title">&#x26a1; 自动响应触发阈值</div>
+          <div class="form-group">
+            <label class="form-label">Critical 级别自动处置</label>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">AI Gateway 阻断触发隔离</div><div class="desc">AI Gateway 阻断 + KubeArmor 高危 Alert &rarr; quarantine_skill</div></div>
+                <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">Loop Guard 触发阈值</div><div class="desc">持续触发次数 &ge; 5 &rarr; auto-freeze</div></div>
+                <input type="number" class="form-input" style="width:80px;text-align:center" value="5">
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">Drift Score 隔离阈值</div><div class="desc">drift_score &gt; 0.8 &rarr; quarantine_skill</div></div>
+                <input type="number" class="form-input" style="width:80px;text-align:center" value="0.8" step="0.1">
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">外泄链断网置信度</div><div class="desc">ClawAegis 关联分析置信度 &ge; 0.9 &rarr; auto-disconnect</div></div>
+                <input type="number" class="form-input" style="width:80px;text-align:center" value="0.9" step="0.1">
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">命令阻断升级阈值</div><div class="desc">HIGH_RISK_COMMAND_PATTERNS 命中 &ge; 3 次 &rarr; auto-freeze</div></div>
+                <input type="number" class="form-input" style="width:80px;text-align:center" value="3">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Response Playbook Library -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4d6; 响应剧本库</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div style="border-radius:8px;padding:10px;margin-bottom:8px;background:#fef2f2;border:1px solid #fecaca">
+              <strong style="color:#b91c1c">勒索软件检测</strong> &mdash; KSecure&to;隔离&to;冻结&to;通知&to;重建<br>
+              <span style="color:#8f8681">SLA: 检测&to;隔离 &le;5s | 恢复RTO &le;30min</span>
+            </div>
+            <div style="border-radius:8px;padding:10px;margin-bottom:8px;background:#ffedd5;border:1px solid #fed7aa">
+              <strong style="color:#c2410c">数据外泄</strong> &mdash; ClawAegis&to;断网&to;隔离&to;证据保留&to;限制性恢复<br>
+              <span style="color:#8f8681">SLA: 检测&to;断网 &le;3s | 恢复后监控 7天</span>
+            </div>
+            <div style="border-radius:8px;padding:10px;margin-bottom:8px;background:#fef3c7;border:1px solid #fde68a">
+              <strong style="color:#92400e">Rogue Agent</strong> &mdash; 漂移+循环&to;冻结&to;审查&to;重建或恢复<br>
+              <span style="color:#8f8681">SLA: 检测&to;冻结 &le;10s | 恢复监控 48h</span>
+            </div>
+            <div style="border-radius:8px;padding:10px;margin-bottom:8px;background:#ede9fe;border:1px solid #ddd6fe">
+              <strong style="color:#6d28d9">配置漂移</strong> &mdash; 状态不一致&to;自动对齐或通知&to;回滚/更新<br>
+              <span style="color:#8f8681">SLA: 检测&to;对齐 &le;60s | 人工处置 &le;1h</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Escalation Rules -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f514; 升级规则</div>
+          <div class="form-group">
+            <label class="form-label">升级策略</label>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">自动处置升级超时</div><div class="desc">自动处置后 X 秒未恢复 &rarr; 升级通知</div></div>
+                <select class="form-select" style="width:120px">
+                  <option>300s (5min)</option>
+                  <option>600s (10min)</option>
+                  <option>900s (15min)</option>
+                </select>
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">人工确认超时</div><div class="desc">通知后 X 分钟未响应 &rarr; 升级到上级</div></div>
+                <select class="form-select" style="width:120px">
+                  <option>15min</option>
+                  <option>30min</option>
+                  <option>60min</option>
+                </select>
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">处置动作升级链</div><div class="desc">隔离 &rarr; 冻结 &rarr; 断网 &rarr; 重建</div></div>
+                <span class="badge badge-enforce">启用</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recovery Approval Workflow -->
+        <div class="config-section">
+          <div class="cs-title">&#x2705; 恢复审批工作流</div>
+          <div class="form-group">
+            <label class="form-label">审批要求</label>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">Critical 事件恢复</div><div class="desc">需要 CISO 或安全负责人审批</div></div>
+                <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">High 事件恢复</div><div class="desc">需要安全团队 Lead 审批</div></div>
+                <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">Medium 事件恢复</div><div class="desc">值班人员确认即可</div></div>
+                <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+              </div>
+              <div class="toggle-row" style="padding:8px 0">
+                <div class="toggle-label"><div class="name">审批超时自动拒绝</div><div class="desc">X 分钟未审批 &rarr; 自动拒绝恢复请求</div></div>
+                <input type="number" class="form-input" style="width:80px;text-align:center" value="60">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NetworkPolicy Isolation Template -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f310; NetworkPolicy 隔离模板</div>
+          <div style="font-size:11px;font-family:monospace;line-height:1.6;background:#faf7f4;border-radius:8px;padding:12px;color:var(--text)">
+apiVersion: networking.k8s.io/v1<br>
+kind: NetworkPolicy<br>
+metadata:<br>
+&nbsp;&nbsp;name: isolate-{instance-id}<br>
+&nbsp;&nbsp;namespace: production<br>
+spec:<br>
+&nbsp;&nbsp;podSelector:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;matchLabels:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app: {instance-name}<br>
+&nbsp;&nbsp;policyTypes:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- Egress<br>
+&nbsp;&nbsp;egress: []<br>
+<span style="color:#8f8681"># Full deny &mdash; optional DNS retain:</span><br>
+<span style="color:#8f8680"># egress:</span><br>
+<span style="color:#8f8680"># &nbsp;&nbsp;- to: []</span><br>
+<span style="color:#8f8680"># &nbsp;&nbsp;&nbsp;&nbsp;ports:</span><br>
+<span style="color:#8f8680"># &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- port: 53 (DNS)</span>
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#8f8681">白名单端口: 80, 443, 8443, 9001, 3128 (恢复时可选启用)</div>
+        </div>
+
+        <!-- Pod Rebuild Template -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f527; Pod 重建模板</div>
+          <div style="font-size:11px;font-family:monospace;line-height:1.6;background:#faf7f4;border-radius:8px;padding:12px;color:var(--text)">
+apiVersion: v1<br>
+kind: Pod<br>
+metadata:<br>
+&nbsp;&nbsp;name: {instance-name}-rebuilt<br>
+&nbsp;&nbsp;labels:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;app: {instance-name}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;rebuild: "incident-{id}"<br>
+&nbsp;&nbsp;annotations:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;rebuild.reason: "{incident-type}"<br>
+&nbsp;&nbsp;&nbsp;&nbsp;rebuild.approved-by: "{approver}"<br>
+spec:<br>
+&nbsp;&nbsp;containers:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;- name: openclaw<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: {clean-image}:latest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;securityContext:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;readOnlyRootFilesystem: true<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;runAsNonRoot: true
+          </div>
+        </div>
+
+        <!-- Notification Matrix -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4e7; 通知矩阵</div>
+          <div style="overflow-x:auto">
+            <table class="data-table" style="font-size:12px">
+              <thead><tr><th>等级</th><th>通道</th><th>接收人</th><th>时效</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge badge-critical">Critical</span></td><td>钉钉+电话+邮件</td><td>CISO + 安全团队</td><td>&le;10s</td></tr>
+                <tr><td><span class="badge badge-high">High</span></td><td>钉钉+邮件</td><td>安全团队 Lead</td><td>&le;30s</td></tr>
+                <tr><td><span class="badge badge-medium">Medium</span></td><td>钉钉</td><td>值班人员</td><td>&le;60s</td></tr>
+                <tr><td><span class="badge badge-low">Low</span></td><td>邮件</td><td>安全团队</td><td>&le;5min</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SLA Targets -->
+        <div class="config-section">
+          <div class="cs-title">&#x23f1; SLA 目标</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:6px 0">
+              <div class="toggle-label"><div class="name">Critical 检测&to;隔离</div></div>
+              <span style="font-weight:700;color:#dc2626">&le;5s</span>
+            </div>
+            <div class="toggle-row" style="padding:6px 0">
+              <div class="toggle-label"><div class="name">High 检测&to;冻结</div></div>
+              <span style="font-weight:700;color:#c2410c">&le;10s</span>
+            </div>
+            <div class="toggle-row" style="padding:6px 0">
+              <div class="toggle-label"><div class="name">处置后通知时效</div></div>
+              <span style="font-weight:700;color:#d97706">&le;30s</span>
+            </div>
+            <div class="toggle-row" style="padding:6px 0">
+              <div class="toggle-label"><div class="name">Critical 恢复 RTO</div></div>
+              <span style="font-weight:700;color:#6d28d9">&le;30min</span>
+            </div>
+            <div class="toggle-row" style="padding:6px 0">
+              <div class="toggle-label"><div class="name">恢复成功率目标</div></div>
+              <span style="font-weight:700;color:#059669">&ge;95%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KSecure Integration -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6e1; KSecure 集成配置</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">主机网络隔离</div><div class="desc">KSecure 一键网络隔离 (iptables/nftables DROP ALL)</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">ProcessBlackType 进程清理</div><div class="desc">检测到恶意进程时自动 kill (SIGKILL)</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">gRPC 通信端点</div><div class="desc">PolicyService + LogService (待TLS)</div></div>
+              <span class="badge badge-stale">未TLS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KubeArmor DefaultPosture Switch -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6e1; KubeArmor DefaultPosture 切换规则</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">Critical 事件自动切 block</div><div class="desc">检测 Critical 事件 &rarr; DefaultPosture audit&rarr;block 即时硬化</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">恢复时切回 audit</div><div class="desc">事件恢复完成后 &rarr; DefaultPosture block&rarr;audit 恢复观察</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">NetworkPolicyEnforcer</div><div class="desc">使用 nftables 后端执行 K8s NetworkPolicy (Cilium 替代方案)</div></div>
+              <span class="badge badge-low">nftables</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evidence Preservation Settings -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4cb; 证据保留设置 (FR-70 联动)</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">处置前自动证据固化</div><div class="desc">执行处置动作前自动触发 FR-70 证据快照</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">快照内容</div><div class="desc">配置快照 + 记忆快照 + 执行链 + 关联日志</div></div>
+              <span class="badge badge-low">全部</span>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">重建前强制证据固化</div><div class="desc">Pod 重建必须等证据固化完成 (blocking gate)</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Storage Capacity -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4be; 存储与容量</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:6px 0">
+              <div class="toggle-label"><div class="name">证据存储使用</div></div>
+              <span>142 GB / 500 GB (28%)</span>
+            </div>
+            <div class="toggle-row" style="padding:6px 0">
+              <div class="toggle-label"><div class="name">处置日志保留期</div></div>
+              <select class="form-select" style="width:120px"><option>90天</option><option>180天</option><option>365天</option></select>
+            </div>
+            <div class="toggle-row" style="padding:6px 0">
+              <div class="toggle-label"><div class="name">存储超限策略</div></div>
+              <select class="form-select" style="width:120px"><option>告警</option><option>自动清理</option><option>停止采集</option></select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- content-area -->
+</div><!-- main-content -->
+
+</div><!-- app-shell -->
+
+<script>
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('tab-'+this.dataset.tab).classList.add('active');
+  });
+});
+document.querySelectorAll('.mode-selector').forEach(sel=>{
+  sel.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      this.parentElement.querySelectorAll('.mode-btn').forEach(b=>{b.className='mode-btn'});
+      if(this.textContent.trim()==='Enforce')this.classList.add('active-enforce');
+      else if(this.textContent.trim()==='Observe')this.classList.add('active-observe');
+      else this.classList.add('active-off');
+    });
+  });
+});
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',function(){
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

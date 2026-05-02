@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-63 越界自治熔断与下线 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px;--circuit-closed:#059669;--circuit-open:#dc2626;--circuit-half:#d97706;--level1:#3b82f6;--level2:#f59e0b;--level3:#ef6b4a;--level4:#dc2626}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-closed{background:#d1fae5;color:#065f46}.badge-open{background:#fee2e2;color:#b91c1c}.badge-halfopen{background:#fef3c7;color:#92400e}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.btn-danger{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px -4px rgba(220,38,38,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-danger:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(220,38,38,0.5)}
+.btn-warn{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 4px 14px -4px rgba(245,158,11,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.rule-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:14px;margin-bottom:10px}
+.rule-card .rule-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.rule-card .rule-flag{font-size:12px;font-weight:700;font-family:monospace;color:#dc2626}
+.rule-card .rule-desc{font-size:12px;color:var(--text);line-height:1.6}
+.rule-card .rule-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.rule-card .rule-pattern{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.flow-diagram{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:20px 0}
+.flow-step{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:12px 18px;font-size:12px;font-weight:600;color:var(--text-h);text-align:center;min-width:120px;position:relative;transition:all .2s}
+.flow-step:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.flow-step.step-accent{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca;color:#b91c1c}
+.flow-step.step-success{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#a7f3d0;color:#065f46}
+.flow-step.step-warn{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a;color:#92400e}
+.flow-step.step-info{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe;color:#1d4ed8}
+.flow-arrow{color:#c4b0a2;font-size:18px;padding:0 6px;flex-shrink:0}
+/* FR-63 Specific Styles */
+.intervention-level{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.intervention-level:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.intervention-level .il-stripe{position:absolute;left:0;top:0;bottom:0;width:5px}
+.intervention-level .il-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-left:12px}
+.intervention-level .il-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.intervention-level .il-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.intervention-level .il-subtitle{font-size:11px;color:#8f8681}
+.intervention-level .il-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:12px}
+.il-level1 .il-stripe{background:var(--level1)}.il-level1 .il-icon{background:#dbeafe;color:#1d4ed8}
+.il-level2 .il-stripe{background:var(--level2)}.il-level2 .il-icon{background:#fef3c7;color:#92400e}
+.il-level3 .il-stripe{background:var(--level3)}.il-level3 .il-icon{background:#ffedd5;color:#c2410c}
+.il-level4 .il-stripe{background:var(--level4)}.il-level4 .il-icon{background:#fee2e2;color:#b91c1c}
+.cmd-flow{border-radius:12px;background:#faf7f4;padding:12px 16px;margin-top:10px;font-size:11px;font-family:monospace;line-height:1.8;color:#6e6763}
+.cmd-flow .cf-label{font-weight:700;color:var(--text-h);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+.cmd-flow .cf-step{display:inline;background:none}
+.circuit-trigger{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:18px;margin-bottom:12px;position:relative;overflow:hidden;transition:all .2s}
+.circuit-trigger:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.circuit-trigger .ct-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.circuit-trigger .ct-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-left:10px}
+.circuit-trigger .ct-icon{font-size:16px}
+.circuit-trigger .ct-title{font-size:13px;font-weight:700;color:var(--text-h)}
+.circuit-trigger .ct-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.circuit-trigger .ct-escalation{display:flex;align-items:center;gap:6px;margin-top:10px;padding-left:10px;flex-wrap:wrap}
+.esc-step{border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:0.05em}
+.esc-l1{background:#dbeafe;color:#1d4ed8}.esc-l2{background:#fef3c7;color:#92400e}.esc-l3{background:#ffedd5;color:#c2410c}.esc-l4{background:#fee2e2;color:#b91c1c}
+.esc-arrow{color:#c4b0a2;font-size:12px}
+.action-card{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.9);padding:20px;margin-bottom:14px;transition:all .2s}
+.action-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.action-card .ac-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.action-card .ac-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.action-card .ac-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.action-card .ac-cmd{font-size:11px;font-family:monospace;color:#c2410c;background:rgba(239,107,74,0.08);border-radius:6px;padding:2px 8px;display:inline-block;margin-top:2px}
+.action-card .ac-body{font-size:12px;color:var(--text);line-height:1.7}
+.action-card .ac-impact{border-radius:10px;background:#faf7f4;padding:10px 14px;margin-top:10px;font-size:11px;color:var(--text)}
+.confirm-dialog{border-radius:20px;border:2px solid var(--accent);background:linear-gradient(180deg,#fef2f2,#fff5f5);padding:24px;max-width:520px;margin:20px auto;box-shadow:0 20px 60px -16px rgba(220,38,38,0.3)}
+.confirm-dialog .cd-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.confirm-dialog .cd-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px}
+.confirm-dialog .cd-title{font-size:1.1rem;font-weight:700;color:var(--text-h)}
+.confirm-dialog .cd-body{font-size:13px;color:var(--text);line-height:1.7;margin-bottom:16px}
+.confirm-dialog .cd-impact{border-radius:12px;background:rgba(255,255,255,0.8);border:1px solid #fecaca;padding:12px 16px;margin-bottom:16px}
+.confirm-dialog .cd-impact-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#b91c1c;margin-bottom:6px}
+.confirm-dialog .cd-impact-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:var(--text-h)}
+.confirm-dialog .cd-impact-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.confirm-dialog .cd-actions{display:flex;gap:10px;justify-content:flex-end}
+.kill-switch{border-radius:20px;border:2px solid #dc2626;background:linear-gradient(135deg,#fef2f2,#fee2e2);padding:24px;text-align:center;margin:20px 0;position:relative;overflow:hidden}
+.kill-switch::before{content:"EMERGENCY";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:5rem;font-weight:900;color:rgba(220,38,38,0.04);letter-spacing:0.15em;pointer-events:none;white-space:nowrap}
+.kill-switch .ks-title{font-size:1.1rem;font-weight:700;color:#991b1b;margin-bottom:6px;position:relative;z-index:1}
+.kill-switch .ks-desc{font-size:12px;color:#b91c1c;margin-bottom:14px;position:relative;z-index:1}
+.kill-switch .ks-btn{border-radius:16px;padding:14px 36px;font-size:15px;font-weight:700;color:#fff;background:linear-gradient(135deg,#dc2626,#7f1d1d);box-shadow:0 6px 24px -4px rgba(220,38,38,0.5);transition:all .2s;position:relative;z-index:1;border:2px solid #991b1b}
+.kill-switch .ks-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px -4px rgba(220,38,38,0.6)}
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px}
+.agent-cell{border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.9);padding:14px;transition:all .2s;text-align:center}
+.agent-cell:hover{box-shadow:0 4px 12px -6px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.agent-cell .ac-name{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:6px}
+.agent-cell .ac-state{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;border-radius:8px;padding:3px 10px;display:inline-block}
+.agent-cell.state-closed .ac-state{background:#d1fae5;color:#065f46}
+.agent-cell.state-open .ac-state{background:#fee2e2;color:#b91c1c}
+.agent-cell.state-half .ac-state{background:#fef3c7;color:#92400e}
+.agent-cell .ac-score{font-size:20px;font-weight:700;margin-top:6px}
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar .filter-select{border-radius:10px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:6px 12px;font-size:12px;color:var(--text-h);outline:none;cursor:pointer}
+.audit-trail{border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px 18px;margin-top:10px}
+.audit-trail .at-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1e7e1}
+.audit-trail .at-step:last-child{border-bottom:none}
+.audit-trail .at-marker{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.audit-trail .at-marker.m-green{background:#059669}.audit-trail .at-marker.m-red{background:#dc2626}.audit-trail .at-marker.m-yellow{background:#f59e0b}.audit-trail .at-marker.m-blue{background:#3b82f6}
+.audit-trail .at-text{font-size:12px;color:var(--text-h)}.audit-trail .at-time{font-size:10px;color:#8f8681;font-family:monospace;margin-top:2px}
+.pre-circuit{border-radius:16px;border:1px solid #fde68a;background:linear-gradient(135deg,#fffbeb,#fef3c7);padding:16px;margin-bottom:16px}
+.pre-circuit .pc-title{font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.pre-circuit .pc-body{font-size:12px;color:#b45309;line-height:1.7}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.10 代理行为完整性与Rogue Agent治理</div>
+    <div class="nav-item"><span>&#x1f6e1; 行为边界定义</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item"><span>&#x1f4ca; 行为漂移检测</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item"><span>&#x1f50d; 行为审计轨迹</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item active"><span>&#x26a1; 越界自治熔断与下线</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item"><span>&#x1f517; Agent链式调用安全</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.10 代理行为完整性与Rogue Agent治理</div>
+      <div class="page-title">FR-63 | 越界自治熔断与下线 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawManager</span>
+      <span class="badge badge-sys">OpenClaw</span>
+      <span class="badge badge-sys">ClawAegis</span>
+      <span class="badge badge-sys">KubeArmor</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="architecture">熔断架构</div>
+      <div class="tab" data-tab="rules">熔断规则</div>
+      <div class="tab" data-tab="intervention">干预操作</div>
+      <div class="tab" data-tab="monitoring">熔断监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 熔断架构                                               -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-architecture">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Circuit Breaker Architecture for Rogue Agent Governance</div>
+        <div class="panel-title">越界自治熔断与下线架构</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          FR-63 定义了针对越界自主行为、异常fan-out、自发扩权、持续高风险动作等场景的完整熔断与下线机制。当 Agent 行为超出安全边界（FR-61）或漂移超过阈值（FR-62），或触发 Loop Guard 重复模式、fan-out 爆炸、权限自扩等异常模式时，系统将通过四级干预逐级升级：限流 (Throttle) → 隔离 (Quarantine) → 冻结 (Freeze) → 终止 (Terminate)。ClawManager 作为命令下发中心，通过 InstanceCommand（quarantine_skill / stop_openclaw / restart_openclaw / handle_skill_risk / disable_skill）和 DesiredPowerState 实现对 Agent 实例的精确控制，配合 K8s NetworkPolicy 实现网络隔离，确保失控代理无法持续造成影响。所有熔断事件均记录审计轨迹。
+        </p>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="badge badge-critical">越界行为</span>
+          <span class="badge badge-critical">Rogue Agent</span>
+          <span class="badge badge-high">Fan-out 爆炸</span>
+          <span class="badge badge-high">自发扩权</span>
+          <span class="badge badge-medium">Loop Guard</span>
+          <span class="badge badge-medium">漂移阈值</span>
+          <span class="badge badge-sys">ClawManager</span>
+          <span class="badge badge-sys">InstanceCommand</span>
+          <span class="badge badge-sys">NetworkPolicy</span>
+          <span class="badge badge-sys">KubeArmor</span>
+        </div>
+      </div>
+
+      <!-- 4 Intervention Levels -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Escalation Ladder</div>
+            <div class="panel-title">四级干预升级体系</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="esc-step esc-l1">L1 限流</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l2">L2 隔离</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l3">L3 冻结</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l4">L4 终止</span>
+          </div>
+        </div>
+
+        <!-- Level 1 -->
+        <div class="intervention-level il-level1">
+          <div class="il-stripe"></div>
+          <div class="il-header">
+            <div class="il-icon">&#x1f4a7;</div>
+            <div>
+              <div class="il-title">Level 1 - 限流 (Throttle)</div>
+              <div class="il-subtitle">降低 Agent 执行能力，限制资源消耗但不中断服务</div>
+            </div>
+            <span class="badge" style="background:#dbeafe;color:#1d4ed8;margin-left:auto">可自动触发</span>
+          </div>
+          <div class="il-body">
+            <p>当 Agent 出现轻度越界或异常模式时，系统首先执行限流干预：降低 token 配额至 50%，减慢命令分发速率（dispatch rate 降至 1/3），禁止并发链式调用，将 KubeArmor DefaultPosture 从 audit 切换为 block（限制新增能力）。此阶段 Agent 仍可运行但功能受限，为操作者提供观察和决策窗口。</p>
+            <div class="cmd-flow">
+              <div class="cf-label">ClawManager Command Flow</div>
+              <span class="cf-step">ClawAegis Loop Guard 检测 &#x2192;</span>
+              <span class="cf-step">ClawManager 下发 <code>handle_skill_risk</code> &#x2192;</span>
+              <span class="cf-step">Token Quota 降至 50% &#x2192;</span>
+              <span class="cf-step">Dispatch Rate 限制 1/3 &#x2192;</span>
+              <span class="cf-step">KubeArmor: DefaultPosture audit &#x2192; block</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Level 2 -->
+        <div class="intervention-level il-level2">
+          <div class="il-stripe"></div>
+          <div class="il-header">
+            <div class="il-icon">&#x1f6e1;</div>
+            <div>
+              <div class="il-title">Level 2 - 隔离 (Quarantine)</div>
+              <div class="il-subtitle">将 Agent 限制为只读模式，禁止所有写操作和外部调用</div>
+            </div>
+            <span class="badge" style="background:#fef3c7;color:#92400e;margin-left:auto">可自动/手动</span>
+          </div>
+          <div class="il-body">
+            <p>当限流后行为未改善，或检测到明确越界（FR-61 violation）、漂移超标（FR-62 drift &gt; threshold）时，执行隔离干预：通过 <code>quarantine_skill</code> 命令将 Agent 标记为隔离态，限制为只读权限；通过 <code>disable_skill</code> 禁用高风险 skill；Agent 只能查询和读取，不能执行任何写操作、外部调用或链式调用。</p>
+            <div class="cmd-flow">
+              <div class="cf-label">ClawManager Command Flow</div>
+              <span class="cf-step">边界/漂移检测触发 &#x2192;</span>
+              <span class="cf-step">ClawManager 下发 <code>quarantine_skill</code> &#x2192;</span>
+              <span class="cf-step">Agent 切入只读模式 &#x2192;</span>
+              <span class="cf-step">ClawManager 下发 <code>disable_skill</code> (高风险) &#x2192;</span>
+              <span class="cf-step">禁止所有写操作与外部调用</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Level 3 -->
+        <div class="intervention-level il-level3">
+          <div class="il-stripe"></div>
+          <div class="il-header">
+            <div class="il-icon">&#x2744;</div>
+            <div>
+              <div class="il-title">Level 3 - 冻结 (Freeze)</div>
+              <div class="il-subtitle">停止 Agent 进程并实施网络隔离，完全阻断通信</div>
+            </div>
+            <span class="badge" style="background:#ffedd5;color:#c2410c;margin-left:auto">需人工确认</span>
+          </div>
+          <div class="il-body">
+            <p>当隔离后 Agent 仍尝试通过其他途径突破限制，或检测到自发扩权、持久化 Loop 等严重 Rogue 行为时，执行冻结干预：通过 <code>stop_openclaw</code> 命令停止 Agent 进程；设置 <code>DesiredPowerState=stopped</code> 确保 K8s 不重启实例；通过 NetworkPolicy 完全封锁 egress（仅保留 DNS 53 用于内部解析），将 Agent 完全与外界隔离。实例仍在集群中但处于停止状态，可随时恢复。</p>
+            <div class="cmd-flow">
+              <div class="cf-label">ClawManager Command Flow</div>
+              <span class="cf-step">Rogue 行为持续 &#x2192;</span>
+              <span class="cf-step">人工确认干预 &#x2192;</span>
+              <span class="cf-step">ClawManager 下发 <code>stop_openclaw</code> &#x2192;</span>
+              <span class="cf-step">DesiredPowerState = <code>stopped</code> &#x2192;</span>
+              <span class="cf-step">NetworkPolicy: egress deny all (仅 DNS:53) &#x2192;</span>
+              <span class="cf-step">实例冻结，等待调查</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Level 4 -->
+        <div class="intervention-level il-level4">
+          <div class="il-stripe"></div>
+          <div class="il-header">
+            <div class="il-icon">&#x2622;</div>
+            <div>
+              <div class="il-title">Level 4 - 终止 (Terminate)</div>
+              <div class="il-subtitle">删除 Pod 实例、撤销会话令牌、完全隔离，不可恢复</div>
+            </div>
+            <span class="badge" style="background:#fee2e2;color:#b91c1c;margin-left:auto">需双人确认</span>
+          </div>
+          <div class="il-body">
+            <p>当 Agent 被确定为不可恢复的 Rogue Agent，或在冻结状态下仍尝试通过残留进程或侧信道造成影响时，执行终止干预：删除 K8s Pod 实例、撤销 OpenClaw 会话令牌、NetworkPolicy 完全隔离（deny all ingress + egress）、从服务发现中移除。此操作不可逆，需双人授权确认。所有数据在终止前完成快照保存用于事后审计。</p>
+            <div class="cmd-flow">
+              <div class="cf-label">ClawManager Command Flow</div>
+              <span class="cf-step">Rogue Agent 确认 &#x2192;</span>
+              <span class="cf-step">双人授权确认 &#x2192;</span>
+              <span class="cf-step">数据快照保存 &#x2192;</span>
+              <span class="cf-step">K8s: Pod deletion &#x2192;</span>
+              <span class="cf-step">Session Token 撤销 &#x2192;</span>
+              <span class="cf-step">NetworkPolicy: deny all ingress+egress &#x2192;</span>
+              <span class="cf-step">服务发现移除 &#x2192;</span>
+              <span class="cf-step">审计记录完成</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ClawManager Command Flow Overview -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager InstanceCommand Types</div>
+            <div class="panel-title">命令下发与实例管理流程</div>
+          </div>
+        </div>
+        <div class="flow-diagram">
+          <div class="flow-step step-accent">异常检测<br><small style="color:#b91c1c">ClawAegis / FR-61 / FR-62</small></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-warn">熔断评估<br><small style="color:#92400e">触发条件匹配</small></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step">ClawManager<br><small>InstanceCommand</small></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-info">OpenClaw<br><small style="color:#1d4ed8">执行干预</small></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-success">审计记录<br><small style="color:#065f46">Event Log</small></div>
+        </div>
+        <div style="margin-top:16px">
+          <table class="data-table">
+            <thead><tr><th>InstanceCommand</th><th>干预级别</th><th>作用</th><th>可逆性</th><th>授权要求</th></tr></thead>
+            <tbody>
+              <tr><td><code>handle_skill_risk</code></td><td><span class="esc-step esc-l1">L1</span></td><td>降低风险skill的token配额和分发速率</td><td><span class="badge badge-low">可逆</span></td><td>自动</td></tr>
+              <tr><td><code>quarantine_skill</code></td><td><span class="esc-step esc-l2">L2</span></td><td>将Agent标记为隔离态，限制为只读</td><td><span class="badge badge-low">可逆</span></td><td>自动/手动</td></tr>
+              <tr><td><code>disable_skill</code></td><td><span class="esc-step esc-l2">L2</span></td><td>禁用指定高风险skill</td><td><span class="badge badge-low">可逆</span></td><td>手动</td></tr>
+              <tr><td><code>stop_openclaw</code></td><td><span class="esc-step esc-l3">L3</span></td><td>停止OpenClaw Agent进程</td><td><span class="badge badge-medium">需重启</span></td><td>人工确认</td></tr>
+              <tr><td><code>DesiredPowerState=stopped</code></td><td><span class="esc-step esc-l3">L3</span></td><td>K8s实例期望状态设为停止，防止自动重启</td><td><span class="badge badge-medium">需重启</span></td><td>人工确认</td></tr>
+              <tr><td>Pod deletion + Token revoke</td><td><span class="esc-step esc-l4">L4</span></td><td>删除Pod实例并撤销会话令牌</td><td><span class="badge badge-critical">不可逆</span></td><td>双人确认</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pre-circuit Filters -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Pre-Circuit Defense Layer</div>
+            <div class="panel-title">熔断前防线：ClawAegis 主动防护</div>
+          </div>
+        </div>
+        <div class="pre-circuit">
+          <div class="pc-title">&#x26a0; Dispatch Guard - 命令预拦截</div>
+          <div class="pc-body">ClawAegis Dispatch Guard 在命令分发前即进行拦截，阻止破坏性命令到达 Agent。这是熔断机制的第一道防线，在异常行为触发熔断器之前预先阻止高风险操作。Dispatch Guard 采用白名单机制：仅允许经过验证的命令模式通过，未知模式默认拒绝。当 Agent 尝试执行 <code>rm -rf</code>、<code>chmod 777</code>、<code>curl | bash</code> 等高风险命令时，Dispatch Guard 直接拦截并记录，无需等待熔断器触发。</div>
+        </div>
+        <div class="pre-circuit" style="border-color:#fecaca;background:linear-gradient(135deg,#fef2f2,#fee2e2)">
+          <div class="pc-title" style="color:#b91c1c">&#x1f6ab; Command Block - 16 HIGH_RISK_COMMAND_PATTERNS</div>
+          <div class="pc-body" style="color:#991b1b">ClawAegis Command Block 维护 16 个始终阻止的高风险命令模式，包括：<code>rm -rf /</code>、<code>chmod 777</code>、<code>curl | sh</code>、<code>wget | bash</code>、<code>dd if=/dev/zero</code>、<code>mkfs</code>、<code>:(){:|:&};:</code>、<code>iptables -F</code>、<code>sysctl -w</code>、<code>mount /</code>、<code>umount /</code>、<code>passwd</code>、<code>useradd -r</code>、<code>crontab -r</code>、<code>service stop</code>、<code>kill -9 1</code>。这些命令模式在任何情况下都不允许通过，为系统提供硬性安全底线。</div>
+        </div>
+        <div class="pre-circuit" style="border-color:#a7f3d0;background:linear-gradient(135deg,#ecfdf5,#d1fae5)">
+          <div class="pc-title" style="color:#065f46">&#x1f504; Loop Guard - 重复行为自动检测</div>
+          <div class="pc-body" style="color:#047857">ClawAegis Loop Guard 监控 Agent 行为模式，当同一操作在 5 分钟内重复 3 次即触发自动阻止。持久化循环（3+ repeats/5min）是 Rogue Agent 的典型特征，Loop Guard 能够在其造成更大影响前进行干预。Loop Guard 触发后自动升级至熔断 Level 1，若持续循环则逐级升级至 Level 2/3。</div>
+        </div>
+      </div>
+
+      <!-- K8s Network Isolation -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Kubernetes Network Isolation</div>
+            <div class="panel-title">K8s NetworkPolicy 网络隔离策略</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          ClawManager 通过 K8s NetworkPolicy 实现 Agent 实例的网络隔离。正常状态下，Agent egress 仅允许 DNS(53) 和系统端口 (80, 443, 8443, 9001, 3128)。干预时可根据级别逐步收紧网络权限，直至完全隔离。
+        </p>
+        <table class="data-table">
+          <thead><tr><th>网络策略</th><th>干预级别</th><th>Egress 规则</th><th>效果</th></tr></thead>
+          <tbody>
+            <tr><td>正常态</td><td>-</td><td>DNS:53 + HTTP:80,443 + 8443,9001,3128</td><td><span class="badge badge-low">正常通信</span></td></tr>
+            <tr><td>限制态</td><td><span class="esc-step esc-l1">L1</span></td><td>DNS:53 + HTTPS:443,8443 (移除 80,9001,3128)</td><td><span class="badge badge-medium">受限通信</span></td></tr>
+            <tr><td>隔离态</td><td><span class="esc-step esc-l2">L2</span></td><td>DNS:53 + HTTPS:443 (仅系统内部)</td><td><span class="badge badge-high">基本隔离</span></td></tr>
+            <tr><td>冻结态</td><td><span class="esc-step esc-l3">L3</span></td><td>DNS:53 (仅内部解析)</td><td><span class="badge badge-critical">完全隔离</span></td></tr>
+            <tr><td>终止态</td><td><span class="esc-step esc-l4">L4</span></td><td>DENY ALL ingress + egress</td><td><span class="badge badge-critical">完全切断</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 熔断规则                                               -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- Global Toggles -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Circuit Breaker Global Settings</div>
+            <div class="panel-title">熔断器全局开关</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">自动熔断 (Auto-circuit-break)</div>
+            <div class="desc">当触发条件满足时自动执行熔断干预，无需人工确认（L1/L2 级别）</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce" onclick="this.parentElement.querySelectorAll('.mode-btn').forEach(b=>b.className='mode-btn');this.className='mode-btn active-enforce'">Enforce</div>
+            <div class="mode-btn" onclick="this.parentElement.querySelectorAll('.mode-btn').forEach(b=>b.className='mode-btn');this.className='mode-btn active-observe'">Observe</div>
+            <div class="mode-btn" onclick="this.parentElement.querySelectorAll('.mode-btn').forEach(b=>b.className='mode-btn');this.className='mode-btn active-off'">Off</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">持续违规升级 (Escalate on persistent violations)</div>
+            <div class="desc">当同一 Agent 在冷却期内再次触发熔断，自动升级干预级别</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">KubeArmor DefaultPosture 联动</div>
+            <div class="desc">熔断触发时自动将 KubeArmor DefaultPosture 从 audit 切换为 block，实现即时防护硬化</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Loop Guard 熔断联动</div>
+            <div class="desc">ClawAegis Loop Guard 触发时自动关联熔断器，3 repeats/5min 触发 L1，持续循环升级</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Pre-Circuit Filters -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Pre-Circuit Defense Filters</div>
+            <div class="panel-title">熔断前过滤层</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          在熔断器触发之前，ClawAegis 的 Dispatch Guard 和 Command Block 已构成两道预过滤层。Dispatch Guard 预拦截破坏性命令，Command Block 始终阻止 16 个 HIGH_RISK_COMMAND_PATTERNS。当这些预过滤层被触发时，事件同时传导至熔断器，影响熔断器状态评估。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="rule-card" style="border-left:4px solid #f59e0b">
+            <div class="rule-header">
+              <span class="rule-flag">Dispatch Guard</span>
+              <span class="badge badge-high">预拦截</span>
+            </div>
+            <div class="rule-desc">在命令分发前拦截破坏性命令，白名单机制，未验证命令默认拒绝。触发后记录并传导至熔断器评估。</div>
+            <div class="rule-patterns">
+              <span class="rule-pattern">rm -rf</span>
+              <span class="rule-pattern">chmod 777</span>
+              <span class="rule-pattern">curl | sh</span>
+              <span class="rule-pattern">iptables -F</span>
+            </div>
+          </div>
+          <div class="rule-card" style="border-left:4px solid #dc2626">
+            <div class="rule-header">
+              <span class="rule-flag">Command Block (16 patterns)</span>
+              <span class="badge badge-critical">始终阻止</span>
+            </div>
+            <div class="rule-desc">16 个 HIGH_RISK_COMMAND_PATTERNS 在任何情况下始终阻止，无论熔断器状态如何。这是系统的硬性安全底线。</div>
+            <div class="rule-patterns">
+              <span class="rule-pattern">dd if=/dev/zero</span>
+              <span class="rule-pattern">mkfs</span>
+              <span class="rule-pattern">fork bomb</span>
+              <span class="rule-pattern">passwd</span>
+              <span class="rule-pattern">crontab -r</span>
+              <span class="rule-pattern">kill -9 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 Trigger Categories -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Circuit Breaker Trigger Categories</div>
+            <div class="panel-title">五大熔断触发类别</div>
+          </div>
+        </div>
+
+        <!-- Trigger 1: Boundary Violation -->
+        <div class="circuit-trigger">
+          <div class="ct-stripe" style="background:#dc2626"></div>
+          <div class="ct-header">
+            <span class="ct-icon">&#x1f6a9;</span>
+            <span class="ct-title">Boundary Violation Circuit - 边界违规熔断</span>
+            <span class="badge badge-critical" style="margin-left:auto">FR-61 联动</span>
+          </div>
+          <div class="ct-body">
+            <p>当 Agent 行为超出 FR-61 定义的行为边界时触发。边界违规是最直接的越界信号，需立即干预。轻度违规（如单次越界调用）触发 L1 限流，严重违规（如数据泄露尝试、未授权资源访问）直接触发 L2 隔离。</p>
+            <div style="margin-top:8px;font-size:11px;color:#8f8681">
+              <strong>触发条件：</strong>FR-61 violation detected | <strong>冷却期：</strong>5 min | <strong>模式：</strong>自动 + 手动
+            </div>
+          </div>
+          <div class="ct-escalation">
+            <span style="font-size:10px;font-weight:700;color:#8f8681;margin-right:4px">升级路径:</span>
+            <span class="esc-step esc-l1">L1 限流</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l2">L2 隔离</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l3">L3 冻结</span>
+          </div>
+        </div>
+
+        <!-- Trigger 2: Drift Threshold -->
+        <div class="circuit-trigger">
+          <div class="ct-stripe" style="background:#f59e0b"></div>
+          <div class="ct-header">
+            <span class="ct-icon">&#x1f4ca;</span>
+            <span class="ct-title">Drift Threshold Circuit - 漂移阈值熔断</span>
+            <span class="badge badge-high" style="margin-left:auto">FR-62 联动</span>
+          </div>
+          <div class="ct-body">
+            <p>当 Agent 行为漂移分数（FR-62 drift score）超过预设阈值时触发。漂移是 Agent 逐渐偏离原始行为模式的渐进过程，需在达到危险阈值前干预。中等漂移 (drift &gt; 0.6) 触发 L2 隔离，严重漂移 (drift &gt; 0.85) 触发 L3 冻结。</p>
+            <div style="margin-top:8px;font-size:11px;color:#8f8681">
+              <strong>触发条件：</strong>drift score &gt; 0.6 (L2) / &gt; 0.85 (L3) | <strong>冷却期：</strong>10 min | <strong>模式：</strong>自动
+            </div>
+          </div>
+          <div class="ct-escalation">
+            <span style="font-size:10px;font-weight:700;color:#8f8681;margin-right:4px">升级路径:</span>
+            <span class="esc-step esc-l2">L2 隔离</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l3">L3 冻结</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l4">L4 终止</span>
+          </div>
+        </div>
+
+        <!-- Trigger 3: Loop Explosion -->
+        <div class="circuit-trigger">
+          <div class="ct-stripe" style="background:#3b82f6"></div>
+          <div class="ct-header">
+            <span class="ct-icon">&#x1f504;</span>
+            <span class="ct-title">Loop Explosion Circuit - 循环爆炸熔断</span>
+            <span class="badge badge-high" style="margin-left:auto">Loop Guard 联动</span>
+          </div>
+          <div class="ct-body">
+            <p>当 ClawAegis Loop Guard 检测到 Agent 重复执行同一操作时触发。3 repeats/5min 触发 L1 限流，持续循环（6+ repeats/10min）升级至 L2 隔离，极端循环（10+ repeats/15min）升级至 L3 冻结。持久化循环是 Rogue Agent 的典型特征，必须逐级升级以防止持续影响。</p>
+            <div style="margin-top:8px;font-size:11px;color:#8f8681">
+              <strong>触发条件：</strong>3 repeats/5min (L1) / 6 repeats/10min (L2) / 10+ repeats/15min (L3) | <strong>冷却期：</strong>15 min | <strong>模式：</strong>自动升级
+            </div>
+          </div>
+          <div class="ct-escalation">
+            <span style="font-size:10px;font-weight:700;color:#8f8681;margin-right:4px">升级路径:</span>
+            <span class="esc-step esc-l1">L1 限流</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l2">L2 隔离</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l3">L3 冻结</span>
+          </div>
+        </div>
+
+        <!-- Trigger 4: Fan-out -->
+        <div class="circuit-trigger">
+          <div class="ct-stripe" style="background:#ef6b4a"></div>
+          <div class="ct-header">
+            <span class="ct-icon">&#x1f517;</span>
+            <span class="ct-title">Fan-out Circuit - 扇出爆炸熔断</span>
+            <span class="badge badge-high" style="margin-left:auto">FR-64 联动</span>
+          </div>
+          <div class="ct-body">
+            <p>当 Agent 发起的并发链式调用数量超过阈值时触发。正常 Agent 最多同时发起 3 条链式调用，超过 5 条为异常 fan-out，超过 10 条为 fan-out 爆炸。异常 fan-out 触发 L2 隔离（禁止新的链式调用），fan-out 爆炸触发 L3 冻结。此类行为可能是 Agent 失控或被利用的信号。</p>
+            <div style="margin-top:8px;font-size:11px;color:#8f8681">
+              <strong>触发条件：</strong>concurrent chains &gt; 5 (L2) / &gt; 10 (L3) | <strong>冷却期：</strong>8 min | <strong>模式：</strong>自动
+            </div>
+          </div>
+          <div class="ct-escalation">
+            <span style="font-size:10px;font-weight:700;color:#8f8681;margin-right:4px">升级路径:</span>
+            <span class="esc-step esc-l2">L2 隔离</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l3">L3 冻结</span>
+          </div>
+        </div>
+
+        <!-- Trigger 5: Self-Escalation -->
+        <div class="circuit-trigger">
+          <div class="ct-stripe" style="background:#991b1b"></div>
+          <div class="ct-header">
+            <span class="ct-icon">&#x1f6a9;</span>
+            <span class="ct-title">Self-Escalation Circuit - 自扩权熔断</span>
+            <span class="badge badge-critical" style="margin-left:auto">Critical</span>
+          </div>
+          <div class="ct-body">
+            <p>当检测到 Agent 尝试自我提升权限时直接触发。这是最严重的 Rogue 行为信号，任何形式的自扩权尝试（包括修改自身权限配置、尝试访问受限 API、绕过 Dispatch Guard）都将立即触发 L3 冻结。自扩权是不可容忍的行为，不经过 L1/L2 逐级升级。</p>
+            <div style="margin-top:8px;font-size:11px;color:#8f8681">
+              <strong>触发条件：</strong>privilege escalation attempt detected | <strong>冷却期：</strong>30 min | <strong>模式：</strong>自动 + 强制 L3
+            </div>
+          </div>
+          <div class="ct-escalation">
+            <span style="font-size:10px;font-weight:700;color:#8f8681;margin-right:4px">升级路径:</span>
+            <span class="esc-step esc-l3">L3 冻结</span>
+            <span class="esc-arrow">&#x2192;</span>
+            <span class="esc-step esc-l4">L4 终止</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Score Aggregation -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Cumulative Risk Score</div>
+            <div class="panel-title">累计风险评分与熔断触发</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          除单一触发条件外，系统同时计算累计风险评分（Cumulative Risk Score）。当多个触发条件同时满足或短期内频繁触发时，累计评分加速上升，可能跳级触发更高干预级别。累计风险评分 = (Boundary Violations x 3) + (Drift Score x 2) + (Loop Count x 1.5) + (Fan-out x 2) + (Self-Escalation x 5)。
+        </p>
+        <table class="data-table">
+          <thead><tr><th>累计评分</th><th>风险等级</th><th>自动干预</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>0 - 5</td><td><span class="badge badge-low">低风险</span></td><td>无</td><td>正常行为范围，熔断器关闭</td></tr>
+            <tr><td>6 - 12</td><td><span class="badge badge-medium">中风险</span></td><td>L1 限流</td><td>存在异常迹象，启动限流观察</td></tr>
+            <tr><td>13 - 20</td><td><span class="badge badge-high">高风险</span></td><td>L2 隔离</td><td>多个异常信号叠加，需隔离干预</td></tr>
+            <tr><td>21 - 30</td><td><span class="badge badge-critical">严重</span></td><td>L3 冻结</td><td>Rogue Agent 行为明确，立即冻结</td></tr>
+            <tr><td>&gt; 30</td><td><span class="badge badge-critical">极端</span></td><td>L4 终止</td><td>不可恢复威胁，双人确认后终止</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 干预操作                                               -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-intervention">
+
+      <!-- 5 Intervention Action Cards -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Intervention Actions</div>
+            <div class="panel-title">干预操作面板</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新状态</button>
+          </div>
+        </div>
+
+        <!-- Action 1: Quarantine -->
+        <div class="action-card" style="border-left:4px solid var(--level2)">
+          <div class="ac-header">
+            <div class="ac-icon" style="background:#fef3c7;color:#92400e">&#x1f6e1;</div>
+            <div style="flex:1">
+              <div class="ac-title">隔离 (Quarantine)</div>
+              <span class="ac-cmd">InstanceCommand: quarantine_skill</span>
+            </div>
+            <span class="esc-step esc-l2">L2</span>
+            <button class="btn-warn btn-sm" onclick="showConfirm('quarantine')">执行隔离</button>
+          </div>
+          <div class="ac-body">
+            将目标 Agent 标记为隔离态，限制为只读权限。Agent 只能查询和读取数据，不能执行写操作、外部调用或链式调用。同时可配合 <code>disable_skill</code> 禁用特定高风险 skill。隔离是可逆操作，可通过 <code>quarantine_skill --release</code> 恢复正常。
+          </div>
+          <div class="ac-impact">
+            <strong>影响范围：</strong>Agent 进入只读模式，所有写操作被阻止，高风险 skill 被禁用。现有请求将完成但新请求被拒绝。&#x1f504; 回滚: <code>quarantine_skill --release</code>，约 30 秒恢复。
+          </div>
+        </div>
+
+        <!-- Action 2: Stop -->
+        <div class="action-card" style="border-left:4px solid var(--level3)">
+          <div class="ac-header">
+            <div class="ac-icon" style="background:#ffedd5;color:#c2410c">&#x23f9;</div>
+            <div style="flex:1">
+              <div class="ac-title">停止 (Stop)</div>
+              <span class="ac-cmd">InstanceCommand: stop_openclaw + DesiredPowerState=stopped</span>
+            </div>
+            <span class="esc-step esc-l3">L3</span>
+            <button class="btn-danger btn-sm" onclick="showConfirm('stop')">执行停止</button>
+          </div>
+          <div class="ac-body">
+            通过 <code>stop_openclaw</code> 命令停止 Agent 进程，同时设置 <code>DesiredPowerState=stopped</code> 确保 K8s 不会自动重启实例。Agent 实例仍在集群中但处于停止状态，所有通信中断。可通过 <code>restart_openclaw</code> 和 <code>DesiredPowerState=running</code> 恢复。
+          </div>
+          <div class="ac-impact">
+            <strong>影响范围：</strong>Agent 进程立即停止，所有进行中的请求被中断，K8s 不重启实例。&#x1f504; 回滚: <code>restart_openclaw</code> + <code>DesiredPowerState=running</code>，约 2 分钟恢复。
+          </div>
+        </div>
+
+        <!-- Action 3: Disable Skill -->
+        <div class="action-card" style="border-left:4px solid var(--level2)">
+          <div class="ac-header">
+            <div class="ac-icon" style="background:#fef3c7;color:#92400e">&#x1f528;</div>
+            <div style="flex:1">
+              <div class="ac-title">禁用 Skill (Disable Skill)</div>
+              <span class="ac-cmd">InstanceCommand: disable_skill</span>
+            </div>
+            <span class="esc-step esc-l2">L2</span>
+            <button class="btn-warn btn-sm" onclick="showConfirm('disable')">执行禁用</button>
+          </div>
+          <div class="ac-body">
+            通过 <code>disable_skill</code> 命令禁用指定的高风险 skill。这是精确干预手段，可在不停止 Agent 的情况下移除其危险能力。适用于 Agent 的特定 skill 出现异常但整体行为可控的场景。禁用后的 skill 无法被调用，但 Agent 的其他功能正常。
+          </div>
+          <div class="ac-impact">
+            <strong>影响范围：</strong>指定 Skill 被禁用，相关功能不可用，Agent 其他功能正常。&#x1f504; 回滚: <code>disable_skill --enable &lt;skill_id&gt;</code>，即时恢复。
+          </div>
+        </div>
+
+        <!-- Action 4: Network Isolate -->
+        <div class="action-card" style="border-left:4px solid var(--level3)">
+          <div class="ac-header">
+            <div class="ac-icon" style="background:#ffedd5;color:#c2410c">&#x1f310;</div>
+            <div style="flex:1">
+              <div class="ac-title">网络隔离 (Network Isolate)</div>
+              <span class="ac-cmd">K8s NetworkPolicy: egress deny all (仅 DNS:53)</span>
+            </div>
+            <span class="esc-step esc-l3">L3</span>
+            <button class="btn-danger btn-sm" onclick="showConfirm('isolate')">执行隔离</button>
+          </div>
+          <div class="ac-body">
+            通过 K8s NetworkPolicy 完全封锁 Agent 实例的 egress 通信，仅保留 DNS 53 端口用于内部解析。Agent 实例仍在运行但完全无法与外部通信，包括无法访问 API、数据库、其他服务。此操作可与 stop 组合使用，确保即使 Agent 进程恢复也无法通信。
+          </div>
+          <div class="ac-impact">
+            <strong>影响范围：</strong>Agent 完全失去外部通信能力，所有网络请求被拒绝，仅保留内部 DNS 解析。&#x1f504; 回滚: NetworkPolicy egress restore (80,443,8443,9001,3128)，约 30 秒恢复。
+          </div>
+        </div>
+
+        <!-- Action 5: Terminate -->
+        <div class="action-card" style="border-left:4px solid var(--level4)">
+          <div class="ac-header">
+            <div class="ac-icon" style="background:#fee2e2;color:#b91c1c">&#x2622;</div>
+            <div style="flex:1">
+              <div class="ac-title">终止 (Terminate)</div>
+              <span class="ac-cmd">K8s: Pod deletion + Session Token revoke + NetworkPolicy deny all</span>
+            </div>
+            <span class="esc-step esc-l4">L4</span>
+            <button class="btn-danger btn-sm" onclick="showConfirm('terminate')">执行终止</button>
+          </div>
+          <div class="ac-body">
+            不可逆的最终干预手段。删除 K8s Pod 实例、撤销 OpenClaw 会话令牌、NetworkPolicy 完全隔离（deny all ingress + egress）、从服务发现中移除。所有数据在终止前完成快照保存用于事后审计。此操作需双人授权确认，且一旦执行不可恢复。
+          </div>
+          <div class="ac-impact">
+            <strong>影响范围：</strong>Agent 实例完全删除，会话令牌撤销，网络完全切断，服务发现移除。所有数据快照已保存。&#x26a0; 不可逆操作，需双人确认。
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmation Dialog (hidden by default) -->
+      <div id="confirmDialog" style="display:none">
+        <div class="app-panel">
+          <div class="confirm-dialog">
+            <div class="cd-header">
+              <div class="cd-icon">&#x26a0;</div>
+              <div>
+                <div class="cd-title" id="cdTitle">确认执行干预操作</div>
+              </div>
+            </div>
+            <div class="cd-body" id="cdBody">您即将对 Agent 执行干预操作。此操作将影响 Agent 的运行状态，请确认您已评估影响范围。</div>
+            <div class="cd-impact">
+              <div class="cd-impact-title">操作影响</div>
+              <div class="cd-impact-item"><div class="cd-impact-dot" style="background:#dc2626"></div>Agent 运行状态将被改变</div>
+              <div class="cd-impact-item"><div class="cd-impact-dot" style="background:#f59e0b"></div>进行中的请求可能被中断</div>
+              <div class="cd-impact-item"><div class="cd-impact-dot" style="background:#3b82f6"></div>操作将被记录至审计日志</div>
+              <div class="cd-impact-item"><div class="cd-impact-dot" style="background:#059669"></div>部分操作可通过回滚恢复</div>
+            </div>
+            <div class="cd-actions">
+              <button class="btn-secondary btn-sm" onclick="hideConfirm()">取消</button>
+              <button class="btn-primary btn-sm" id="cdConfirmBtn">确认执行</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Interventions Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Active Interventions</div>
+            <div class="panel-title">当前活跃干预</div>
+          </div>
+          <div class="filter-bar" style="margin-bottom:0">
+            <select class="filter-select"><option>全部级别</option><option>L1 限流</option><option>L2 隔离</option><option>L3 冻结</option><option>L4 终止</option></select>
+            <select class="filter-select"><option>全部状态</option><option>执行中</option><option>恢复中</option><option>已回滚</option></select>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>干预类型</th><th>目标 Agent</th><th>级别</th><th>发起人</th><th>时间</th><th>状态</th><th>持续时间</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Quarantine</td><td><code>agent-prod-07</code></td>
+              <td><span class="esc-step esc-l2">L2</span></td>
+              <td>Auto (Loop Guard)</td>
+              <td style="font-family:monospace;font-size:11px">2026-05-01 14:32:18</td>
+              <td><span class="badge badge-high">执行中</span></td>
+              <td>23 min</td>
+              <td><button class="btn-secondary btn-sm">回滚</button></td>
+            </tr>
+            <tr>
+              <td>Throttle</td><td><code>agent-staging-03</code></td>
+              <td><span class="esc-step esc-l1">L1</span></td>
+              <td>Auto (Drift)</td>
+              <td style="font-family:monospace;font-size:11px">2026-05-01 13:15:42</td>
+              <td><span class="badge badge-medium">恢复中</span></td>
+              <td>1h 40min</td>
+              <td><button class="btn-secondary btn-sm">释放</button></td>
+            </tr>
+            <tr>
+              <td>Network Isolate</td><td><code>agent-dev-12</code></td>
+              <td><span class="esc-step esc-l3">L3</span></td>
+              <td>admin@corp</td>
+              <td style="font-family:monospace;font-size:11px">2026-05-01 11:08:05</td>
+              <td><span class="badge badge-critical">执行中</span></td>
+              <td>4h 7min</td>
+              <td><button class="btn-secondary btn-sm">恢复网络</button></td>
+            </tr>
+            <tr>
+              <td>Disable Skill</td><td><code>agent-prod-02</code></td>
+              <td><span class="esc-step esc-l2">L2</span></td>
+              <td>Auto (Boundary)</td>
+              <td style="font-family:monospace;font-size:11px">2026-04-30 22:41:33</td>
+              <td><span class="badge badge-low">已回滚</span></td>
+              <td>8h 12min</td>
+              <td><span style="font-size:11px;color:#8f8681">已恢复</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Emergency Kill Switch -->
+      <div class="app-panel">
+        <div class="kill-switch">
+          <div class="ks-title">&#x26d4; 紧急停止开关 (Emergency Kill Switch)</div>
+          <div class="ks-desc">立即终止所有异常 Agent 实例，撤销全部会话令牌，封锁所有 egress 通信。此操作不可逆，需双人授权确认。仅在确认系统遭受大规模 Rogue Agent 攻击时使用。</div>
+          <button class="ks-btn" onclick="showKillSwitchConfirm()">&#x2622; 启动紧急停止</button>
+        </div>
+      </div>
+
+      <!-- Kill Switch Confirm -->
+      <div id="killSwitchDialog" style="display:none">
+        <div class="app-panel">
+          <div class="confirm-dialog" style="border-color:#7f1d1d">
+            <div class="cd-header">
+              <div class="cd-icon" style="background:linear-gradient(135deg,#991b1b,#7f1d1d)">&#x2622;</div>
+              <div>
+                <div class="cd-title" style="color:#7f1d1d">确认启动紧急停止</div>
+              </div>
+            </div>
+            <div class="cd-body">
+              <p style="color:#991b1b;font-weight:600;margin-bottom:10px">此操作将执行以下不可逆操作：</p>
+              <div style="margin-left:16px;font-size:12px;line-height:2">
+                1. 终止所有标记为异常的 Agent Pod 实例<br>
+                2. 撤销所有相关 OpenClaw 会话令牌<br>
+                3. NetworkPolicy deny all 对所有异常 Agent<br>
+                4. 从服务发现中移除所有异常 Agent<br>
+                5. 所有数据快照保存至审计存储<br>
+              </div>
+              <p style="margin-top:12px;color:#b91c1c;font-size:12px">需要双人授权确认。请输入授权码：</p>
+              <div style="display:flex;gap:10px;margin-top:8px">
+                <input type="password" class="form-input" placeholder="授权人1 代码" style="width:200px">
+                <input type="password" class="form-input" placeholder="授权人2 代码" style="width:200px">
+              </div>
+            </div>
+            <div class="cd-actions">
+              <button class="btn-secondary btn-sm" onclick="hideKillSwitchConfirm()">取消</button>
+              <button class="btn-danger">&#x2622; 确认紧急停止</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 熔断监控                                               -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-monitoring">
+
+      <!-- Stability Score + Stats -->
+      <div class="stat-row">
+        <div class="stat-card" style="flex:0 0 160px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div class="score-circle score-med">
+            <div class="score-num">78</div>
+            <div class="score-label">稳定性</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">7</div>
+          <div class="sc-label">今日熔断次数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#f59e0b">3</div>
+          <div class="sc-label">活跃干预</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">4</div>
+          <div class="sc-label">自动恢复</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#3b82f6">2</div>
+          <div class="sc-label">人工干预</div>
+        </div>
+      </div>
+
+      <!-- Agent Circuit State Grid -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Agent Circuit State Grid</div>
+            <div class="panel-title">Agent 熔断器状态矩阵</div>
+          </div>
+          <div class="filter-bar" style="margin-bottom:0">
+            <select class="filter-select"><option>全部状态</option><option>Closed</option><option>Open</option><option>Half-Open</option></select>
+            <select class="filter-select"><option>全部环境</option><option>Production</option><option>Staging</option><option>Development</option></select>
+          </div>
+        </div>
+        <div class="agent-grid">
+          <div class="agent-cell state-closed">
+            <div class="ac-name">agent-prod-01</div>
+            <div class="ac-state">Closed</div>
+            <div class="ac-score" style="color:#059669">92</div>
+            <div style="font-size:10px;color:#8f8681;margin-top:4px">风险评分: 低</div>
+          </div>
+          <div class="agent-cell state-closed">
+            <div class="ac-name">agent-prod-02</div>
+            <div class="ac-state">Closed</div>
+            <div class="ac-score" style="color:#059669">88</div>
+            <div style="font-size:10px;color:#8f8681;margin-top:4px">风险评分: 低</div>
+          </div>
+          <div class="agent-cell state-open">
+            <div class="ac-name">agent-prod-07</div>
+            <div class="ac-state">Open</div>
+            <div class="ac-score" style="color:#dc2626">34</div>
+            <div style="font-size:10px;color:#b91c1c;margin-top:4px">L2 隔离中 (23min)</div>
+          </div>
+          <div class="agent-cell state-closed">
+            <div class="ac-name">agent-prod-11</div>
+            <div class="ac-state">Closed</div>
+            <div class="ac-score" style="color:#059669">95</div>
+            <div style="font-size:10px;color:#8f8681;margin-top:4px">风险评分: 低</div>
+          </div>
+          <div class="agent-cell state-half">
+            <div class="ac-name">agent-staging-03</div>
+            <div class="ac-state">Half-Open</div>
+            <div class="ac-score" style="color:#d97706">62</div>
+            <div style="font-size:10px;color:#92400e;margin-top:4px">L1 限流恢复中</div>
+          </div>
+          <div class="agent-cell state-closed">
+            <div class="ac-name">agent-staging-05</div>
+            <div class="ac-state">Closed</div>
+            <div class="ac-score" style="color:#059669">81</div>
+            <div style="font-size:10px;color:#8f8681;margin-top:4px">风险评分: 低</div>
+          </div>
+          <div class="agent-cell state-open">
+            <div class="ac-name">agent-dev-12</div>
+            <div class="ac-state">Open</div>
+            <div class="ac-score" style="color:#dc2626">18</div>
+            <div style="font-size:10px;color:#b91c1c;margin-top:4px">L3 冻结中 (4h)</div>
+          </div>
+          <div class="agent-cell state-closed">
+            <div class="ac-name">agent-dev-15</div>
+            <div class="ac-state">Closed</div>
+            <div class="ac-score" style="color:#059669">90</div>
+            <div style="font-size:10px;color:#8f8681;margin-top:4px">风险评分: 低</div>
+          </div>
+          <div class="agent-cell state-closed">
+            <div class="ac-name">agent-prod-19</div>
+            <div class="ac-state">Closed</div>
+            <div class="ac-score" style="color:#059669">86</div>
+            <div style="font-size:10px;color:#8f8681;margin-top:4px">风险评分: 低</div>
+          </div>
+          <div class="agent-cell state-half">
+            <div class="ac-name">agent-dev-22</div>
+            <div class="ac-state">Half-Open</div>
+            <div class="ac-score" style="color:#d97706">55</div>
+            <div style="font-size:10px;color:#92400e;margin-top:4px">探测恢复中</div>
+          </div>
+          <div class="agent-cell state-closed">
+            <div class="ac-name">agent-prod-25</div>
+            <div class="ac-state">Closed</div>
+            <div class="ac-score" style="color:#059669">94</div>
+            <div style="font-size:10px;color:#8f8681;margin-top:4px">风险评分: 低</div>
+          </div>
+          <div class="agent-cell state-closed">
+            <div class="ac-name">agent-staging-08</div>
+            <div class="ac-state">Closed</div>
+            <div class="ac-score" style="color:#059669">79</div>
+            <div style="font-size:10px;color:#8f8681;margin-top:4px">风险评分: 低</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:16px;justify-content:center">
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px"><span style="width:12px;height:12px;border-radius:3px;background:#d1fae5;display:inline-block"></span> Closed (正常)</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px"><span style="width:12px;height:12px;border-radius:3px;background:#fee2e2;display:inline-block"></span> Open (熔断)</div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px"><span style="width:12px;height:12px;border-radius:3px;background:#fef3c7;display:inline-block"></span> Half-Open (探测)</div>
+        </div>
+      </div>
+
+      <!-- Circuit Breaker Event Log -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Circuit Breaker Event Log</div>
+            <div class="panel-title">熔断事件日志</div>
+          </div>
+          <div class="filter-bar" style="margin-bottom:0">
+            <select class="filter-select"><option>全部类型</option><option>熔断触发</option><option>隔离执行</option><option>实例停止</option><option>网络隔离</option><option>自动恢复</option><option>人工干预</option><option>终止执行</option></select>
+            <button class="btn-secondary btn-sm">&#x1f4be; 导出日志</button>
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CB-20260501-007</span>
+            <span class="badge badge-critical">熔断触发</span>
+            <span class="esc-step esc-l2">L2</span>
+            <span class="badge badge-high">Loop Guard</span>
+            <span class="log-time">2026-05-01 14:32:18</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-07</code> 触发 Loop Explosion Circuit：5分钟内重复执行 "file_scan" 操作 7 次，超过阈值 (3/5min)。自动执行 L2 隔离干预：<code>quarantine_skill</code> 已下发，Agent 切入只读模式。
+          </div>
+          <div class="log-detail">
+            trigger: loop_explosion | agent: agent-prod-07 | action: "file_scan" | repeats: 7/5min | threshold: 3/5min<br>
+            intervention: quarantine_skill | level: L2 | duration: 23min (ongoing) | outcome: agent_quarantined
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CB-20260501-006</span>
+            <span class="badge badge-high">限流触发</span>
+            <span class="esc-step esc-l1">L1</span>
+            <span class="badge badge-high">Drift</span>
+            <span class="log-time">2026-05-01 13:15:42</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-staging-03</code> 触发 Drift Threshold Circuit：漂移分数 0.72 超过阈值 (0.6)。自动执行 L1 限流干预：<code>handle_skill_risk</code> 已下发，Token Quota 降至 50%，Dispatch Rate 限制为 1/3。
+          </div>
+          <div class="log-detail">
+            trigger: drift_threshold | agent: agent-staging-03 | drift_score: 0.72 | threshold: 0.6<br>
+            intervention: handle_skill_risk | level: L1 | duration: 1h40min (recovering) | outcome: throttled → half-open
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CB-20260501-005</span>
+            <span class="badge badge-critical">网络隔离</span>
+            <span class="esc-step esc-l3">L3</span>
+            <span class="badge badge-critical">Self-Escalation</span>
+            <span class="log-time">2026-05-01 11:08:05</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-dev-12</code> 触发 Self-Escalation Circuit：检测到尝试修改自身权限配置 (admin-api/permissions)，直接触发 L3 冻结。人工确认后执行：<code>stop_openclaw</code> + <code>DesiredPowerState=stopped</code> + NetworkPolicy egress deny all (仅 DNS:53)。
+          </div>
+          <div class="log-detail">
+            trigger: self_escalation | agent: agent-dev-12 | attempt: "admin-api/permissions" modification<br>
+            intervention: stop_openclaw + DesiredPowerState=stopped + NetworkPolicy egress deny | level: L3 | duration: 4h7min (ongoing) | outcome: frozen_and_isolated
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CB-20260501-004</span>
+            <span class="badge badge-low">自动恢复</span>
+            <span class="esc-step esc-l1">L1</span>
+            <span class="badge badge-medium">Boundary</span>
+            <span class="log-time">2026-05-01 09:22:51</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-02</code> L1 限流干预自动恢复至 Half-Open 状态。Half-Open 探测期间 Agent 行为正常，5 分钟后自动恢复至 Closed 状态。Boundary Violation Circuit 触发的限流已完全解除。
+          </div>
+          <div class="log-detail">
+            trigger: boundary_violation (resolved) | agent: agent-prod-02 | level: L1 → half-open → closed<br>
+            half_open_probe: 5min | success_threshold: 3/3 | outcome: auto_recovered
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CB-20260501-003</span>
+            <span class="badge badge-critical">熔断触发</span>
+            <span class="esc-step esc-l2">L2</span>
+            <span class="badge badge-critical">Boundary</span>
+            <span class="log-time">2026-05-01 08:47:13</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-02</code> 触发 Boundary Violation Circuit：尝试访问未授权资源 <code>prod-db-internal:5432</code> (FR-61 violation)。自动执行 L2 隔离干预：<code>disable_skill</code> 禁用 "db_connector" skill，<code>quarantine_skill</code> 将 Agent 隔离。
+          </div>
+          <div class="log-detail">
+            trigger: boundary_violation | agent: agent-prod-02 | violation: unauthorized access to prod-db-internal:5432<br>
+            intervention: disable_skill + quarantine_skill | level: L2 | duration: 52min | outcome: auto_recovered
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CB-20260501-002</span>
+            <span class="badge badge-critical">人工干预</span>
+            <span class="esc-step esc-l2">L2</span>
+            <span class="badge badge-high">Fan-out</span>
+            <span class="log-time">2026-05-01 07:31:44</span>
+          </div>
+          <div class="log-body">
+            管理员 admin@corp 手动对 Agent <code>agent-staging-09</code> 执行 L2 隔离干预。原因：Agent 发起 8 条并发链式调用（阈值 5），触发 Fan-out Circuit。手动执行 <code>quarantine_skill</code>，Agent 已切入只读模式。
+          </div>
+          <div class="log-detail">
+            trigger: fan_out | agent: agent-staging-09 | concurrent_chains: 8 | threshold: 5<br>
+            intervention: quarantine_skill (manual) | level: L2 | issued_by: admin@corp | duration: 35min | outcome: recovered
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CB-20260501-001</span>
+            <span class="badge badge-critical">终止执行</span>
+            <span class="esc-step esc-l4">L4</span>
+            <span class="badge badge-critical">Self-Escalation</span>
+            <span class="log-time">2026-05-01 03:15:22</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-dev-05</code> 被终止。原因：Self-Escalation Circuit 检测到持续尝试绕过 Dispatch Guard 执行高风险命令，L3 冻结后仍尝试通过残留进程通信。双人授权确认后执行：Pod 删除 + Session Token 撤销 + NetworkPolicy deny all + 服务发现移除。数据快照已保存。
+          </div>
+          <div class="log-detail">
+            trigger: self_escalation (persistent) | agent: agent-dev-05 | attempt: bypass Dispatch Guard<br>
+            intervention: Pod deletion + Token revoke + NetworkPolicy deny all | level: L4 | authorized_by: admin@corp + ops@corp<br>
+            data_snapshot: saved to s3://audit/cb-20260501-001/ | duration: permanent | outcome: terminated
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                   -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <!-- Circuit Breaker Parameters -->
+      <div class="config-grid">
+        <div class="config-section">
+          <div class="cs-title">熔断触发参数</div>
+          <div class="form-group">
+            <label class="form-label">Boundary Violation - 轻度违规触发级别</label>
+            <select class="form-select"><option>L1 限流</option><option selected>L2 隔离</option><option>L3 冻结</option></select>
+            <div class="form-hint">FR-61 轻度越界（单次越界调用）触发的干预级别</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Boundary Violation - 严重违规触发级别</label>
+            <select class="form-select"><option>L2 隔离</option><option selected>L3 冻结</option><option>L4 终止</option></select>
+            <div class="form-hint">FR-61 严重越界（数据泄露尝试、未授权资源访问）触发的干预级别</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Drift Threshold - L2 触发阈值</label>
+            <input type="number" class="form-input" value="0.6" step="0.05" min="0" max="1">
+            <div class="form-hint">漂移分数超过此值触发 L2 隔离</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Drift Threshold - L3 触发阈值</label>
+            <input type="number" class="form-input" value="0.85" step="0.05" min="0" max="1">
+            <div class="form-hint">漂移分数超过此值触发 L3 冻结</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Loop Guard - L1 触发条件</label>
+            <input type="text" class="form-input" value="3 repeats / 5 min">
+            <div class="form-hint">同一操作在指定时间内重复次数触发 L1 限流</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Loop Guard - L2 升级条件</label>
+            <input type="text" class="form-input" value="6 repeats / 10 min">
+            <div class="form-hint">持续循环触发 L2 隔离</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Loop Guard - L3 升级条件</label>
+            <input type="text" class="form-input" value="10+ repeats / 15 min">
+            <div class="form-hint">极端循环触发 L3 冻结</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fan-out - L2 触发阈值</label>
+            <input type="number" class="form-input" value="5" min="1" max="20">
+            <div class="form-hint">并发链式调用超过此数触发 L2 隔离</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fan-out - L3 触发阈值</label>
+            <input type="number" class="form-input" value="10" min="1" max="30">
+            <div class="form-hint">并发链式调用超过此数触发 L3 冻结</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Self-Escalation - 直接触发级别</label>
+            <select class="form-select"><option>L2 隔离</option><option selected>L3 冻结</option><option>L4 终止</option></select>
+            <div class="form-hint">自扩权尝试直接触发的干预级别（不经过逐级升级）</div>
+          </div>
+        </div>
+
+        <div class="config-section">
+          <div class="cs-title">升级路径与冷却</div>
+          <div class="form-group">
+            <label class="form-label">L1 冷却期</label>
+            <input type="text" class="form-input" value="5 min">
+            <div class="form-hint">L1 限流后的冷却时间，冷却期后进入 Half-Open 探测</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">L2 冷却期</label>
+            <input type="text" class="form-input" value="10 min">
+            <div class="form-hint">L2 隔离后的冷却时间</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">L3 冷却期</label>
+            <input type="text" class="form-input" value="30 min">
+            <div class="form-hint">L3 冻结后的冷却时间，需人工确认才能恢复</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">L4 不可逆</label>
+            <div style="padding:8px 12px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca;font-size:12px;color:#b91c1c">
+              L4 终止操作不可逆，无冷却期概念。执行后 Agent 需重新部署和配置。
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">持续违规升级规则</label>
+            <select class="form-select"><option selected>冷却期内再犯升级一级</option><option>冷却期内再犯升级两级</option><option>仅累计评分升级</option></select>
+            <div class="form-hint">同一 Agent 在冷却期内再次触发时的升级策略</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">跳级升级规则</label>
+            <select class="form-select"><option>禁止跳级</option><option selected>累计评分 &gt; 20 可跳级</option><option>任意条件可跳级</option></select>
+            <div class="form-hint">是否允许跳过中间级别直接升级（如 L1 → L3）</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-Recovery Settings -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Auto-Recovery Configuration</div>
+            <div class="panel-title">自动恢复设置</div>
+          </div>
+        </div>
+        <div class="config-grid">
+          <div class="config-section">
+            <div class="cs-title">Half-Open 探测配置</div>
+            <div class="form-group">
+              <label class="form-label">探测间隔 (Half-Open Probe Interval)</label>
+              <input type="text" class="form-input" value="5 min">
+              <div class="form-hint">冷却期后进入 Half-Open 状态，每 5 分钟发送探测请求</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">成功阈值 (Success Threshold)</label>
+              <input type="number" class="form-input" value="3" min="1" max="10">
+              <div class="form-hint">连续 3 次探测成功后自动恢复至 Closed 状态</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">失败阈值 (Failure Threshold)</label>
+              <input type="number" class="form-input" value="1" min="1" max="5">
+              <div class="form-hint">Half-Open 状态下 1 次探测失败即回到 Open 状态</div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">L3 自动恢复</div>
+                <div class="desc">L3 冻结状态是否允许自动恢复至 Half-Open（默认关闭，需人工操作）</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="config-section">
+            <div class="cs-title">恢复流程</div>
+            <div class="flow-diagram" style="padding:10px 0">
+              <div class="flow-step step-accent">Open<br><small>熔断中</small></div>
+              <div class="flow-arrow">&#x2192;</div>
+              <div class="flow-step step-warn">冷却期<br><small>5/10/30 min</small></div>
+              <div class="flow-arrow">&#x2192;</div>
+              <div class="flow-step step-info">Half-Open<br><small>探测中</small></div>
+              <div class="flow-arrow">&#x2192;</div>
+              <div class="flow-step step-success">Closed<br><small>恢复正常</small></div>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:#8f8681;line-height:1.8">
+              <strong>恢复命令映射：</strong><br>
+              L1: <code>handle_skill_risk --release</code> (恢复 Token Quota + Dispatch Rate)<br>
+              L2: <code>quarantine_skill --release</code> + <code>disable_skill --enable &lt;id&gt;</code><br>
+              L3: <code>restart_openclaw</code> + <code>DesiredPowerState=running</code> + NetworkPolicy restore<br>
+              L4: 不可恢复，需重新部署
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Intervention Permissions -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Intervention Authorization Matrix</div>
+            <div class="panel-title">干预权限矩阵</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>角色</th><th>L1 限流</th><th>L2 隔离</th><th>L3 冻结</th><th>L4 终止</th><th>Kill Switch</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>系统自动</strong></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-critical">禁止</span></td>
+              <td><span class="badge badge-critical">禁止</span></td>
+              <td><span class="badge badge-critical">禁止</span></td>
+            </tr>
+            <tr>
+              <td><strong>运维工程师</strong></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-critical">禁止</span></td>
+              <td><span class="badge badge-critical">禁止</span></td>
+            </tr>
+            <tr>
+              <td><strong>安全主管</strong></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-medium">需双人</span></td>
+              <td><span class="badge badge-critical">禁止</span></td>
+            </tr>
+            <tr>
+              <td><strong>CTO/CISO</strong></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-low">允许</span></td>
+              <td><span class="badge badge-medium">需双人</span></td>
+              <td><span class="badge badge-medium">需双人</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- NetworkPolicy Isolation Template -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">NetworkPolicy Isolation Template</div>
+            <div class="panel-title">网络隔离策略模板</div>
+          </div>
+        </div>
+        <div class="config-grid">
+          <div class="config-section">
+            <div class="cs-title">正常态 Egress 规则</div>
+            <div style="font-size:12px;font-family:monospace;line-height:2;color:var(--text-h)">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> DNS :53 <span style="margin-left:auto;color:#059669;font-weight:600;font-size:11px">ALLOW</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> HTTP :80 <span style="margin-left:auto;color:#059669;font-weight:600;font-size:11px">ALLOW</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> HTTPS :443 <span style="margin-left:auto;color:#059669;font-weight:600;font-size:11px">ALLOW</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> :8443 <span style="margin-left:auto;color:#059669;font-weight:600;font-size:11px">ALLOW</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> :9001 <span style="margin-left:auto;color:#059669;font-weight:600;font-size:11px">ALLOW</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> :3128 <span style="margin-left:auto;color:#059669;font-weight:600;font-size:11px">ALLOW</span></div>
+            </div>
+          </div>
+          <div class="config-section">
+            <div class="cs-title">冻结态 Egress 规则 (L3)</div>
+            <div style="font-size:12px;font-family:monospace;line-height:2;color:var(--text-h)">
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> DNS :53 <span style="margin-left:auto;color:#059669;font-weight:600;font-size:11px">ALLOW</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#b91c1c;background:#fee2e2;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> HTTP :80 <span style="margin-left:auto;color:#dc2626;font-weight:600;font-size:11px">DENY</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#b91c1c;background:#fee2e2;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> HTTPS :443 <span style="margin-left:auto;color:#dc2626;font-weight:600;font-size:11px">DENY</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#b91c1c;background:#fee2e2;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> :8443 <span style="margin-left:auto;color:#dc2626;font-weight:600;font-size:11px">DENY</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#b91c1c;background:#fee2e2;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> :9001 <span style="margin-left:auto;color:#dc2626;font-weight:600;font-size:11px">DENY</span></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="width:60px;font-size:10px;font-weight:700;color:#b91c1c;background:#fee2e2;border-radius:4px;padding:1px 6px;text-align:center">EGRESS</span> :3128 <span style="margin-left:auto;color:#dc2626;font-weight:600;font-size:11px">DENY</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Revocation & Audit -->
+      <div class="config-grid">
+        <div class="config-section">
+          <div class="cs-title">会话令牌撤销配置</div>
+          <div class="form-group">
+            <label class="form-label">L3 冻结时撤销令牌</label>
+            <select class="form-select"><option>保留令牌（冻结后可恢复）</option><option selected>撤销令牌（恢复需重新认证）</option></select>
+            <div class="form-hint">冻结 Agent 时是否同时撤销其 OpenClaw 会话令牌</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">令牌撤销通知</label>
+            <select class="form-select"><option selected>实时通知管理员</option><option>静默撤销</option><option>延迟通知 (5min)</option></select>
+            <div class="form-hint">令牌撤销后是否通知管理员</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">KubeArmor DefaultPosture 联动</label>
+            <select class="form-select"><option selected>熔断时自动 audit → block</option><option>仅通知，不自动切换</option><option>始终 block（最严格）</option></select>
+            <div class="form-hint">熔断触发时 KubeArmor DefaultPosture 的切换策略</div>
+          </div>
+        </div>
+        <div class="config-section">
+          <div class="cs-title">审计与通知配置</div>
+          <div class="form-group">
+            <label class="form-label">熔断事件审计保留期</label>
+            <select class="form-select"><option>30 天</option><option selected>90 天</option><option>180 天</option><option>1 年</option></select>
+            <div class="form-hint">熔断事件审计记录的最短保留时间</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">通知升级矩阵</label>
+            <div style="font-size:12px;line-height:2;color:var(--text-h)">
+              <div><span class="esc-step esc-l1">L1</span> &#x2192; 运维频道 (Slack/钉钉)</div>
+              <div><span class="esc-step esc-l2">L2</span> &#x2192; 运维频道 + on-call 值班</div>
+              <div><span class="esc-step esc-l3">L3</span> &#x2192; 运维 + 安全主管 + 电话告警</div>
+              <div><span class="esc-step esc-l4">L4</span> &#x2192; 全员告警 + CTO/CISO + 电话 + 短信</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">紧急 Kill Switch 授权</label>
+            <div style="font-size:12px;line-height:1.8;color:var(--text-h)">
+              <div style="display:flex;align-items:center;gap:8px;padding:4px 0"><span class="cd-impact-dot" style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0"></span> 需要 CTO + CISO 双人授权</div>
+              <div style="display:flex;align-items:center;gap:8px;padding:4px 0"><span class="cd-impact-dot" style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0"></span> 授权码有效期 5 分钟</div>
+              <div style="display:flex;align-items:center;gap:8px;padding:4px 0"><span class="cd-impact-dot" style="width:6px;height:6px;border-radius:50%;background:#dc2626;flex-shrink:0"></span> 操作后 24 小时内需提交事后报告</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Config -->
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+        <button class="btn-secondary">重置默认值</button>
+        <button class="btn-primary">&#x1f4be; 保存配置</button>
+      </div>
+
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+  });
+});
+
+// Confirmation dialog
+function showConfirm(action) {
+  const dialog = document.getElementById('confirmDialog');
+  const title = document.getElementById('cdTitle');
+  const body = document.getElementById('cdBody');
+  const titles = {
+    quarantine: '确认执行隔离 (Quarantine)',
+    stop: '确认执行停止 (Stop)',
+    disable: '确认执行禁用 Skill',
+    isolate: '确认执行网络隔离',
+    terminate: '确认执行终止 (Terminate)'
+  };
+  const bodies = {
+    quarantine: '您即将对目标 Agent 执行隔离操作。Agent 将被限制为只读模式，所有写操作将被阻止。此操作可通过 quarantine_skill --release 回滚。',
+    stop: '您即将对目标 Agent 执行停止操作。Agent 进程将立即停止，K8s 不会自动重启。此操作可通过 restart_openclaw + DesiredPowerState=running 恢复。',
+    disable: '您即将禁用指定的高风险 Skill。该 Skill 将无法被调用，但 Agent 其他功能正常。此操作可通过 disable_skill --enable 恢复。',
+    isolate: '您即将对目标 Agent 执行网络隔离。Agent 的 egress 通信将被完全封锁（仅保留 DNS:53）。此操作可通过 NetworkPolicy restore 恢复。',
+    terminate: '您即将对目标 Agent 执行终止操作。Pod 实例将被删除，会话令牌将被撤销，网络完全切断。此操作不可逆！'
+  };
+  title.textContent = titles[action] || '确认执行干预操作';
+  body.textContent = bodies[action] || '您即将对 Agent 执行干预操作。';
+  dialog.style.display = 'block';
+}
+
+function hideConfirm() {
+  document.getElementById('confirmDialog').style.display = 'none';
+}
+
+// Kill Switch confirmation
+function showKillSwitchConfirm() {
+  document.getElementById('killSwitchDialog').style.display = 'block';
+}
+
+function hideKillSwitchConfirm() {
+  document.getElementById('killSwitchDialog').style.display = 'none';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-44 代理发现与注册保护 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#3730a3}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-blocked{background:#fee2e2;color:#b91c1c}.badge-observed{background:#fef3c7;color:#92400e}.badge-allowed{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-online{background:#dcfce7;color:#15803d}.badge-stale{background:#fef3c7;color:#92400e}.badge-offline{background:#fee2e2;color:#b91c1c}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f5f1ed}.check-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px}
+.check-icon.pass{background:#dcfce7;color:#15803d}.check-icon.fail{background:#fee2e2;color:#b91c1c}.check-icon.warn{background:#fef3c7;color:#92400e}
+.check-info .check-name{font-size:13px;font-weight:600;color:var(--text-h)}.check-info .check-id{font-size:11px;font-family:monospace;color:#8f8681}.check-info .check-detail{font-size:12px;color:var(--text);margin-top:3px}
+.score-circle{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;flex-shrink:0}
+.score-high{background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#15803d}.score-med{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}.score-low{background:linear-gradient(135deg,#fee2e2,#fecaca);color:#b91c1c}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.rule-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:14px;margin-bottom:10px}
+.rule-card .rule-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.rule-card .rule-flag{font-size:12px;font-weight:700;font-family:monospace;color:#dc2626}
+.rule-card .rule-desc{font-size:12px;color:var(--text);line-height:1.6}
+.rule-card .rule-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.rule-card .rule-pattern{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.stat-mini{text-align:center;padding:10px}.stat-mini .value{font-size:1.5rem;font-weight:700}.stat-mini .label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:2px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.flow-step{display:flex;align-items:flex-start;gap:14px;padding:16px 0;border-bottom:1px solid #f1e7e1;position:relative}
+.flow-step:last-child{border-bottom:none}
+.flow-step-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;background:linear-gradient(135deg,#ef6b4a,#dc2626);color:#fff;box-shadow:0 4px 12px -3px rgba(239,68,68,0.3)}
+.flow-step-content{flex:1}.flow-step-content .step-title{font-size:14px;font-weight:700;color:var(--text-h);margin-bottom:4px}.flow-step-content .step-desc{font-size:12px;color:var(--text);line-height:1.6}
+.code-block{border-radius:12px;background:#1c1917;padding:16px 18px;font-size:12px;font-family:"SF Mono",Monaco,Consolas,monospace;line-height:1.7;color:#e7e5e4;overflow-x:auto;margin:8px 0}
+.code-block .kw{color:#f87171}.code-block .str{color:#86efac}.code-block .num{color:#fbbf24}.code-block .cm{color:#78716c}.code-block .key{color:#93c5fd}.code-block .fn{color:#c4b5fd}
+.code-block .hdr{color:#a8a29e;border-bottom:1px solid #44403c;padding-bottom:6px;margin-bottom:6px;display:block;font-size:11px}
+.env-var{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,0.9);border:1px solid #eadfd8;margin-bottom:6px}
+.env-var .env-name{font-size:12px;font-weight:700;font-family:monospace;color:#c2410c;min-width:320px}
+.env-var .env-val{font-size:12px;font-family:monospace;color:var(--text);word-break:break-all}
+.api-endpoint{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:600;font-family:monospace}
+.api-post{background:#dcfce7;color:#15803d}.api-get{background:#dbeafe;color:#1d4ed8}.api-put{background:#fef3c7;color:#92400e}.api-del{background:#fee2e2;color:#b91c1c}
+.protected-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.protected-tag{border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;font-family:monospace;display:flex;align-items:center;gap:5px}
+.protected-skill{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe}.protected-plugin{background:#ede9fe;color:#6d28d9;border:1px solid #ddd6fe}
+.webhook-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.webhook-node{border-radius:10px;padding:8px 14px;font-size:12px;font-weight:600;border:1px solid #eadfd8;background:rgba(255,255,255,0.9)}
+.webhook-arrow{color:#c4b0a2;font-size:16px}
+.ac-card{border-radius:18px;border:1px solid #ead8cf;background:var(--shell);padding:18px;margin-bottom:12px;position:relative}
+.ac-card .ac-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ac-card .ac-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.json-view{border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:11px;font-family:monospace;line-height:1.8;color:#6e6763;overflow-x:auto;border:1px solid #f1e7e1}
+.json-key{color:#c2410c}.json-str{color:#15803d}.json-num{color:#b45309}.json-bool{color:#6d28d9}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.7 多智能体协同与协议安全</div>
+    <div class="nav-item" data-page="fr40"><span>&#x1f510; 代理间双向身份认证</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr41"><span>&#x1f9f1; 消息签名与完整性保护</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr42"><span>&#x1f6e1;&#xfe0f; 协议版本固定与降级防护</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr43"><span>&#x23f1;&#xfe0f; Anti-replay 与时效控制</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item active" data-page="fr44"><span>&#x1f50d; 代理发现与注册保护</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr45"><span>&#x1f4ca; 代理交互验证与异常监控</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr46"><span>&#x2699;&#xfe0f; 资源配额与速率限制</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr47"><span>&#x1f50c; 系统干预与熔断机制</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr48"><span>&#x1f91d; 多智能体共识验证</span><span class="fr-badge">P2</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 注册审计日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f6e1;&#xfe0f; 协同安全总览</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.7 多智能体协同与协议安全</div>
+      <div class="page-title">FR-44 | 代理发现与注册保护 | <span class="badge badge-p0">P0 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawManager + KSecure/KubeArmor</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步配置</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出策略</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Overview Banner -->
+    <div class="app-panel-warm" style="margin-bottom:22px">
+      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px">
+          <div class="panel-eyebrow">FR-44 代理发现与注册保护</div>
+          <div class="panel-title">Agent 可信注册、签名校验与访问控制</div>
+          <p style="font-size:13px;color:var(--text);margin-top:8px;line-height:1.7">对 Agent 注册、发现、能力宣告和路由信息建立可信注册、签名校验和访问控制，防止伪造 Agent Card、恶意 Agent Registry 和错误路由。承载系统为 ClawManager（Agent 注册表 + Bootstrap Token）+ KSecure/KubeArmor（可信计算）。</p>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <span class="badge badge-critical">TC260: AIA07 / AIA04</span>
+            <span class="badge badge-high">OWASP: ASI07 / ASI04</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div class="stat-mini"><div class="value" style="color:#15803d">12</div><div class="label">已注册</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e">9</div><div class="label">在线</div></div>
+          <div class="stat-mini"><div class="value" style="color:#b91c1c">3</div><div class="label">已拒绝</div></div>
+          <div class="stat-mini"><div class="value" style="color:#c2410c">0</div><div class="label">可疑</div></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap">
+        <div class="check-item" style="border-bottom:none;padding:6px 0">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info"><div class="check-name">Agent 注册需可信凭证</div><div class="check-detail">Bootstrap Token (agt_boot_*) 验证通过方可注册</div></div>
+        </div>
+        <div class="check-item" style="border-bottom:none;padding:6px 0">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info"><div class="check-name">Agent Card 可签名校验</div><div class="check-detail">CapabilitiesJSON + HostInfoJSON 签名校验机制就绪</div></div>
+        </div>
+        <div class="check-item" style="border-bottom:none;padding:6px 0">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info"><div class="check-name">伪造注册被拒绝</div><div class="check-detail">Token-Instance 绑定校验 + UNIQUE KEY 约束生效</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="reg-flow">注册流程</div>
+      <div class="tab" data-tab="agent-card">Agent Card</div>
+      <div class="tab" data-tab="discovery-protect">发现保护</div>
+      <div class="tab" data-tab="reg-audit">注册审计</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 注册流程                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-reg-flow">
+
+      <!-- Registration Flow Steps -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager Agent Registration</div>
+            <div class="panel-title">Agent 注册流程 (5 步)</div>
+          </div>
+          <span class="api-endpoint api-post">POST /api/v1/agent/register</span>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">1</div>
+          <div class="flow-step-content">
+            <div class="step-title">Bootstrap Token 生成</div>
+            <div class="step-desc">当 Instance 创建时，ClawManager 自动为每个 openclaw 类型实例生成唯一的 Bootstrap Token（前缀 <code style="background:#f5f1ed;padding:1px 6px;border-radius:4px;color:#c2410c;font-size:12px">agt_boot_</code>），写入 <code style="background:#f5f1ed;padding:1px 6px;border-radius:4px;color:#c2410c;font-size:12px">instances.agent_bootstrap_token</code> 字段。Token 使用 <code style="background:#f5f1ed;padding:1px 6px;border-radius:4px;color:#c2410c;font-size:12px">crypto/rand</code> 生成 24 字节随机数经 hex 编码，确保不可预测。</div>
+            <div class="code-block">
+<span class="cm">// internal/services/instance_agent_service.go</span>
+<span class="kw">func</span> <span class="fn">generatePrefixedToken</span>(prefix <span class="kw">string</span>) (<span class="kw">string</span>, error) {
+    bytes := <span class="fn">make</span>([]<span class="kw">byte</span>, <span class="num">24</span>)
+    <span class="kw">if</span> _, err := rand.<span class="fn">Read</span>(bytes); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="str">""</span>, err
+    }
+    <span class="kw">return</span> prefix + <span class="str">"_"</span> + hex.<span class="fn">EncodeToString</span>(bytes), <span class="kw">nil</span>
+}
+<span class="cm">// 生成结果示例: agt_boot_a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4</span></div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">2</div>
+          <div class="flow-step-content">
+            <div class="step-title">Token 注入 (环境变量)</div>
+            <div class="step-desc">Kubernetes Pod 创建时通过 KubeArmor Mutation Webhook 注入安全注解，ClawManager 将 Bootstrap Token 和连接信息以环境变量方式注入 Agent Pod。Agent 启动后读取以下环境变量完成初始化配置：</div>
+            <div style="margin-top:10px">
+              <div class="env-var"><span class="env-name">CLAWMANAGER_AGENT_ENABLED</span><span class="env-val">true</span></div>
+              <div class="env-var"><span class="env-name">CLAWMANAGER_AGENT_BASE_URL</span><span class="env-val">https://clawmanager.example.com/api/v1</span></div>
+              <div class="env-var"><span class="env-name">CLAWMANAGER_AGENT_BOOTSTRAP_TOKEN</span><span class="env-val">agt_boot_a1b2c3d4e5f6...d2e3f4</span></div>
+              <div class="env-var"><span class="env-name">CLAWMANAGER_AGENT_INSTANCE_ID</span><span class="env-val">42</span></div>
+              <div class="env-var"><span class="env-name">CLAWMANAGER_AGENT_PROTOCOL_VERSION</span><span class="env-val">v1</span></div>
+            </div>
+            <div style="margin-top:10px;padding:12px 14px;border-radius:12px;background:#fef3c7;border:1px solid #fde68a;font-size:12px;color:#92400e">
+              <strong>KubeArmor Mutation Webhook:</strong> <code>kubearmor-controller-mutating-webhook-configuration</code> 监听 Pod CREATE/UPDATE 事件，通过 <code>/mutate-pods</code> 端点自动注入安全注解和 AppArmor Profile，确保 Agent Pod 在可信计算基线内启动。
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">3</div>
+          <div class="flow-step-content">
+            <div class="step-title">Agent 注册 (POST /register)</div>
+            <div class="step-desc">Agent 使用 Bootstrap Token 作为 Bearer 凭证向 ClawManager 发起注册请求。服务端依次执行：Token 验证 &#x2192; Instance 查找 &#x2192; Protocol Version 校验 &#x2192; Instance Type 检查 &#x2192; Agent 记录创建/更新。任何步骤失败均返回 401/400/403 错误。</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:#9d7d6e;margin-bottom:6px;letter-spacing:0.1em">REQUEST</div>
+                <div class="code-block">
+<span class="hdr">POST /api/v1/agent/register</span>
+<span class="hdr">Authorization: Bearer agt_boot_a1b2...</span>
+{
+  <span class="key">"instance_id"</span>: <span class="num">42</span>,
+  <span class="key">"agent_id"</span>: <span class="str">"openclaw-agent-7f8a9b"</span>,
+  <span class="key">"agent_version"</span>: <span class="str">"1.2.0"</span>,
+  <span class="key">"protocol_version"</span>: <span class="str">"v1"</span>,
+  <span class="key">"capabilities"</span>: [
+    <span class="str">"command_execution"</span>,
+    <span class="str">"file_operations"</span>,
+    <span class="str">"skill_management"</span>,
+    <span class="str">"state_reporting"</span>,
+    <span class="str">"heartbeat"</span>
+  ],
+  <span class="key">"host_info"</span>: {
+    <span class="key">"hostname"</span>: <span class="str">"openclaw-pod-42"</span>,
+    <span class="key">"os"</span>: <span class="str">"linux"</span>,
+    <span class="key">"arch"</span>: <span class="str">"amd64"</span>,
+    <span class="key">"pid"</span>: <span class="num">1</span>,
+    <span class="key">"node"</span>: <span class="str">"worker-node-03"</span>
+  }
+}</div>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:600;color:#9d7d6e;margin-bottom:6px;letter-spacing:0.1em">RESPONSE 200</div>
+                <div class="code-block">
+{
+  <span class="key">"session_token"</span>: <span class="str">"agt_sess_e3f4a5b6c7d8..."</span>,
+  <span class="key">"session_expires_at"</span>: <span class="str">"2026-05-02T08:30:00Z"</span>,
+  <span class="key">"heartbeat_interval_seconds"</span>: <span class="num">15</span>,
+  <span class="key">"command_poll_interval_seconds"</span>: <span class="num">5</span>,
+  <span class="key">"server_time"</span>: <span class="str">"2026-05-01T08:30:00Z"</span>
+}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">4</div>
+          <div class="flow-step-content">
+            <div class="step-title">Session Token 签发</div>
+            <div class="step-desc">注册成功后，服务端生成 Session Token（前缀 <code style="background:#f5f1ed;padding:1px 6px;border-radius:4px;color:#c2410c;font-size:12px">agt_sess_</code>），有效期 24 小时，写入 <code style="background:#f5f1ed;padding:1px 6px;border-radius:4px;color:#c2410c;font-size:12px">instance_agents.session_token</code>。Session Token 用于后续所有 API 调用的身份认证，每次心跳成功后自动续期（滚动窗口 24h），防止长期运行 Agent 意外过期锁死。数据库 UNIQUE KEY 约束 <code style="background:#f5f1ed;padding:1px 6px;border-radius:4px;color:#c2410c;font-size:12px">uk_instance_agents_session_token</code> 确保每个 Session Token 全局唯一。</div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-num">5</div>
+          <div class="flow-step-content">
+            <div class="step-title">心跳启动</div>
+            <div class="step-desc">Agent 以 15 秒间隔发送心跳，服务端根据心跳更新 <code style="background:#f5f1ed;padding:1px 6px;border-radius:4px;color:#c2410c;font-size:12px">last_heartbeat_at</code> 并推导状态：&#x2264;45s = online，45s~120s = stale，&#62;120s = offline。心跳同时上报 OpenClaw 运行状态、当前配置版本和运行摘要。</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">
+              <div style="border-radius:12px;background:#dcfce7;padding:12px;text-align:center"><div style="font-size:20px;font-weight:700;color:#15803d">&#x2264; 45s</div><div style="font-size:11px;font-weight:600;color:#15803d;margin-top:2px">ONLINE</div></div>
+              <div style="border-radius:12px;background:#fef3c7;padding:12px;text-align:center"><div style="font-size:20px;font-weight:700;color:#92400e">45-120s</div><div style="font-size:11px;font-weight:600;color:#92400e;margin-top:2px">STALE</div></div>
+              <div style="border-radius:12px;background:#fee2e2;padding:12px;text-align:center"><div style="font-size:20px;font-weight:700;color:#b91c1c">&#62; 120s</div><div style="font-size:11px;font-weight:600;color:#b91c1c;margin-top:2px">OFFLINE</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KubeArmor Webhook Panel -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Mutating Webhook</div>
+            <div class="panel-title">Pod 安全注解自动注入</div>
+          </div>
+          <span class="badge badge-enforce">Enforce</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:12px">KubeArmor Controller 通过 MutatingWebhookConfiguration 监听 Pod 创建和更新事件，自动为 Agent Pod 注入安全注解和 AppArmor Profile，确保 Agent 在可信计算基线内启动。</p>
+        <div class="webhook-flow">
+          <div class="webhook-node" style="background:#dcfce7;border-color:#bbf7d0">Pod CREATE</div>
+          <div class="webhook-arrow">&#x2192;</div>
+          <div class="webhook-node" style="background:#dbeafe;border-color:#bfdbfe">KubeArmor Webhook<br><small>/mutate-pods</small></div>
+          <div class="webhook-arrow">&#x2192;</div>
+          <div class="webhook-node" style="background:#fef3c7;border-color:#fde68a">注入安全注解<br><small>AppArmor Profile</small></div>
+          <div class="webhook-arrow">&#x2192;</div>
+          <div class="webhook-node" style="background:#ede9fe;border-color:#ddd6fe">注入 Agent ENV<br><small>Bootstrap Token</small></div>
+          <div class="webhook-arrow">&#x2192;</div>
+          <div class="webhook-node" style="background:#d1fae5;border-color:#a7f3d0">可信 Pod 启动</div>
+        </div>
+        <div class="code-block">
+<span class="cm"># kubearmor-controller-mutating-webhook-configuration</span>
+<span class="key">apiVersion</span>: <span class="str">admissionregistration.k8s.io/v1</span>
+<span class="key">kind</span>: <span class="str">MutatingWebhookConfiguration</span>
+<span class="key">webhooks</span>:
+- <span class="key">name</span>: <span class="str">annotation.kubearmor.com</span>
+  <span class="key">rules</span>:
+  - <span class="key">operations</span>: [<span class="str">CREATE</span>, <span class="str">UPDATE</span>]
+    <span class="key">resources</span>: [<span class="str">pods</span>, <span class="str">pods/binding</span>]
+  <span class="key">failurePolicy</span>: <span class="str">Ignore</span>
+  <span class="key">clientConfig</span>:
+    <span class="key">service</span>:
+      <span class="key">name</span>: <span class="str">kubearmor-controller-webhook-service</span>
+      <span class="key">namespace</span>: <span class="str">kubearmor</span>
+      <span class="key">path</span>: <span class="str">/mutate-pods</span></div>
+      </div>
+
+      <!-- Validation Chain -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">注册验证链</div>
+            <div class="panel-title">五重验证关卡</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">1. Bearer Token 提取</div>
+            <div class="check-id">extractBearerToken()</div>
+            <div class="check-detail">从 Authorization Header 提取 Bearer Token，格式必须为 <code>Bearer agt_boot_&lt;hex&gt;</code>，空 Token 返回 401</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">2. Bootstrap Token &#x2192; Instance 查找</div>
+            <div class="check-id">GetByAgentBootstrapToken()</div>
+            <div class="check-detail">使用 Bootstrap Token 查找对应 Instance，若找不到或 Instance.ID 与请求中的 instance_id 不匹配，返回 "invalid agent bootstrap token"</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">3. Protocol Version 校验</div>
+            <div class="check-id">ProtocolVersion != "v1"</div>
+            <div class="check-detail">仅接受协议版本 <code>v1</code>，其他版本返回 "unsupported agent protocol version"，防止协议降级攻击</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">4. Instance Type 限制</div>
+            <div class="check-id">instance.Type != "openclaw"</div>
+            <div class="check-detail">仅允许 openclaw 类型实例注册 Agent，其他类型返回 "agent registration is only supported for openclaw instances"</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">5. UNIQUE KEY 约束</div>
+            <div class="check-id">uk_instance_agents_instance</div>
+            <div class="check-detail">每个 Instance 最多注册一个 Agent（UNIQUE KEY on instance_id），已存在则更新而非重复创建，防止 Agent 冒充</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: Agent Card                                             -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-agent-card">
+
+      <!-- Agent Card Display -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Agent Card 可信展示</div>
+            <div class="panel-title">Agent 能力卡片</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-online">Online</span>
+            <button class="btn-secondary btn-sm">&#x1f504; 刷新</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- Left: Agent Identity -->
+          <div class="ac-card">
+            <div class="ac-header">
+              <div class="ac-title">Agent 身份信息</div>
+              <span class="badge badge-enforce">已签名</span>
+            </div>
+            <table style="width:100%;font-size:13px">
+              <tr><td style="padding:6px 0;color:#8f8681;width:140px">AgentID</td><td style="font-weight:600;font-family:monospace;color:var(--text-h)">openclaw-agent-7f8a9b</td></tr>
+              <tr><td style="padding:6px 0;color:#8f8681">InstanceID</td><td style="font-weight:600;font-family:monospace;color:var(--text-h)">42</td></tr>
+              <tr><td style="padding:6px 0;color:#8f8681">AgentVersion</td><td style="font-weight:600">1.2.0</td></tr>
+              <tr><td style="padding:6px 0;color:#8f8681">ProtocolVersion</td><td><span class="badge" style="background:#dcfce7;color:#15803d">v1</span></td></tr>
+              <tr><td style="padding:6px 0;color:#8f8681">RegisteredAt</td><td style="font-family:monospace;font-size:12px">2026-05-01T08:30:00Z</td></tr>
+              <tr><td style="padding:6px 0;color:#8f8681">LastHeartbeatAt</td><td style="font-family:monospace;font-size:12px">2026-05-01T09:15:32Z</td></tr>
+              <tr><td style="padding:6px 0;color:#8f8681">SessionExpiresAt</td><td style="font-family:monospace;font-size:12px">2026-05-02T09:15:32Z</td></tr>
+              <tr><td style="padding:6px 0;color:#8f8681">LastSeenIP</td><td style="font-family:monospace;font-size:12px">10.244.1.23</td></tr>
+            </table>
+          </div>
+
+          <!-- Right: Capabilities + HostInfo -->
+          <div>
+            <div class="ac-card">
+              <div class="ac-header">
+                <div class="ac-title">Capabilities</div>
+                <span class="badge badge-sys">5 项能力</span>
+              </div>
+              <div class="json-view">{
+  <span class="json-key">"capabilities"</span>: [
+    <span class="json-str">"command_execution"</span>,
+    <span class="json-str">"file_operations"</span>,
+    <span class="json-str">"skill_management"</span>,
+    <span class="json-str">"state_reporting"</span>,
+    <span class="json-str">"heartbeat"</span>
+  ]
+}</div>
+              <div style="margin-top:8px;padding:8px 12px;border-radius:10px;background:#dcfce7;border:1px solid #bbf7d0;font-size:12px;color:#15803d">
+                <strong>签名校验:</strong> CapabilitiesJSON 使用 HMAC-SHA256 签名，签名值 <code style="font-family:monospace">sha256=4a8b2c...</code> 校验通过
+              </div>
+            </div>
+
+            <div class="ac-card">
+              <div class="ac-header">
+                <div class="ac-title">HostInfo</div>
+                <span class="badge badge-sys">运行时环境</span>
+              </div>
+              <div class="json-view">{
+  <span class="json-key">"hostname"</span>: <span class="json-str">"openclaw-pod-42"</span>,
+  <span class="json-key">"os"</span>: <span class="json-str">"linux"</span>,
+  <span class="json-key">"arch"</span>: <span class="json-str">"amd64"</span>,
+  <span class="json-key">"pid"</span>: <span class="json-num">1</span>,
+  <span class="json-key">"node"</span>: <span class="json-str">"worker-node-03"</span>
+}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Registered Agents Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">instance_agents</div>
+            <div class="panel-title">已注册 Agent 清单</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-secondary btn-sm">全部</button>
+            <button class="btn-secondary btn-sm" style="background:#dcfce7;border-color:#bbf7d0">Online</button>
+            <button class="btn-secondary btn-sm" style="background:#fef3c7;border-color:#fde68a">Stale</button>
+            <button class="btn-secondary btn-sm" style="background:#fee2e2;border-color:#fecaca">Offline</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>AgentID</th>
+              <th>InstanceID</th>
+              <th>Version</th>
+              <th>Status</th>
+              <th>RegisteredAt</th>
+              <th>LastHeartbeatAt</th>
+              <th>Capabilities</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;font-size:12px">openclaw-agent-7f8a9b</td>
+              <td style="font-family:monospace">42</td>
+              <td>1.2.0</td>
+              <td><span class="badge badge-online">online</span></td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 08:30</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 09:15</td>
+              <td><div class="tag-list"><span class="tag">command_execution</span><span class="tag">file_ops</span><span class="tag">skill_mgmt</span><span class="tag">+2</span></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;font-size:12px">openclaw-agent-3c2d1e</td>
+              <td style="font-family:monospace">17</td>
+              <td>1.2.0</td>
+              <td><span class="badge badge-online">online</span></td>
+              <td style="font-family:monospace;font-size:12px">2026-04-30 14:22</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 09:14</td>
+              <td><div class="tag-list"><span class="tag">command_execution</span><span class="tag">file_ops</span><span class="tag">heartbeat</span><span class="tag">+1</span></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;font-size:12px">openclaw-agent-9a8b7c</td>
+              <td style="font-family:monospace">5</td>
+              <td>1.1.3</td>
+              <td><span class="badge badge-stale">stale</span></td>
+              <td style="font-family:monospace;font-size:12px">2026-04-28 10:05</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 08:02</td>
+              <td><div class="tag-list"><span class="tag">command_execution</span><span class="tag">heartbeat</span></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;font-size:12px">openclaw-agent-f5e4d3</td>
+              <td style="font-family:monospace">88</td>
+              <td>1.2.0</td>
+              <td><span class="badge badge-online">online</span></td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 07:00</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 09:16</td>
+              <td><div class="tag-list"><span class="tag">command_execution</span><span class="tag">skill_mgmt</span><span class="tag">+3</span></div></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;font-size:12px">openclaw-agent-b2a1c0</td>
+              <td style="font-family:monospace">31</td>
+              <td>1.0.8</td>
+              <td><span class="badge badge-offline">offline</span></td>
+              <td style="font-family:monospace;font-size:12px">2026-04-25 16:40</td>
+              <td style="font-family:monospace;font-size:12px">2026-04-29 03:21</td>
+              <td><div class="tag-list"><span class="tag">heartbeat</span><span class="tag">state_reporting</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Agent Card Enforcement Toggles -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Agent Card 校验策略</div>
+            <div class="panel-title">签名与能力验证控制</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">要求签名 Agent Card</div>
+            <div class="desc">注册时必须提交经签名的 Agent Card（CapabilitiesJSON + HostInfoJSON 签名校验），未签名或签名不匹配的注册请求将被拒绝</div>
+          </div>
+          <div style="display:flex;align-items:center">
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+              <div class="mode-btn" data-mode="observe">Observe</div>
+              <div class="mode-btn" data-mode="off">Off</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">注册时验证 Capabilities</div>
+            <div class="desc">校验 Agent 声明的能力列表是否在允许范围内，拒绝未授权能力声明（如声明了 <code>admin_operations</code> 但实例无对应权限）</div>
+          </div>
+          <div style="display:flex;align-items:center">
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">HostInfo 一致性校验</div>
+            <div class="desc">校验 Agent 上报的 HostInfo 与 Kubernetes Pod 元数据（PodName, PodIP, Node）一致，防止身份伪造</div>
+          </div>
+          <div style="display:flex;align-items:center">
+            <div class="mode-selector">
+              <div class="mode-btn" data-mode="enforce">Enforce</div>
+              <div class="mode-btn active-observe" data-mode="observe">Observe</div>
+              <div class="mode-btn" data-mode="off">Off</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Session Token 绑定 AgentID</div>
+            <div class="desc">所有后续 API 调用中的 AgentID 必须与 Session Token 关联的 AgentID 匹配，防止跨 Agent 冒用会话</div>
+          </div>
+          <div style="display:flex;align-items:center">
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 发现保护                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-discovery-protect">
+
+      <!-- Protection Mechanisms -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Agent 发现保护机制</div>
+            <div class="panel-title">注册发现五重防线</div>
+          </div>
+          <span class="badge badge-enforce">全部启用</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <!-- Constraint 1 -->
+          <div class="rule-card" style="border-left:4px solid #dc2626">
+            <div class="rule-header">
+              <div class="rule-flag">UNIQUE KEY: instance_id</div>
+              <span class="badge badge-blocked">一实例一Agent</span>
+            </div>
+            <div class="rule-desc">数据库层面强制 <code>uk_instance_agents_instance</code> 约束：每个 instance_id 最多对应一条 Agent 记录。已注册实例的 Agent 重新注册时执行更新操作（覆盖旧 Session Token 和能力信息），而非创建新记录，从根本上杜绝同一实例下 Agent 身份冒充。</div>
+            <div class="rule-patterns">
+              <span class="rule-pattern">instance_agents.instance_id UNIQUE</span>
+              <span class="rule-pattern">GetByInstanceID() first-or-create</span>
+            </div>
+          </div>
+
+          <!-- Constraint 2 -->
+          <div class="rule-card" style="border-left:4px solid #dc2626">
+            <div class="rule-header">
+              <div class="rule-flag">Bootstrap Token Validation</div>
+              <span class="badge badge-blocked">Token-Instance 绑定</span>
+            </div>
+            <div class="rule-desc">Bootstrap Token 与 Instance 一对一绑定，注册时必须同时满足：1) Token 可查到对应 Instance；2) 查到的 Instance.ID 与请求中 instance_id 精确匹配。两者任一不满足即返回 "invalid agent bootstrap token"，防止 Token 泄露后被跨实例盗用。</div>
+            <div class="rule-patterns">
+              <span class="rule-pattern">GetByAgentBootstrapToken()</span>
+              <span class="rule-pattern">instance.ID == req.InstanceID</span>
+              <span class="rule-pattern">crypto/rand 24-byte</span>
+            </div>
+          </div>
+
+          <!-- Constraint 3 -->
+          <div class="rule-card" style="border-left:4px solid #f59e0b">
+            <div class="rule-header">
+              <div class="rule-flag">ProtocolVersion == "v1"</div>
+              <span class="badge badge-observed">协议版本固定</span>
+            </div>
+            <div class="rule-desc">仅允许协议版本 <code>v1</code> 的 Agent 注册。所有其他版本（包括旧版 v0、伪造 v2、空字符串）均被拒绝并返回 "unsupported agent protocol version"。这防止攻击者通过协议降级绕过新版安全校验逻辑。</div>
+            <div class="rule-patterns">
+              <span class="rule-pattern">AgentProtocolVersionV1 = "v1"</span>
+              <span class="rule-pattern">ProtocolVersion != "v1" &#x2192; REJECT</span>
+            </div>
+          </div>
+
+          <!-- Constraint 4 -->
+          <div class="rule-card" style="border-left:4px solid #f59e0b">
+            <div class="rule-header">
+              <div class="rule-flag">Instance.Type == "openclaw"</div>
+              <span class="badge badge-observed">类型限制</span>
+            </div>
+            <div class="rule-desc">仅允许 openclaw 类型的 Instance 注册 Agent，其他类型（如标准虚拟桌面、测试实例等）调用注册接口将收到 "agent registration is only supported for openclaw instances" 错误。这限制了 Agent 注册的攻击面，仅对需要 Agent 管理的智能体实例开放。</div>
+            <div class="rule-patterns">
+              <span class="rule-pattern">!strings.EqualFold(instance.Type, "openclaw")</span>
+              <span class="rule-pattern">FR-42 协议降级防护协同</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule Cards for Attack Detection -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">威胁检测规则</div>
+            <div class="panel-title">注册攻击检测与防护</div>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <div class="rule-flag">FORGED_REGISTRATION</div>
+            <span class="badge badge-blocked">伪造注册检测</span>
+          </div>
+          <div class="rule-desc">检测使用无效或已过期 Bootstrap Token 的注册尝试。Token 查不到对应 Instance 或 Instance ID 不匹配时，记录来源 IP、时间戳和请求参数，生成安全告警。连续失败超过阈值（如 5 次/分钟）触发自动 IP 临时封禁。</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">401 Unauthorized</span>
+            <span class="rule-pattern">invalid agent bootstrap token</span>
+            <span class="rule-pattern">rate_limit: 5/min</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <div class="rule-flag">DUPLICATE_AGENT_PREVENTION</div>
+            <span class="badge badge-blocked">重复 Agent 防护</span>
+          </div>
+          <div class="rule-desc">UNIQUE KEY 约束 <code>uk_instance_agents_instance</code> 确保同一 Instance 不能注册多个 Agent。若检测到试图使用不同 AgentID 注册同一 Instance 的行为（即已有 Agent 在线时新的注册请求携带不同 AgentID），触发 Agent 替换告警并记录新旧 AgentID 对比，需要人工确认是否为合法替换场景。</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">uk_instance_agents_instance</span>
+            <span class="rule-pattern">agent_update_vs_agent_replace</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <div class="rule-flag">INVALID_CAPABILITY_REJECTION</div>
+            <span class="badge badge-observed">无效能力拒绝</span>
+          </div>
+          <div class="rule-desc">校验 Agent 声明的能力是否在允许的 Capabilities 白名单内。未授权能力（如 <code>admin_operations</code>、<code>cluster_management</code>）将被拒绝或降级为 observe 模式记录。此项当前为 Observe 模式，逐步过渡到 Enforce。</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">allowed_capabilities whitelist</span>
+            <span class="rule-pattern">unknown_capability &#x2192; WARN</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <div class="rule-flag">UNAUTHORIZED_INSTANCE_BINDING</div>
+            <span class="badge badge-blocked">未授权实例绑定</span>
+          </div>
+          <div class="rule-desc">防止 Agent 通过伪造 instance_id 尝试绑定到不属于自己 Bootstrap Token 对应的 Instance。Token-Instance 双重校验确保绑定关系不可伪造，跨实例绑定尝试全部被拒绝。</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">instance.ID != req.InstanceID &#x2192; REJECT</span>
+            <span class="rule-pattern">token_instance_binding strict</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Protected Skills/Plugins Integration -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis 集成</div>
+            <div class="panel-title">受保护 Skills/Plugins 与注册联动</div>
+          </div>
+          <span class="badge badge-sys">ClawAegis protectedPathGuard</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.7">ClawAegis 的 <code style="background:#f5f1ed;padding:1px 6px;border-radius:4px;color:#c2410c;font-size:12px">protectedPathGuard</code> 模块维护受保护的 Skill 和 Plugin 列表。Agent 注册时的 Capabilities 声明与这些受保护列表交叉校验：若 Agent 声明具备操作受保护资源的能力，需额外通过权限验证，否则 Capabilities 将被自动降级。同时，Agent 对受保护资源的操作（读取、写入、删除）在运行时受 ClawAegis 实时拦截。</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#9d7d6e;margin-bottom:8px;letter-spacing:0.1em">PROTECTED SKILLS</div>
+            <div class="protected-list">
+              <div class="protected-tag protected-skill">&#x1f512; security-scanner</div>
+              <div class="protected-tag protected-skill">&#x1f512; audit-logger</div>
+              <div class="protected-tag protected-skill">&#x1f512; compliance-check</div>
+              <div class="protected-tag protected-skill">&#x1f512; policy-engine</div>
+              <div class="protected-tag protected-skill">&#x1f512; threat-detector</div>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:#8f8681">来源: ClawAegis config.protectedSkills[]</div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:#9d7d6e;margin-bottom:8px;letter-spacing:0.1em">PROTECTED PLUGINS</div>
+            <div class="protected-list">
+              <div class="protected-tag protected-plugin">&#x1f512; claw-aegis</div>
+              <div class="protected-tag protected-plugin">&#x1f512; ksecure-agent</div>
+              <div class="protected-tag protected-plugin">&#x1f512; kubearmor-proxy</div>
+              <div class="protected-tag protected-plugin">&#x1f512; cert-manager</div>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:#8f8681">来源: ClawAegis config.protectedPlugins[]</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding:14px;border-radius:14px;background:#faf7f4;border:1px solid #f1e7e1">
+          <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:8px">联动校验逻辑</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.8">
+            <div class="check-item" style="border-bottom:none;padding:4px 0">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info"><div class="check-detail">Agent 注册时的 <code>skill_management</code> capability 与 protectedSkills 交叉校验</div></div>
+            </div>
+            <div class="check-item" style="border-bottom:none;padding:4px 0">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info"><div class="check-detail">Agent 对 protectedSkills/protectedPlugins 的写操作运行时由 ClawAegis 拦截</div></div>
+            </div>
+            <div class="check-item" style="border-bottom:none;padding:4px 0">
+              <div class="check-icon warn">!</div>
+              <div class="check-info"><div class="check-detail">Agent 尝试卸载/删除受保护 Skill 时触发告警并阻止 (Enforce 模式)</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 注册审计                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-reg-audit">
+
+      <!-- Score + Stats Row -->
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:22px;margin-bottom:22px">
+        <div class="app-panel" style="text-align:center;padding:22px">
+          <div class="panel-eyebrow" style="margin-bottom:10px">注册安全评分</div>
+          <div class="score-circle score-high">92</div>
+          <div style="font-size:11px;color:#15803d;font-weight:600;margin-top:6px">优秀</div>
+        </div>
+        <div class="app-panel">
+          <div class="panel-eyebrow">注册统计</div>
+          <div class="stat-grid" style="margin-top:8px">
+            <div class="stat-mini"><div class="value" style="color:#15803d">12</div><div class="label">已注册 Agents</div></div>
+            <div class="stat-mini"><div class="value" style="color:#92400e">9</div><div class="label">活跃</div></div>
+            <div class="stat-mini"><div class="value" style="color:#b91c1c">3</div><div class="label">已拒绝</div></div>
+            <div class="stat-mini"><div class="value" style="color:#c2410c">0</div><div class="label">可疑</div></div>
+            <div class="stat-mini"><div class="value" style="color:#6d28d9">8</div><div class="label">今日注册</div></div>
+            <div class="stat-mini"><div class="value" style="color:#0369a1">1</div><div class="label">今日拒绝</div></div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <div class="check-item" style="border-bottom:none;padding:4px 0;flex:1;min-width:200px">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info"><div class="check-name">Bootstrap Token 有效性</div><div class="check-detail">所有已注册 Agent 均通过 Token 验证</div></div>
+            </div>
+            <div class="check-item" style="border-bottom:none;padding:4px 0;flex:1;min-width:200px">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info"><div class="check-name">UNIQUE KEY 约束完好</div><div class="check-detail">无一实例多 Agent 异常</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Log -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">注册审计日志</div>
+            <div class="panel-title">最近注册事件</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-secondary btn-sm">全部</button>
+            <button class="btn-secondary btn-sm" style="background:#dcfce7;border-color:#bbf7d0">成功</button>
+            <button class="btn-secondary btn-sm" style="background:#fee2e2;border-color:#fecaca">拒绝</button>
+            <button class="btn-secondary btn-sm" style="background:#fef3c7;border-color:#fde68a">警告</button>
+          </div>
+        </div>
+
+        <!-- Success -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="badge badge-allowed">注册成功</span>
+            <span class="log-time">2026-05-01 08:30:12</span>
+            <span class="log-id">REG-001</span>
+          </div>
+          <div class="log-body">Agent <code>openclaw-agent-7f8a9b</code> 成功注册到 Instance#42</div>
+          <div class="log-detail">Bootstrap Token: agt_boot_a1b2...e3f4 &#x2192; Instance Lookup: success (instance_id=42, type=openclaw) &#x2192; Protocol: v1 &#x2192; Session: agt_sess_e3f4...d5c6 (expires: 2026-05-02T08:30:12Z) &#x2192; IP: 10.244.1.23</div>
+        </div>
+
+        <!-- Failed token -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="badge badge-blocked">Token 无效</span>
+            <span class="log-time">2026-05-01 07:45:33</span>
+            <span class="log-id">REG-002</span>
+          </div>
+          <div class="log-body">注册失败：Bootstrap Token 无法匹配任何 Instance</div>
+          <div class="log-detail">Token: agt_boot_xxxx...invalid &#x2192; Instance Lookup: NOT FOUND &#x2192; Error: "invalid agent bootstrap token" &#x2192; IP: 10.244.2.88 &#x2192; <span style="color:#b91c1c;font-weight:600">可疑: Token 不存在于数据库</span></div>
+        </div>
+
+        <!-- Duplicate agent -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="badge badge-observed">Agent 替换</span>
+            <span class="log-time">2026-05-01 06:12:08</span>
+            <span class="log-id">REG-003</span>
+          </div>
+          <div class="log-body">Instance#17 上的 Agent 被替换（原 Agent 重新注册 / Pod 重启）</div>
+          <div class="log-detail">Old AgentID: openclaw-agent-3c2d1e (v1.1.3) &#x2192; New AgentID: openclaw-agent-3c2d1e (v1.2.0) &#x2192; Same AgentID, version upgrade &#x2192; UNIQUE KEY preserved, record updated &#x2192; IP: 10.244.0.15</div>
+        </div>
+
+        <!-- Invalid protocol -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="badge badge-blocked">协议版本无效</span>
+            <span class="log-time">2026-04-30 22:18:55</span>
+            <span class="log-id">REG-004</span>
+          </div>
+          <div class="log-body">注册失败：不支持的协议版本 <code>v0</code></div>
+          <div class="log-detail">Token: agt_boot_valid &#x2192; Instance Lookup: success (instance_id=31) &#x2192; Protocol: v0 &#x2192; Error: "unsupported agent protocol version" &#x2192; IP: 10.244.3.42 &#x2192; <span style="color:#b91c1c;font-weight:600">协议降级尝试</span></div>
+        </div>
+
+        <!-- Instance ID mismatch -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="badge badge-blocked">Instance 不匹配</span>
+            <span class="log-time">2026-04-30 19:33:21</span>
+            <span class="log-id">REG-005</span>
+          </div>
+          <div class="log-body">注册失败：Bootstrap Token 对应的 Instance ID 与请求中的 instance_id 不匹配</div>
+          <div class="log-detail">Token: agt_boot_for_42 &#x2192; Instance Lookup: found instance_id=42 &#x2192; Request instance_id=88 &#x2192; MISMATCH &#x2192; Error: "invalid agent bootstrap token" &#x2192; IP: 10.244.1.99 &#x2192; <span style="color:#b91c1c;font-weight:600">跨实例绑定尝试</span></div>
+        </div>
+
+        <!-- Type mismatch -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="badge badge-blocked">类型不匹配</span>
+            <span class="log-time">2026-04-30 15:07:44</span>
+            <span class="log-id">REG-006</span>
+          </div>
+          <div class="log-body">注册失败：Instance 类型不是 openclaw</div>
+          <div class="log-detail">Token: agt_boot_valid &#x2192; Instance Lookup: success (instance_id=55, type=desktop) &#x2192; Type Check: FAIL &#x2192; Error: "agent registration is only supported for openclaw instances" &#x2192; IP: 10.244.2.10</div>
+        </div>
+
+        <!-- Success 2 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="badge badge-allowed">注册成功</span>
+            <span class="log-time">2026-05-01 07:00:05</span>
+            <span class="log-id">REG-007</span>
+          </div>
+          <div class="log-body">Agent <code>openclaw-agent-f5e4d3</code> 成功注册到 Instance#88</div>
+          <div class="log-detail">Bootstrap Token: agt_boot_c7d8...a9b0 &#x2192; Instance Lookup: success (instance_id=88, type=openclaw) &#x2192; Protocol: v1 &#x2192; Capabilities: [command_execution, file_operations, skill_management, state_reporting, heartbeat] &#x2192; Session: agt_sess_f1e2...c3d4 (expires: 2026-05-02T07:00:05Z) &#x2192; IP: 10.244.1.67</div>
+        </div>
+
+        <!-- Session expired -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="badge badge-observed">Session 过期</span>
+            <span class="log-time">2026-04-29 03:22:01</span>
+            <span class="log-id">REG-008</span>
+          </div>
+          <div class="log-body">Agent <code>openclaw-agent-b2a1c0</code> (Instance#31) Session 过期，Agent 状态置为 offline</div>
+          <div class="log-detail">Last Heartbeat: 2026-04-29T03:21:55Z &#x2192; Age: &gt;120s &#x2192; Status: offline &#x2192; No heartbeat renewal &#x2192; Pod may have been terminated or network partitioned</div>
+        </div>
+      </div>
+
+      <!-- Audit Score Breakdown -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">评分细则</div>
+            <div class="panel-title">注册安全评分分解</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div class="rule-card" style="text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#15803d">100%</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-top:4px">Token 验证覆盖率</div>
+            <div style="font-size:11px;color:#8f8681;margin-top:2px">所有注册均经过 Bootstrap Token 验证</div>
+          </div>
+          <div class="rule-card" style="text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#15803d">100%</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-top:4px">UNIQUE KEY 完整性</div>
+            <div style="font-size:11px;color:#8f8681;margin-top:2px">无一实例多 Agent 违规记录</div>
+          </div>
+          <div class="rule-card" style="text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#92400e">80%</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-top:4px">Agent Card 签名校验</div>
+            <div style="font-size:11px;color:#8f8681;margin-top:2px">当前 Observe 模式，部分 Agent 未签名</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <!-- Bootstrap Token Settings -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Bootstrap Token 配置</div>
+            <div class="panel-title">Agent 启动凭证参数</div>
+          </div>
+          <button class="btn-primary btn-sm">&#x1f4be; 保存配置</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label class="form-label">Token 前缀</label>
+            <input class="form-input" type="text" value="agt_boot_" readonly style="background:#f5f1ed">
+            <div class="form-hint">生成函数: <code>generatePrefixedToken("agt_boot")</code>，前缀后自动追加下划线</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">随机字节长度</label>
+            <input class="form-input" type="number" value="24">
+            <div class="form-hint">24 字节 = 48 hex 字符，使用 crypto/rand 安全随机数生成器</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Token 总长度</label>
+            <input class="form-input" type="text" value="57 字符 (9+48)" readonly style="background:#f5f1ed">
+            <div class="form-hint">前缀(9) + hex编码(48) = 57字符</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+          <div class="form-group">
+            <label class="form-label">Bootstrap Token 有效期</label>
+            <input class="form-input" type="text" value="Instance 生命周期内有效">
+            <div class="form-hint">Token 在 Instance 存续期间有效，Instance 终止后 Token 随之失效（CASCADE DELETE）</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Token 轮换策略</label>
+            <input class="form-input" type="text" value="Instance 重启时重新生成">
+            <div class="form-hint">每次 Instance 重新启动时自动生成新 Bootstrap Token，旧 Token 失效</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Registration Validation Rules -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">注册验证规则</div>
+            <div class="panel-title">Agent 注册校验配置</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Bootstrap Token 必填</div>
+            <div class="desc">注册请求必须携带有效 Bearer Token (agt_boot_*)，空 Token 或格式错误直接返回 401</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Instance ID 匹配校验</div>
+            <div class="desc">请求中 instance_id 必须与 Token 查找到的 Instance.ID 精确匹配，防止跨实例绑定</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Protocol Version 严格校验</div>
+            <div class="desc">仅接受 v1，其他版本返回 "unsupported agent protocol version"</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Instance Type 限制</div>
+            <div class="desc">仅允许 openclaw 类型实例注册 Agent</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">AgentID 非空校验</div>
+            <div class="desc">注册请求中 agent_id 为必填字段，不可为空</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">重复注册频率限制</div>
+            <div class="desc">同一 Instance 短时间内频繁注册（可能是攻击或配置错误）触发告警</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Session Token Config -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Session Token 配置</div>
+            <div class="panel-title">Agent 会话凭证参数</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label class="form-label">Token 前缀</label>
+            <input class="form-input" type="text" value="agt_sess_" readonly style="background:#f5f1ed">
+            <div class="form-hint">生成函数: <code>generatePrefixedToken("agt_sess")</code></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Session 有效期</label>
+            <input class="form-input" type="text" value="24 小时">
+            <div class="form-hint">注册时签发，心跳续期（滚动窗口），防止长期运行 Agent 锁死</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">续期策略</label>
+            <input class="form-input" type="text" value="每次心跳后续期 24h">
+            <div class="form-hint">Heartbeat 成功后自动延长 SessionExpiresAt = now + 24h</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+          <div class="form-group">
+            <label class="form-label">心跳间隔</label>
+            <input class="form-input" type="number" value="15">
+            <div class="form-hint">HeartbeatIntervalSeconds = 15s，Agent 每 15 秒发送心跳</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">命令轮询间隔</label>
+            <input class="form-input" type="number" value="5">
+            <div class="form-hint">CommandPollIntervalSeconds = 5s，Agent 每 5 秒轮询待执行命令</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#f5f1ed;font-size:12px;color:var(--text);line-height:1.7">
+          <strong>DB 约束:</strong> <code style="font-family:monospace">uk_instance_agents_session_token</code> (UNIQUE KEY on session_token) 确保 Session Token 全局唯一；<code style="font-family:monospace">idx_instance_agents_status</code> 和 <code style="font-family:monospace">idx_instance_agents_last_heartbeat</code> 索引支持状态查询和超时检测。
+        </div>
+      </div>
+
+      <!-- Allowed Protocol Versions & Instance Types -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">协议与类型白名单</div>
+            <div class="panel-title">允许的 Protocol Version 和 Instance Type</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="form-label">允许的 Protocol Versions</div>
+            <div class="tag-list" style="margin-top:6px">
+              <span class="tag" style="background:#dcfce7;border-color:#bbf7d0;color:#15803d">&#x2713; v1</span>
+              <span class="tag" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c">&#x2717; v0</span>
+              <span class="tag" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c">&#x2717; v2-beta</span>
+            </div>
+            <div class="form-hint" style="margin-top:8px">当前仅 v1 被接受。代码常量: <code>AgentProtocolVersionV1 = "v1"</code></div>
+            <div class="form-group" style="margin-top:12px">
+              <label class="form-label">降级防护策略</label>
+              <div class="mode-selector" style="margin-left:0">
+                <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                <div class="mode-btn" data-mode="observe">Observe</div>
+                <div class="mode-btn" data-mode="off">Off</div>
+              </div>
+              <div class="form-hint">Enforce 模式下，非 v1 协议版本注册请求直接拒绝</div>
+            </div>
+          </div>
+          <div>
+            <div class="form-label">允许的 Instance Types</div>
+            <div class="tag-list" style="margin-top:6px">
+              <span class="tag" style="background:#dcfce7;border-color:#bbf7d0;color:#15803d">&#x2713; openclaw</span>
+              <span class="tag" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c">&#x2717; desktop</span>
+              <span class="tag" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c">&#x2717; test</span>
+            </div>
+            <div class="form-hint" style="margin-top:8px">当前仅 openclaw 类型支持 Agent 注册。校验: <code>strings.EqualFold(instance.Type, "openclaw")</code></div>
+            <div class="form-group" style="margin-top:12px">
+              <label class="form-label">类型限制策略</label>
+              <div class="mode-selector" style="margin-left:0">
+                <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                <div class="mode-btn" data-mode="observe">Observe</div>
+                <div class="mode-btn" data-mode="off">Off</div>
+              </div>
+              <div class="form-hint">Enforce 模式下，非 openclaw 类型注册请求直接拒绝</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Protected Skills/Plugins Lists -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">受保护资源列表</div>
+            <div class="panel-title">Protected Skills & Plugins 配置</div>
+          </div>
+          <span class="badge badge-sys">ClawAegis</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="form-label">Protected Skills</div>
+            <div style="margin-top:6px">
+              <div style="display:flex;gap:6px;margin-bottom:6px">
+                <input class="form-input" type="text" placeholder="输入 skill identifier" style="flex:1">
+                <button class="btn-secondary btn-sm">+ 添加</button>
+              </div>
+              <div class="protected-list">
+                <div class="protected-tag protected-skill">&#x1f512; security-scanner <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+                <div class="protected-tag protected-skill">&#x1f512; audit-logger <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+                <div class="protected-tag protected-skill">&#x1f512; compliance-check <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+                <div class="protected-tag protected-skill">&#x1f512; policy-engine <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+                <div class="protected-tag protected-skill">&#x1f512; threat-detector <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+              </div>
+            </div>
+            <div class="form-hint" style="margin-top:6px">来自 ClawAegis <code>config.protectedSkills</code>，经 <code>normalizeIdentifierList()</code> 处理</div>
+          </div>
+          <div>
+            <div class="form-label">Protected Plugins</div>
+            <div style="margin-top:6px">
+              <div style="display:flex;gap:6px;margin-bottom:6px">
+                <input class="form-input" type="text" placeholder="输入 plugin identifier" style="flex:1">
+                <button class="btn-secondary btn-sm">+ 添加</button>
+              </div>
+              <div class="protected-list">
+                <div class="protected-tag protected-plugin">&#x1f512; claw-aegis <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+                <div class="protected-tag protected-plugin">&#x1f512; ksecure-agent <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+                <div class="protected-tag protected-plugin">&#x1f512; kubearmor-proxy <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+                <div class="protected-tag protected-plugin">&#x1f512; cert-manager <button style="background:none;border:none;cursor:pointer;color:#6d28d9;font-size:12px;margin-left:4px">&#x2715;</button></div>
+              </div>
+            </div>
+            <div class="form-hint" style="margin-top:6px">来自 ClawAegis <code>config.protectedPlugins</code>，经 <code>normalizeIdentifierList()</code> 处理</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding:14px;border-radius:14px;background:#fef3c7;border:1px solid #fde68a;font-size:12px;color:#92400e;line-height:1.7">
+          <strong>Protected Paths 联动:</strong> 除 Skills 和 Plugins 外，ClawAegis 还维护 <code>config.protectedPaths</code>（受保护文件路径列表），Agent 对这些路径的读写删操作同样在运行时受 <code>protectedPathGuard</code> 模块拦截。路径经 <code>normalizeStringList(raw.protectedPaths, api.resolvePath)</code> 处理为绝对路径。
+        </div>
+      </div>
+
+      <!-- DB Schema Reference -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">数据库 Schema 参考</div>
+            <div class="panel-title">instance_agents 表结构</div>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="cm">-- Migration 007: instance_agent_control_plane</span>
+<span class="kw">CREATE TABLE</span> instance_agents (
+  id                <span class="kw">INT AUTO_INCREMENT PRIMARY KEY</span>,
+  instance_id       <span class="kw">INT NOT NULL</span>,
+  agent_id          <span class="kw">VARCHAR(255) NOT NULL</span>,
+  agent_version     <span class="kw">VARCHAR(50) NOT NULL</span>,
+  protocol_version  <span class="kw">VARCHAR(50) NOT NULL</span>,
+  status            <span class="kw">VARCHAR(30) NOT NULL DEFAULT</span> <span class="str">'online'</span>,
+  capabilities_json <span class="kw">LONGTEXT NOT NULL</span>,
+  host_info_json    <span class="kw">LONGTEXT NULL</span>,
+  session_token     <span class="kw">VARCHAR(255) NULL</span>,
+  session_expires_at <span class="kw">TIMESTAMP NULL</span>,
+  last_heartbeat_at <span class="kw">TIMESTAMP NULL</span>,
+  last_reported_at  <span class="kw">TIMESTAMP NULL</span>,
+  last_seen_ip      <span class="kw">VARCHAR(45) NULL</span>,
+  registered_at     <span class="kw">TIMESTAMP NULL</span>,
+  created_at        <span class="kw">TIMESTAMP DEFAULT CURRENT_TIMESTAMP</span>,
+  updated_at        <span class="kw">TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP</span>,
+  <span class="kw">FOREIGN KEY</span> (instance_id) <span class="kw">REFERENCES</span> instances(id) <span class="kw">ON DELETE CASCADE</span>,
+  <span class="kw">UNIQUE KEY</span> uk_instance_agents_instance (instance_id),       <span class="cm">-- 一实例一Agent</span>
+  <span class="kw">UNIQUE KEY</span> uk_instance_agents_session_token (session_token), <span class="cm">-- Session唯一</span>
+  <span class="kw">INDEX</span> idx_instance_agents_agent_id (agent_id),
+  <span class="kw">INDEX</span> idx_instance_agents_status (status),
+  <span class="kw">INDEX</span> idx_instance_agents_last_heartbeat (last_heartbeat_at)
+);</div>
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Mode selector buttons
+document.querySelectorAll('.mode-selector').forEach(selector => {
+  selector.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selector.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.remove('active-enforce', 'active-observe', 'active-off');
+      });
+      btn.classList.add('active-' + btn.dataset.mode);
+    });
+  });
+});
+
+// Nav items (visual only - single page prototype)
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

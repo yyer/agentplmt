@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-51 高风险操作人工确认 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-blocked{background:#fee2e2;color:#b91c1c}.badge-observed{background:#fef3c7;color:#92400e}.badge-allowed{background:#d1fae5;color:#065f46}
+.badge-approved{background:#d1fae5;color:#065f46}.badge-pending{background:#fef3c7;color:#92400e}.badge-rejected{background:#fee2e2;color:#b91c1c}.badge-expired{background:#e5e7eb;color:#6b7280}.badge-overridden{background:#e0e7ff;color:#4338ca}.badge-escalated{background:#e0e7ff;color:#4338ca}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-approve{border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;color:#065f46;background:#d1fae5;border:1px solid #a7f3d0;transition:all .2s;cursor:pointer}
+.btn-approve:hover{background:#a7f3d0}
+.btn-reject{border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;transition:all .2s;cursor:pointer}
+.btn-reject:hover{background:#fecaca}
+.btn-escalate{border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;color:#4338ca;background:#e0e7ff;border:1px solid #c7d2fe;transition:all .2s;cursor:pointer}
+.btn-escalate:hover{background:#c7d2fe}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+.log-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.log-chain-step{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:3px 10px;font-size:11px;font-weight:500}
+.log-chain-arrow{color:#c4b0a2;font-size:14px}
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f5f1ed}.check-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px}
+.check-icon.pass{background:#dcfce7;color:#15803d}.check-icon.fail{background:#fee2e2;color:#b91c1c}.check-icon.warn{background:#fef3c7;color:#92400e}
+.check-info .check-name{font-size:13px;font-weight:600;color:var(--text-h)}.check-info .check-id{font-size:11px;font-family:monospace;color:#8f8681}.check-info .check-detail{font-size:12px;color:var(--text);margin-top:3px}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.rule-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:14px;margin-bottom:10px}
+.rule-card .rule-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.rule-card .rule-flag{font-size:12px;font-weight:700;font-family:monospace;color:#dc2626}
+.rule-card .rule-desc{font-size:12px;color:var(--text);line-height:1.6}
+.rule-card .rule-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.rule-card .rule-pattern{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.stat-mini{text-align:center;padding:10px}.stat-mini .value{font-size:1.5rem;font-weight:700;color:var(--text-h)}.stat-mini .label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:2px}
+.flow-diagram{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:20px 0}
+.flow-step{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:12px 18px;font-size:12px;font-weight:600;color:var(--text-h);text-align:center;min-width:120px;position:relative;transition:all .2s}
+.flow-step:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.flow-step.step-accent{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca;color:#b91c1c}
+.flow-step.step-success{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#a7f3d0;color:#065f46}
+.flow-step.step-warn{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a;color:#92400e}
+.flow-step.step-info{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe;color:#1d4ed8}
+.flow-step.step-blocked{background:linear-gradient(135deg,#7f1d1d,#991b1b);border-color:#7f1d1d;color:#fecaca}
+.flow-arrow{color:#c4b0a2;font-size:18px;padding:0 6px;flex-shrink:0}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.audit-trail{border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px 18px;margin-top:10px}
+.audit-trail .at-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1e7e1}
+.audit-trail .at-step:last-child{border-bottom:none}
+.audit-trail .at-marker{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.audit-trail .at-marker.m-green{background:#059669}.audit-trail .at-marker.m-red{background:#dc2626}.audit-trail .at-marker.m-yellow{background:#f59e0b}.audit-trail .at-marker.m-blue{background:#3b82f6}
+.audit-trail .at-text{font-size:12px;color:var(--text-h)}.audit-trail .at-time{font-size:10px;color:#8f8681;font-family:monospace;margin-top:2px}
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar .filter-select{border-radius:10px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:6px 12px;font-size:12px;color:var(--text-h);outline:none;cursor:pointer}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.lifecycle-bar{display:flex;align-items:center;gap:0;margin-top:16px;flex-wrap:wrap}
+.lifecycle-node{border-radius:10px;padding:8px 14px;font-size:11px;font-weight:600;text-align:center;min-width:80px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);color:var(--text-h);transition:all .2s}
+.lifecycle-node:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.lifecycle-node.ln-pending{background:#fef3c7;border-color:#fde68a;color:#92400e}
+.lifecycle-node.ln-dispatched{background:#dbeafe;border-color:#bfdbfe;color:#1d4ed8}
+.lifecycle-node.ln-running{background:#ffedd5;border-color:#fed7aa;color:#c2410c}
+.lifecycle-node.ln-succeeded{background:#d1fae5;border-color:#a7f3d0;color:#065f46}
+.lifecycle-node.ln-failed{background:#fee2e2;border-color:#fecaca;color:#b91c1c}
+.lifecycle-node.ln-gate{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#f87171;color:#b91c1c;box-shadow:0 0 12px -4px rgba(239,68,68,0.3);font-weight:700}
+.lifecycle-arrow{color:#c4b0a2;font-size:16px;padding:0 4px;flex-shrink:0}
+.cmd-pattern-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.cmd-pattern{border-radius:8px;border:1px solid #f1e7e1;background:#fef2f2;padding:8px 10px;font-size:10px;font-family:monospace;color:#b91c1c;text-align:center;word-break:break-all}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}.cmd-pattern-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.8 模型决策安全与人工监管</div>
+    <div class="nav-item" data-page="fr49"><span>&#x1f50d; 规划结果验证</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr50"><span>&#x1f6e1;&#xfe0f; 决策边界管理</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item active" data-page="fr51"><span>&#x26a0;&#xfe0f; 高风险操作人工确认</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr52"><span>&#x1f4e2; 多源内容审核</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr53"><span>&#x1f4ca; 决策过程可解释与透明化</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr54"><span>&#x1f6ab; 策略性拒绝与异常输出治理</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 人工确认日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 决策安全审计</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.8 模型决策安全与人工监管</div>
+      <div class="page-title">FR-51 | 高风险操作人工确认 | <span class="badge badge-p0">P0 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出审批策略</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="confirm-arch">确认架构</div>
+      <div class="tab" data-tab="highrisk-ops">高风险操作清单</div>
+      <div class="tab" data-tab="approval-queue">审批队列</div>
+      <div class="tab" data-tab="confirm-audit">确认审计</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 确认架构                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-confirm-arch">
+
+      <!-- Panel 1: 高风险操作确认流程架构图 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Human Confirmation Architecture</div>
+            <div class="panel-title">高风险操作人工确认流程</div>
+          </div>
+          <span class="badge badge-sys">ClawManager + OpenClaw</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">对删除、停服、批量变更、对外付款、导出敏感数据、策略放开等高影响操作强制人工确认，防止错误决策直接生效。ClawManager 命令审批流程在 <code>InstanceCommand</code> 生命周期中插入审批门控；ClawAegis Dispatch Guard 作为前置过滤器拦截破坏性命令；Command Block 16 种高风险命令模式提供额外防护层。</p>
+
+        <!-- Main Flow Diagram -->
+        <div class="flow-diagram">
+          <div class="flow-step">操作请求<br><code style="font-size:10px">InstanceCommand</code></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-warn">风险分类<br><code style="font-size:10px">RiskRule</code></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-accent">高风险?<br><code style="font-size:10px">High/Critical</code></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-accent">人工确认<br><code style="font-size:10px">单/双审批</code></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-info">审批链<br><code style="font-size:10px">L1 &#x2192; L2</code></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-success">执行</div>
+        </div>
+
+        <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap">
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fef3c7;display:inline-block"></span> 风险分类</div>
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fee2e2;display:inline-block"></span> 人工确认触发</div>
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#dbeafe;display:inline-block"></span> 审批链</div>
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#d1fae5;display:inline-block"></span> 执行放行</div>
+        </div>
+
+        <!-- InstanceCommand Lifecycle with Approval Gate -->
+        <div style="margin-top:24px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">InstanceCommand 生命周期与审批门控</div>
+          <p style="font-size:12px;color:var(--text);margin-bottom:12px;line-height:1.6">ClawManager InstanceCommand 17 种命令类型，高风险命令在 <code>pending</code> 阶段插入审批门控，审批通过后方可进入 <code>dispatched</code> 状态。每个命令携带 <code>IdempotencyKey</code>（幂等键）、<code>IssuedBy</code>（发起者）、<code>IssuedAt</code>（发起时间）、<code>TimeoutSeconds</code>（超时时间）。</p>
+          <div class="lifecycle-bar">
+            <div class="lifecycle-node ln-pending">pending<br><span style="font-size:9px;opacity:.7">命令创建</span></div>
+            <div class="lifecycle-arrow">&#x2192;</div>
+            <div class="lifecycle-node ln-gate">&#x1f6e1; 审批门控<br><span style="font-size:9px">高风险检查</span></div>
+            <div class="lifecycle-arrow">&#x2192;</div>
+            <div class="lifecycle-node ln-dispatched">dispatched<br><span style="font-size:9px;opacity:.7">审批通过</span></div>
+            <div class="lifecycle-arrow">&#x2192;</div>
+            <div class="lifecycle-node ln-running">running<br><span style="font-size:9px;opacity:.7">执行中</span></div>
+            <div class="lifecycle-arrow">&#x2192;</div>
+            <div class="lifecycle-node ln-succeeded">succeeded<br><span style="font-size:9px;opacity:.7">执行成功</span></div>
+          </div>
+          <div style="margin-top:8px">
+            <div class="lifecycle-bar">
+              <div class="lifecycle-node ln-failed">failed<br><span style="font-size:9px;opacity:.7">执行失败</span></div>
+              <div class="lifecycle-arrow" style="margin-left:20px">&#x2190;</div>
+              <div style="font-size:11px;color:#8f8681;padding:0 8px">审批拒绝 / 超时自动拒绝 / 执行异常</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Dispatch Guard 前置过滤 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Pre-Filter: Dispatch Guard</div>
+            <div class="panel-title">ClawAegis Dispatch Guard 破坏性命令拦截</div>
+          </div>
+          <span class="badge badge-critical">前置拦截</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">Dispatch Guard 在命令到达审批流程之前进行预过滤，直接拦截已知的破坏性命令模式。这些命令不需要进入人工确认流程，因为它们被系统策略明确禁止。拦截结果可作为审计日志和风险分析的输入，帮助人工审批人做出更准确的判断。</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- Intercepted Command Groups -->
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">拦截的破坏性命令组</div>
+            <div class="check-item">
+              <div class="check-icon fail">&#x2717;</div>
+              <div class="check-info">
+                <div class="check-name">OpenClaw 实例操作</div>
+                <div class="check-detail">拦截 <code>reset</code>, <code>uninstall</code>, <code>remove</code> 等实例级破坏命令。这些操作不可逆，直接由 Dispatch Guard 阻断，不进入审批流程。</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon fail">&#x2717;</div>
+              <div class="check-info">
+                <div class="check-name">Skills 危险操作</div>
+                <div class="check-detail">拦截 <code>update</code>, <code>delete</code>, <code>remove</code>, <code>uninstall</code>, <code>sync</code> 等技能级操作。技能变更影响全局行为，需严格管控。</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon fail">&#x2717;</div>
+              <div class="check-info">
+                <div class="check-name">Plugins 危险操作</div>
+                <div class="check-detail">拦截 <code>remove</code>, <code>uninstall</code>, <code>delete</code> 等插件级操作。插件卸载影响系统功能完整性。</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon fail">&#x2717;</div>
+              <div class="check-info">
+                <div class="check-name">系统级命令</div>
+                <div class="check-detail">拦截 <code>shutdown</code>, <code>stop</code>, <code>kill</code>, <code>restart</code> 等系统级命令。系统停机影响所有服务可用性。</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Flow: Dispatch Guard in Pipeline -->
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">拦截流程在管线中的位置</div>
+            <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="width:24px;height:24px;border-radius:6px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</span>
+                  <span style="font-size:12px;color:var(--text-h)">Agent/用户发起操作请求</span>
+                </div>
+                <div style="margin-left:11px;border-left:2px dashed #d1d5db;height:10px"></div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="width:24px;height:24px;border-radius:6px;background:#fee2e2;color:#b91c1c;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</span>
+                  <span style="font-size:12px;color:var(--text-h)"><strong>Dispatch Guard 预过滤</strong> &mdash; 匹配破坏性命令模式</span>
+                </div>
+                <div style="margin-left:11px;border-left:2px dashed #d1d5db;height:10px"></div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="width:24px;height:24px;border-radius:6px;background:#fef3c7;color:#92400e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</span>
+                  <span style="font-size:12px;color:var(--text-h)">RiskRule 风险分类 &amp; Severity 评估</span>
+                </div>
+                <div style="margin-left:11px;border-left:2px dashed #d1d5db;height:10px"></div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="width:24px;height:24px;border-radius:6px;background:#fef2f2;color:#b91c1c;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">4</span>
+                  <span style="font-size:12px;color:var(--text-h)"><strong>人工确认门控</strong> &mdash; 高风险操作需审批</span>
+                </div>
+                <div style="margin-left:11px;border-left:2px dashed #d1d5db;height:10px"></div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="width:24px;height:24px;border-radius:6px;background:#d1fae5;color:#065f46;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">5</span>
+                  <span style="font-size:12px;color:var(--text-h)">命令 dispatch &amp; 执行</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Command Block 16 Patterns -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Command Block Patterns</div>
+            <div class="panel-title">ClawAegis Command Block 16 种高风险命令模式</div>
+          </div>
+          <span class="badge badge-critical">16 模式</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">Command Block 维护 16 种 <code>HIGH_RISK_COMMAND_PATTERNS</code>，覆盖文件系统破坏、权限提升、网络外泄、进程操控等高风险操作类型。这些模式与 Dispatch Guard 互补：Dispatch Guard 拦截已知破坏性命令，Command Block 拦截模式匹配的高风险命令。被 Command Block 拦截的命令可选择进入人工确认流程或直接阻断。</p>
+
+        <div class="cmd-pattern-grid">
+          <div class="cmd-pattern">rm -rf /</div>
+          <div class="cmd-pattern">mkfs.*</div>
+          <div class="cmd-pattern">dd if=*</div>
+          <div class="cmd-pattern">chmod 777</div>
+          <div class="cmd-pattern">chown root</div>
+          <div class="cmd-pattern">sudo su</div>
+          <div class="cmd-pattern">curl|wget |*</div>
+          <div class="cmd-pattern">nc -l</div>
+          <div class="cmd-pattern">iptables -F</div>
+          <div class="cmd-pattern">systemctl stop</div>
+          <div class="cmd-pattern">shutdown -h</div>
+          <div class="cmd-pattern">reboot</div>
+          <div class="cmd-pattern">kill -9 1</div>
+          <div class="cmd-pattern">base64 -d | sh</div>
+          <div class="cmd-pattern">>/dev/tcp/</div>
+          <div class="cmd-pattern">python -c import*</div>
+        </div>
+
+        <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap">
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fee2e2;display:inline-block"></span> 直接拦截 (Dispatch Guard)</div>
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fef2f2;border:1px dashed #f87171;display:inline-block"></span> 模式拦截 (Command Block)</div>
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fef3c7;display:inline-block"></span> 触发人工确认 (RiskRule)</div>
+        </div>
+      </div>
+
+      <!-- Panel 4: 审批链架构 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Approval Chain Architecture</div>
+            <div class="panel-title">审批链配置与升级机制</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <!-- Single Approval -->
+          <div style="border-radius:16px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:20px">
+            <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;margin-bottom:12px">&#x1f464;</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text-h);margin-bottom:6px">单人审批 (Single)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">适用于高风险操作（如 <code>stop_openclaw</code>, <code>disable_skill</code>）。一位授权审批人确认即可放行。审批人需具有对应操作类型的审批权限，超时自动拒绝。</div>
+            <div style="margin-top:10px;font-size:11px;color:#8f8681;font-family:monospace;background:#faf7f4;border-radius:8px;padding:8px 10px">
+              级别: Level 1<br>
+              超时: 1800s (30min)<br>
+              回退: reject<br>
+              适用: stop, disable, quarantine
+            </div>
+          </div>
+
+          <!-- Dual Approval -->
+          <div style="border-radius:16px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:20px">
+            <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;background:linear-gradient(135deg,#fee2e2,#fecaca);color:#b91c1c;margin-bottom:12px">&#x1f464;&#x1f464;</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text-h);margin-bottom:6px">双重审批 (Dual)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">适用于关键操作（如 <code>uninstall_skill</code>, <code>remove_skill</code>, 对外付款）。需要两位不同授权人独立确认，防止单一审批人误操作。两位审批人不可为同一人。</div>
+            <div style="margin-top:10px;font-size:11px;color:#8f8681;font-family:monospace;background:#faf7f4;border-radius:8px;padding:8px 10px">
+              级别: Level 1 + Level 2<br>
+              超时: 3600s (1h)<br>
+              回退: reject + escalate<br>
+              适用: uninstall, remove, payment
+            </div>
+          </div>
+
+          <!-- Chain Approval -->
+          <div style="border-radius:16px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:20px">
+            <div style="width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;background:linear-gradient(135deg,#7f1d1d,#991b1b);color:#fecaca;margin-bottom:12px">&#x1f517;</div>
+            <div style="font-size:14px;font-weight:700;color:var(--text-h);margin-bottom:6px">审批链 (Chain)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">适用于极关键操作（如安全策略放开、大规模数据导出）。L1 审批人确认后进入 L2，L2 确认后方可执行。任一级别拒绝即终止。支持超时自动升级到上一级。</div>
+            <div style="margin-top:10px;font-size:11px;color:#8f8681;font-family:monospace;background:#faf7f4;border-radius:8px;padding:8px 10px">
+              级别: L1 &#x2192; L2 &#x2192; L3<br>
+              超时: 7200s (2h)<br>
+              回退: reject + alert<br>
+              适用: policy change, bulk export
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 5: Self Protection Integration -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Self Protection Integration</div>
+            <div class="panel-title">ClawAegis Self Protection 与人工确认联动</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">ClawAegis Self Protection 维护受保护路径、受保护技能和受保护插件列表。任何对受保护资源的操作自动触发人工确认流程，且审批级别提升至 Dual 或 Chain。受保护资源操作不可由单人审批放行。</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div style="border-radius:12px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">&#x1f4c1; protectedPaths</div>
+            <div class="tag-list">
+              <span class="tag">/etc/clawmanager</span>
+              <span class="tag">/var/lib/openclaw</span>
+              <span class="tag">/opt/aegis/config</span>
+              <span class="tag">/data/secrets</span>
+            </div>
+            <div style="font-size:11px;color:#8f8681;margin-top:8px">删除/修改受保护路径需 Chain 审批</div>
+          </div>
+          <div style="border-radius:12px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">&#x1f9e9; protectedSkills</div>
+            <div class="tag-list">
+              <span class="tag">security-scanner</span>
+              <span class="tag">audit-logger</span>
+              <span class="tag">auth-validator</span>
+              <span class="tag">risk-analyzer</span>
+            </div>
+            <div style="font-size:11px;color:#8f8681;margin-top:8px">卸载/删除受保护技能需 Dual 审批</div>
+          </div>
+          <div style="border-radius:12px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">&#x1f50c; protectedPlugins</div>
+            <div class="tag-list">
+              <span class="tag">dispatch-guard</span>
+              <span class="tag">loop-guard</span>
+              <span class="tag">exfil-guard</span>
+              <span class="tag">prompt-guard</span>
+            </div>
+            <div style="font-size:11px;color:#8f8681;margin-top:8px">移除/禁用受保护插件需 Chain 审批</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 6: 验收标准 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria</div>
+            <div class="panel-title">验收标准</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">AC-1: 高影响操作必须人工确认</div>
+            <div class="check-detail">删除、停服、批量变更、对外付款、导出敏感数据、策略放开等操作必须经过人工确认后方可执行。ClawManager InstanceCommand 高风险类型（stop_openclaw, quarantine_skill, handle_skill_risk, disable_skill, uninstall_skill, remove_skill）在 pending 阶段插入审批门控。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">AC-2: 确认记录可审计</div>
+            <div class="check-detail">每次人工确认操作生成完整审计记录：操作类型、目标实例、发起人（IssuedBy）、审批人、审批结果、时间戳、审批意见。支持通过 Request ID 追溯完整审批链路。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">AC-3: 支持审批链配置</div>
+            <div class="check-detail">支持单审批 (Single)、双审批 (Dual)、审批链 (Chain) 三种审批模式，可按操作类型和风险等级配置。审批链支持多级升级和超时自动回退。ClawAegis Self Protection 受保护资源操作自动提升审批级别。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 高风险操作清单                                          -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-highrisk-ops">
+
+      <!-- Global Enforcement Toggle -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Human Confirmation Enforcement</div>
+            <div class="panel-title">人工确认强制执行模式</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用人工确认强制执行</div>
+            <div class="desc">开启后，高风险操作必须经过人工确认方可执行；关闭后仅记录日志不拦截。建议生产环境启用 Enforce 模式。</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+              <div class="mode-btn" data-mode="observe">Observe</div>
+              <div class="mode-btn" data-mode="off">Off</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- High-Risk Operations Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">High-Risk Operations Registry</div>
+            <div class="panel-title">高风险操作清单</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-critical">6 核心命令</span>
+            <span class="badge badge-high">11 扩展操作</span>
+          </div>
+        </div>
+
+        <!-- Core InstanceCommand High-Risk Types -->
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">ClawManager InstanceCommand 核心高风险命令 (6/17)</div>
+        <table class="data-table" style="margin-bottom:20px">
+          <thead>
+            <tr>
+              <th>操作</th>
+              <th>命令类型</th>
+              <th>风险等级</th>
+              <th>所需审批级别</th>
+              <th>超时 (s)</th>
+              <th>拦截层</th>
+              <th>强制人工确认</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">停止 OpenClaw 实例</td>
+              <td><code>stop_openclaw</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Single (L1)</td>
+              <td>1800</td>
+              <td><span class="badge badge-observed">RiskRule</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">隔离技能</td>
+              <td><code>quarantine_skill</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Single (L1)</td>
+              <td>1800</td>
+              <td><span class="badge badge-observed">RiskRule</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">处置技能风险</td>
+              <td><code>handle_skill_risk</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Single (L1)</td>
+              <td>1800</td>
+              <td><span class="badge badge-observed">RiskRule</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">禁用技能</td>
+              <td><code>disable_skill</code></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>Single (L1)</td>
+              <td>1800</td>
+              <td><span class="badge badge-observed">RiskRule</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">卸载技能</td>
+              <td><code>uninstall_skill</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Dual (L1+L2)</td>
+              <td>3600</td>
+              <td><span class="badge badge-blocked">Dispatch Guard</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">移除技能</td>
+              <td><code>remove_skill</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Dual (L1+L2)</td>
+              <td>3600</td>
+              <td><span class="badge badge-blocked">Dispatch Guard</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Extended High-Risk Operations -->
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">扩展高风险操作 (Dispatch Guard + Self Protection)</div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>操作</th>
+              <th>命令/模式</th>
+              <th>风险等级</th>
+              <th>所需审批级别</th>
+              <th>超时 (s)</th>
+              <th>拦截层</th>
+              <th>强制人工确认</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">OpenClaw 重置</td>
+              <td><code>openclaw reset</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Chain (L1&#x2192;L2&#x2192;L3)</td>
+              <td>7200</td>
+              <td><span class="badge badge-blocked">Dispatch Guard</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">OpenClaw 卸载</td>
+              <td><code>openclaw uninstall</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Chain (L1&#x2192;L2&#x2192;L3)</td>
+              <td>7200</td>
+              <td><span class="badge badge-blocked">Dispatch Guard</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">OpenClaw 移除</td>
+              <td><code>openclaw remove</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Chain (L1&#x2192;L2&#x2192;L3)</td>
+              <td>7200</td>
+              <td><span class="badge badge-blocked">Dispatch Guard</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">受保护路径删除</td>
+              <td><code>protectedPaths delete</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Chain (L1&#x2192;L2)</td>
+              <td>7200</td>
+              <td><span class="badge badge-blocked">Self Protection</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">批量配置变更</td>
+              <td><code>bulk config change</code></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>Dual (L1+L2)</td>
+              <td>3600</td>
+              <td><span class="badge badge-observed">RiskRule</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">敏感数据导出</td>
+              <td><code>sensitive data export</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Chain (L1&#x2192;L2)</td>
+              <td>7200</td>
+              <td><span class="badge badge-observed">RiskRule</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">策略放开</td>
+              <td><code>policy relaxation</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Chain (L1&#x2192;L2&#x2192;L3)</td>
+              <td>7200</td>
+              <td><span class="badge badge-observed">RiskRule</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">对外付款</td>
+              <td><code>external payment</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Dual (L1+L2)</td>
+              <td>3600</td>
+              <td><span class="badge badge-observed">RiskRule</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">系统停机</td>
+              <td><code>shutdown/stop/kill</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Chain (L1&#x2192;L2&#x2192;L3)</td>
+              <td>7200</td>
+              <td><span class="badge badge-blocked">Dispatch Guard</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">插件卸载</td>
+              <td><code>plugins remove/uninstall</code></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>Dual (L1+L2)</td>
+              <td>3600</td>
+              <td><span class="badge badge-blocked">Dispatch Guard</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--text-h)">受保护技能/插件操作</td>
+              <td><code>protectedSkills/Plugins</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Chain (L1&#x2192;L2)</td>
+              <td>7200</td>
+              <td><span class="badge badge-blocked">Self Protection</span></td>
+              <td>
+                <div class="mode-selector">
+                  <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+                  <div class="mode-btn" data-mode="observe">Observe</div>
+                  <div class="mode-btn" data-mode="off">Off</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 审批队列                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-approval-queue">
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card" style="border-left:3px solid #f59e0b">
+          <div class="sc-value" style="color:#f59e0b">7</div>
+          <div class="sc-label">待审批</div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #059669">
+          <div class="sc-value" style="color:#059669">12</div>
+          <div class="sc-label">今日已批准</div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #dc2626">
+          <div class="sc-value" style="color:#dc2626">3</div>
+          <div class="sc-label">今日已拒绝</div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid #6b7280">
+          <div class="sc-value" style="color:#6b7280">2</div>
+          <div class="sc-label">今日已过期</div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <select class="filter-select">
+          <option value="all">全部状态</option>
+          <option value="pending">待审批</option>
+          <option value="approved">已批准</option>
+          <option value="rejected">已拒绝</option>
+          <option value="expired">已过期</option>
+        </select>
+        <select class="filter-select">
+          <option value="all">全部操作类型</option>
+          <option value="stop">stop_openclaw</option>
+          <option value="quarantine">quarantine_skill</option>
+          <option value="uninstall">uninstall_skill</option>
+          <option value="remove">remove_skill</option>
+          <option value="policy">策略放开</option>
+          <option value="export">数据导出</option>
+        </select>
+        <select class="filter-select">
+          <option value="all">全部审批级别</option>
+          <option value="single">Single (L1)</option>
+          <option value="dual">Dual (L1+L2)</option>
+          <option value="chain">Chain</option>
+        </select>
+        <button class="btn-secondary btn-sm">&#x1f50d; 筛选</button>
+      </div>
+
+      <!-- Pending Approval Queue -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Pending Approval Queue</div>
+            <div class="panel-title">待审批队列</div>
+          </div>
+          <span class="badge badge-pending">7 待处理</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>请求 ID</th>
+              <th>操作类型</th>
+              <th>目标实例</th>
+              <th>发起 Agent</th>
+              <th>风险详情</th>
+              <th>所需审批</th>
+              <th>提交时间</th>
+              <th>截止时间</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-weight:700;color:#dc2626;font-size:12px">APR-20260501-001</td>
+              <td><code>stop_openclaw</code></td>
+              <td>Instance #5</td>
+              <td>Agent-03</td>
+              <td><span class="badge badge-critical">Critical</span> 异常资源消耗</td>
+              <td>Single (1/1)</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">14:20:03</td>
+              <td style="font-size:11px;font-family:monospace;color:#b91c1c">14:50:03</td>
+              <td><span class="badge badge-pending">Pending</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn-approve">批准</button>
+                <button class="btn-reject">拒绝</button>
+                <button class="btn-escalate">升级</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:700;color:#dc2626;font-size:12px">APR-20260501-002</td>
+              <td><code>quarantine_skill</code></td>
+              <td>Skill-X (Instance #8)</td>
+              <td>Agent-12</td>
+              <td><span class="badge badge-critical">Critical</span> 恶意行为检测</td>
+              <td>Single (0/1)</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">14:10:05</td>
+              <td style="font-size:11px;font-family:monospace;color:#b91c1c">14:40:05</td>
+              <td><span class="badge badge-pending">Pending</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn-approve">批准</button>
+                <button class="btn-reject">拒绝</button>
+                <button class="btn-escalate">升级</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:700;color:#dc2626;font-size:12px">APR-20260501-003</td>
+              <td><code>uninstall_skill</code></td>
+              <td>audit-logger (Protected)</td>
+              <td>Agent-07</td>
+              <td><span class="badge badge-critical">Critical</span> 受保护技能</td>
+              <td>Dual (0/2)</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">13:45:22</td>
+              <td style="font-size:11px;font-family:monospace;color:#b91c1c">14:45:22</td>
+              <td><span class="badge badge-pending">Pending</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn-approve">批准</button>
+                <button class="btn-reject">拒绝</button>
+                <button class="btn-escalate">升级</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:700;color:#dc2626;font-size:12px">APR-20260501-004</td>
+              <td><code>remove_skill</code></td>
+              <td>skill-analytics (#3)</td>
+              <td>Agent-05</td>
+              <td><span class="badge badge-high">High</span> 技能移除</td>
+              <td>Dual (1/2)</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">13:20:18</td>
+              <td style="font-size:11px;font-family:monospace;color:#b91c1c">14:20:18</td>
+              <td><span class="badge badge-pending">Pending</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn-approve">批准</button>
+                <button class="btn-reject">拒绝</button>
+                <button class="btn-escalate">升级</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:700;color:#dc2626;font-size:12px">APR-20260501-005</td>
+              <td><code>policy relaxation</code></td>
+              <td>RiskRule RISK-001</td>
+              <td>Agent-01</td>
+              <td><span class="badge badge-critical">Critical</span> 策略放开</td>
+              <td>Chain (L1: 0/1)</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">12:55:40</td>
+              <td style="font-size:11px;font-family:monospace;color:#b91c1c">14:55:40</td>
+              <td><span class="badge badge-pending">Pending</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn-approve">批准</button>
+                <button class="btn-reject">拒绝</button>
+                <button class="btn-escalate">升级</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:700;color:#dc2626;font-size:12px">APR-20260501-006</td>
+              <td><code>sensitive data export</code></td>
+              <td>风险审计日志 (30d)</td>
+              <td>Agent-09</td>
+              <td><span class="badge badge-critical">Critical</span> 敏感数据</td>
+              <td>Chain (L1: 1/1, L2: 0/1)</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">11:30:15</td>
+              <td style="font-size:11px;font-family:monospace;color:#b91c1c">13:30:15</td>
+              <td><span class="badge badge-escalated">Escalated</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn-approve">批准</button>
+                <button class="btn-reject">拒绝</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:700;color:#dc2626;font-size:12px">APR-20260501-007</td>
+              <td><code>disable_skill</code></td>
+              <td>skill-renderer (#6)</td>
+              <td>Agent-02</td>
+              <td><span class="badge badge-high">High</span> 技能禁用</td>
+              <td>Single (0/1)</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">10:15:33</td>
+              <td style="font-size:11px;font-family:monospace;color:#b91c1c">10:45:33</td>
+              <td><span class="badge badge-expired">Expired</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn-secondary btn-sm" disabled>已过期</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Approval History -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Approval History</div>
+            <div class="panel-title">审批历史记录</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x1f4be; 导出历史</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>请求 ID</th>
+              <th>操作</th>
+              <th>结果</th>
+              <th>审批人</th>
+              <th>时间</th>
+              <th>备注</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">APR-20260430-018</td>
+              <td><code>handle_skill_risk</code></td>
+              <td><span class="badge badge-approved">Approved</span></td>
+              <td>admin@clawreef.io</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">2026-04-30 16:45</td>
+              <td style="font-size:12px">确认风险处置方案合理</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">APR-20260430-017</td>
+              <td><code>stop_openclaw</code></td>
+              <td><span class="badge badge-rejected">Rejected</span></td>
+              <td>ops-lead@clawreef.io</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">2026-04-30 15:22</td>
+              <td style="font-size:12px">建议先 restart，非必要不 stop</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">APR-20260430-016</td>
+              <td><code>external payment</code></td>
+              <td><span class="badge badge-approved">Approved</span></td>
+              <td>finance@clawreef.io + cfo@clawreef.io</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">2026-04-30 14:10</td>
+              <td style="font-size:12px">双审批确认，付款用途合规</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">APR-20260430-015</td>
+              <td><code>bulk config change</code></td>
+              <td><span class="badge badge-expired">Expired</span></td>
+              <td>系统 (自动拒绝)</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">2026-04-30 12:00</td>
+              <td style="font-size:12px">超时 3600s 自动拒绝</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">APR-20260430-014</td>
+              <td><code>quarantine_skill</code></td>
+              <td><span class="badge badge-approved">Approved</span></td>
+              <td>sec-admin@clawreef.io</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">2026-04-30 10:55</td>
+              <td style="font-size:12px">ClawAegis 检测结果确认恶意行为</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Request Detail (Expanded) -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Request Detail</div>
+            <div class="panel-title">APR-20260501-001 详情展开</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">命令详情</div>
+            <div style="border-radius:10px;background:#faf7f4;padding:12px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763">
+              <div><strong>CommandType:</strong> stop_openclaw</div>
+              <div><strong>InstanceID:</strong> 5</div>
+              <div><strong>IssuedBy:</strong> user_id=3 (Agent-03)</div>
+              <div><strong>IdempotencyKey:</strong> stop_openclaw-5-1746097203</div>
+              <div><strong>IssuedAt:</strong> 2026-05-01T14:20:03Z</div>
+              <div><strong>TimeoutSeconds:</strong> 1800</div>
+              <div><strong>Reason:</strong> 检测到实例 5 异常资源消耗，CPU 持续 98%，需停止以保护系统稳定性</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">风险评估与审批要求</div>
+            <div style="border-radius:10px;background:#fef2f2;padding:12px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763">
+              <div><strong>HighestSeverity:</strong> high</div>
+              <div><strong>HighestAction:</strong> require_approval</div>
+              <div><strong>RuleID:</strong> RISK-CMD-STOP-001</div>
+              <div><strong>MatchSummary:</strong> 停止 OpenClaw 实例需人工确认</div>
+              <div><strong>ApprovalLevel:</strong> Single (L1)</div>
+              <div><strong>RequiredApprovers:</strong> 1</div>
+              <div><strong>Deadline:</strong> 2026-05-01T14:50:03Z</div>
+              <div><strong>FallbackOnTimeout:</strong> reject</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">审批意见</div>
+          <textarea class="form-input" rows="3" placeholder="输入审批意见（必填）..." style="font-size:12px;resize:vertical"></textarea>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn-approve" style="padding:9px 24px;font-size:13px">&#x2713; 批准执行</button>
+            <button class="btn-reject" style="padding:9px 24px;font-size:13px">&#x2717; 拒绝请求</button>
+            <button class="btn-escalate" style="padding:9px 24px;font-size:13px">&#x2191; 升级处理</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 确认审计                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-confirm-audit">
+
+      <!-- Score and Stats -->
+      <div style="display:flex;gap:22px;align-items:center;margin-bottom:22px">
+        <div class="score-circle score-high">
+          <span class="score-num">97%</span>
+          <span class="score-label">确认合规率</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:var(--text-h);margin-bottom:8px">人工确认审计总览</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+            <div class="stat-mini">
+              <div class="value" style="color:var(--text-h)">52</div>
+              <div class="label">总高风险操作</div>
+            </div>
+            <div class="stat-mini">
+              <div class="value" style="color:#059669">35</div>
+              <div class="label">人工批准</div>
+            </div>
+            <div class="stat-mini">
+              <div class="value" style="color:#dc2626">8</div>
+              <div class="label">人工拒绝</div>
+            </div>
+            <div class="stat-mini">
+              <div class="value" style="color:#6b7280">4</div>
+              <div class="label">超时自动拒</div>
+            </div>
+            <div class="stat-mini">
+              <div class="value" style="color:#f59e0b">5</div>
+              <div class="label">Dispatch Guard 拦截</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:#8f8681;line-height:1.6">合规率 = (经过人工确认的高风险操作) / (总高风险操作) x 100% = (35 + 8 + 4 + 5) / 52 x 100% = 100%。97% 为修正评分（含 1 起覆盖操作未记录完整审批链）。验收标准: 100% 高风险操作必须人工确认。</div>
+        </div>
+      </div>
+
+      <!-- Audit Log Entries -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Confirmation Audit Log</div>
+            <div class="panel-title">确认审计日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x1f4c5; 时间范围</button>
+            <button class="btn-primary btn-sm">&#x1f4be; 导出日志</button>
+          </div>
+        </div>
+
+        <!-- Log 1: Approval Granted -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-HCF-001</span>
+            <span class="badge badge-approved">审批通过</span>
+            <span class="log-time">2026-05-01 14:25:18</span>
+          </div>
+          <div class="log-body">管理员 <code>ops-lead@clawreef.io</code> 批准 <code>APR-20260501-001</code> (<code>stop_openclaw</code>, Instance #5)。审批意见: "确认实例 5 资源异常，先 stop 后排查根因"。InstanceCommand 状态: pending &rarr; dispatched。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent-03 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">RiskRule 匹配</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef2f2;border-color:#fecaca">人工确认</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#ecfdf5;border-color:#a7f3d0;font-weight:700">批准放行</span>
+          </div>
+        </div>
+
+        <!-- Log 2: Approval Rejected -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-HCF-002</span>
+            <span class="badge badge-rejected">审批拒绝</span>
+            <span class="log-time">2026-05-01 13:55:42</span>
+          </div>
+          <div class="log-body">管理员 <code>sec-admin@clawreef.io</code> 拒绝 <code>APR-20260430-017</code> (<code>stop_openclaw</code>, Instance #3)。审批意见: "建议先 restart_openclaw，非必要不直接 stop"。InstanceCommand 状态: pending &rarr; failed (审批拒绝)。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">RiskRule 匹配</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef2f2;border-color:#fecaca">人工确认</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca;font-weight:700">拒绝</span>
+          </div>
+        </div>
+
+        <!-- Log 3: Auto-Rejected by Risk Rule -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-HCF-003</span>
+            <span class="badge badge-blocked">规则自动拒绝</span>
+            <span class="log-time">2026-05-01 12:30:05</span>
+          </div>
+          <div class="log-body">AI Gateway 检测到 <code>HighestAction=block</code>，自动拒绝请求。原始请求尝试执行 <code>openclaw reset</code>，被 RiskRule <code>RISK-CMD-RESET-001</code> 匹配 (Severity=critical, Action=block)。此操作被 Dispatch Guard 同时拦截，双重防护生效。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca">Dispatch Guard 拦截</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">RiskRule: block</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca;font-weight:700">自动拒绝</span>
+          </div>
+        </div>
+
+        <!-- Log 4: Timeout Expiry -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-HCF-004</span>
+            <span class="badge badge-expired">超时自动拒绝</span>
+            <span class="log-time">2026-05-01 12:00:00</span>
+          </div>
+          <div class="log-body"><code>APR-20260430-015</code> 审批超时（3600s），<code>bulk config change</code> 操作在截止时间前未获得 Dual 审批人确认。回退动作: <code>reject</code>，批量配置变更已自动拒绝。触发升级告警通知安全管理员。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">等待人工确认</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca">超时 3600s</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca;font-weight:700">自动拒绝</span>
+          </div>
+        </div>
+
+        <!-- Log 5: Approval Chain Escalation -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-HCF-005</span>
+            <span class="badge badge-escalated">审批链升级</span>
+            <span class="log-time">2026-05-01 11:35:20</span>
+          </div>
+          <div class="log-body"><code>APR-20260501-006</code> (<code>sensitive data export</code>) L1 审批人已批准，进入 L2 审批。L2 审批人在截止时间前未响应，触发升级告警。系统已通知安全管理员 <code>ciso@clawreef.io</code> 进行紧急审批。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#d1fae5;border-color:#a7f3d0">L1 批准</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">L2 等待</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#e0e7ff;border-color:#c7d2fe">升级通知</span>
+          </div>
+        </div>
+
+        <!-- Log 6: Dispatch Guard Block -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-HCF-006</span>
+            <span class="badge badge-blocked">Dispatch Guard 拦截</span>
+            <span class="log-time">2026-05-01 10:18:44</span>
+          </div>
+          <div class="log-body">Agent-04 尝试执行 <code>skills delete security-scanner</code>，被 ClawAegis Dispatch Guard 拦截。<code>security-scanner</code> 属于 <code>protectedSkills</code> 列表，不可直接删除。如需操作受保护技能，须通过 Chain 审批流程 (L1&#x2192;L2)。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent-04 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca">Dispatch Guard</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca">Self Protection</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#7f1d1d;border-color:#991b1b;color:#fecaca;font-weight:700">拦截阻断</span>
+          </div>
+        </div>
+
+        <!-- Log 7: Command Block Intercept -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-HCF-007</span>
+            <span class="badge badge-blocked">Command Block 拦截</span>
+            <span class="log-time">2026-05-01 09:42:11</span>
+          </div>
+          <div class="log-body">Command Block 拦截高风险命令模式: <code>rm -rf /etc/clawmanager</code>。匹配 <code>HIGH_RISK_COMMAND_PATTERNS[0]</code> (rm -rf /)。目标路径 <code>/etc/clawmanager</code> 属于 <code>protectedPaths</code>，双重拦截生效。操作已记录并触发安全告警。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca">Command Block</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca">protectedPaths</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#7f1d1d;border-color:#991b1b;color:#fecaca;font-weight:700">双重拦截</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Trail Detail -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Full Audit Trail</div>
+            <div class="panel-title">完整审计轨迹示例: APR-20260501-003</div>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">uninstall_skill (受保护技能 audit-logger) - Dual 审批链路</div>
+        <div class="audit-trail">
+          <div class="at-step">
+            <div class="at-marker m-blue"></div>
+            <div>
+              <div class="at-text"><strong>请求发起</strong> &mdash; Agent-07 发起 <code>uninstall_skill</code> 命令 (Target: audit-logger, InstanceID=8, IssuedBy=7)</div>
+              <div class="at-time">2026-05-01 13:45:22</div>
+            </div>
+          </div>
+          <div class="at-step">
+            <div class="at-marker m-yellow"></div>
+            <div>
+              <div class="at-text"><strong>风险评估</strong> &mdash; ClawManager RiskRule 匹配: <code>RISK-CMD-UNINST-001</code> (Severity=high, Action=require_approval)。Self Protection 检测: <code>audit-logger</code> 属于 <code>protectedSkills</code>，审批级别提升至 Dual。</div>
+              <div class="at-time">2026-05-01 13:45:22</div>
+            </div>
+          </div>
+          <div class="at-step">
+            <div class="at-marker m-yellow"></div>
+            <div>
+              <div class="at-text"><strong>Dispatch Guard 检查</strong> &mdash; <code>skills uninstall</code> 属于 Dispatch Guard 拦截范围，但此操作已进入审批流程，Dispatch Guard 标记为"待审批"状态，不直接阻断。</div>
+              <div class="at-time">2026-05-01 13:45:23</div>
+            </div>
+          </div>
+          <div class="at-step">
+            <div class="at-marker m-green"></div>
+            <div>
+              <div class="at-text"><strong>L1 审批人确认</strong> &mdash; 等待 <code>sec-admin@clawreef.io</code> 确认中... (Dual 审批: 0/2)</div>
+              <div class="at-time">2026-05-01 13:45:23 &rarr; 进行中</div>
+            </div>
+          </div>
+          <div class="at-step">
+            <div class="at-marker m-yellow"></div>
+            <div>
+              <div class="at-text"><strong>L2 审批人待确认</strong> &mdash; 等待 <code>ciso@clawreef.io</code> 确认中... (Dual 审批: 0/2)</div>
+              <div class="at-time">截止: 2026-05-01 14:45:22</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                   -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+        <!-- Left Column -->
+        <div>
+          <!-- High-Risk Operation Classification Rules -->
+          <div class="config-section">
+            <div class="cs-title">高风险操作分类规则</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name"><span class="badge badge-critical" style="margin-right:6px">CRITICAL</span> 关键操作</div>
+                <div class="desc">删除、停服、OpenClaw reset/uninstall/remove、策略放开、敏感数据导出、对外付款。强制 Chain/Dual 审批，超时自动拒绝。</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <select class="form-select" style="width:160px">
+                  <option value="chain" selected>Chain 审批链</option>
+                  <option value="dual">Dual 双审批</option>
+                  <option value="single">Single 单审批</option>
+                </select>
+              </div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name"><span class="badge badge-high" style="margin-right:6px">HIGH</span> 高风险操作</div>
+                <div class="desc">disable_skill, quarantine_skill, handle_skill_risk, 批量配置变更, 插件卸载。需 Single/Dual 审批。</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <select class="form-select" style="width:160px">
+                  <option value="chain">Chain 审批链</option>
+                  <option value="dual" selected>Dual 双审批</option>
+                  <option value="single">Single 单审批</option>
+                </select>
+              </div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name"><span class="badge badge-medium" style="margin-right:6px">MEDIUM</span> 中风险操作</div>
+                <div class="desc">install_skill, update_skill, restart_openclaw 等。默认记录日志，可选开启人工确认。</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <select class="form-select" style="width:160px">
+                  <option value="chain">Chain 审批链</option>
+                  <option value="dual">Dual 双审批</option>
+                  <option value="single" selected>Single 单审批</option>
+                  <option value="log-only">仅记录日志</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Approval Levels -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">审批级别配置</div>
+            <div class="form-group">
+              <div class="form-label">Single 审批 - 超时 (秒)</div>
+              <input class="form-input" style="width:120px" type="number" value="1800" min="60">
+              <div class="form-hint">单审批超时时间。默认 1800s (30min)。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Dual 审批 - 超时 (秒)</div>
+              <input class="form-input" style="width:120px" type="number" value="3600" min="300">
+              <div class="form-hint">双审批超时时间。默认 3600s (1h)。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Chain 审批 - 超时 (秒)</div>
+              <input class="form-input" style="width:120px" type="number" value="7200" min="600">
+              <div class="form-hint">审批链超时时间。默认 7200s (2h)。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">金融操作 - 超时 (秒)</div>
+              <input class="form-input" style="width:120px" type="number" value="3600" min="300">
+              <div class="form-hint">对外付款确认超时。建议不低于 3600s。</div>
+            </div>
+          </div>
+
+          <!-- Approval Chain Configuration -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">审批链人员配置</div>
+            <div class="form-group">
+              <div class="form-label">Level 1 审批人 (操作级)</div>
+              <div class="tag-list">
+                <span class="tag">ops-lead@clawreef.io <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag">sec-admin@clawreef.io <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加审批人</span>
+              </div>
+              <div class="form-hint">L1 审批人负责日常高风险操作确认（stop, disable, quarantine 等）。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Level 2 审批人 (管理级)</div>
+              <div class="tag-list">
+                <span class="tag">ciso@clawreef.io <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag">cto@clawreef.io <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加审批人</span>
+              </div>
+              <div class="form-hint">L2 审批人负责关键操作确认（uninstall, remove, 策略放开等）。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Level 3 审批人 (高管级)</div>
+              <div class="tag-list">
+                <span class="tag">ceo@clawreef.io <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加审批人</span>
+              </div>
+              <div class="form-hint">L3 审批人负责极关键操作确认（openclaw reset, 系统停机等）。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Dual 审批人 - 金融操作</div>
+              <div class="tag-list">
+                <span class="tag">finance@clawreef.io <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag">cfo@clawreef.io <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加审批人</span>
+              </div>
+              <div class="form-hint">金融操作至少 2 位独立审批人，不可为同一人。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+          <!-- Escalation Rules -->
+          <div class="config-section">
+            <div class="cs-title">升级与回退规则</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">超时自动升级</div>
+                <div class="desc">L1 审批超时后自动升级到 L2，L2 超时后升级到 L3。升级时发送通知给下一级审批人。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">超时自动拒绝</div>
+                <div class="desc">审批链最终超时后，自动拒绝操作请求。拒绝记录写入审计日志，触发告警通知。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="form-group" style="margin-top:12px">
+              <div class="form-label">超时回退动作</div>
+              <select class="form-select" style="width:200px">
+                <option value="reject" selected>拒绝 (Reject)</option>
+                <option value="escalate">升级告警 (Escalate)</option>
+                <option value="allow">允许通过 (Allow - 不推荐)</option>
+              </select>
+              <div class="form-hint">审批链最终超时后的处理动作。建议生产环境使用 Reject。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">升级通知通道</div>
+              <div class="tag-list">
+                <span class="tag">邮件通知</span>
+                <span class="tag">Webhook</span>
+                <span class="tag">Slack</span>
+                <span class="tag">钉钉</span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加通道</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dispatch Guard Pattern Config -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">Dispatch Guard 拦截模式配置</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">启用 Dispatch Guard 预过滤</div>
+                <div class="desc">在审批流程前拦截已知破坏性命令模式。拦截的操作不进入审批队列，直接阻断。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">拦截但允许进入审批</div>
+                <div class="desc">Dispatch Guard 拦截后不直接阻断，而是标记为"需审批"并进入人工确认流程。适用于需要灵活管控的场景。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div style="margin-top:10px;font-size:11px;color:#8f8681;font-family:monospace;background:#faf7f4;border-radius:8px;padding:10px;line-height:1.8">
+              <strong>拦截组:</strong><br>
+              openclaw: reset, uninstall, remove<br>
+              skills: update, delete, remove, uninstall, sync<br>
+              plugins: remove, uninstall, delete<br>
+              system: shutdown, stop, kill, restart
+            </div>
+          </div>
+
+          <!-- Command Block Pattern Config -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">Command Block 高风险命令模式</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">启用 Command Block 拦截</div>
+                <div class="desc">16 种 HIGH_RISK_COMMAND_PATTERNS 拦截。与 Dispatch Guard 互补，覆盖文件系统破坏、权限提升、网络外泄等模式。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">拦截后触发人工确认</div>
+                <div class="desc">Command Block 拦截的命令可选择进入人工确认流程（而非直接阻断），适用于需要灵活处理的场景。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="form-group" style="margin-top:10px">
+              <div class="form-label">当前模式数量: 16</div>
+              <div class="form-hint">可通过 API 或配置文件添加自定义 HIGH_RISK_COMMAND_PATTERNS。</div>
+            </div>
+          </div>
+
+          <!-- Self Protection Integration -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">Self Protection 受保护资源配置</div>
+            <div class="form-group">
+              <div class="form-label">protectedPaths (受保护路径)</div>
+              <div class="tag-list">
+                <span class="tag">/etc/clawmanager</span>
+                <span class="tag">/var/lib/openclaw</span>
+                <span class="tag">/opt/aegis/config</span>
+                <span class="tag">/data/secrets</span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加路径</span>
+              </div>
+              <div class="form-hint">受保护路径的删除/修改操作自动提升至 Chain 审批。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">protectedSkills (受保护技能)</div>
+              <div class="tag-list">
+                <span class="tag">security-scanner</span>
+                <span class="tag">audit-logger</span>
+                <span class="tag">auth-validator</span>
+                <span class="tag">risk-analyzer</span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加技能</span>
+              </div>
+              <div class="form-hint">受保护技能的卸载/删除操作自动提升至 Dual 审批。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">protectedPlugins (受保护插件)</div>
+              <div class="tag-list">
+                <span class="tag">dispatch-guard</span>
+                <span class="tag">loop-guard</span>
+                <span class="tag">exfil-guard</span>
+                <span class="tag">prompt-guard</span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加插件</span>
+              </div>
+              <div class="form-hint">受保护插件的移除/禁用操作自动提升至 Chain 审批。</div>
+            </div>
+          </div>
+
+          <!-- Notification Settings -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">通知设置</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">新审批请求通知</div>
+                <div class="desc">当有新的高风险操作审批请求时，通知相关审批人。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">审批截止前预警</div>
+                <div class="desc">在审批超时截止前 60s 发送预警通知。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">审批结果通知</div>
+                <div class="desc">当审批决策完成后，通知操作发起人决策结果。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">Dispatch Guard/Command Block 拦截通知</div>
+                <div class="desc">当破坏性命令被拦截时，通知安全管理员。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div style="margin-top:22px;display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn-secondary">重置默认</button>
+        <button class="btn-primary">保存配置</button>
+      </div>
+    </div>
+
+  </div><!-- content-area -->
+</div><!-- main-content -->
+
+</div><!-- app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const tabGroup = tab.parentElement;
+    tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.getAttribute('data-tab');
+    document.querySelectorAll('.tab-content').forEach(tc => {
+      tc.classList.remove('active');
+      if (tc.id === 'tab-' + target) tc.classList.add('active');
+    });
+  });
+});
+
+// Mode selector
+document.querySelectorAll('.mode-selector').forEach(selector => {
+  selector.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selector.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.remove('active-enforce','active-observe','active-off');
+      });
+      const mode = btn.getAttribute('data-mode');
+      btn.classList.add('active-' + mode);
+    });
+  });
+});
+
+// Sidebar navigation
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+// Approve/Reject/Escalate buttons
+document.querySelectorAll('.btn-approve, .btn-reject, .btn-escalate').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const row = e.target.closest('tr');
+    if (!row) return;
+    const statusCell = row.querySelector('.badge-pending, .badge-escalated');
+    if (!statusCell) return;
+    if (btn.classList.contains('btn-approve')) {
+      statusCell.className = 'badge badge-approved';
+      statusCell.textContent = 'Approved';
+    } else if (btn.classList.contains('btn-reject')) {
+      statusCell.className = 'badge badge-rejected';
+      statusCell.textContent = 'Rejected';
+    } else if (btn.classList.contains('btn-escalate')) {
+      statusCell.className = 'badge badge-escalated';
+      statusCell.textContent = 'Escalated';
+    }
+  });
+});
+</script>
+
+</body>
+</html>

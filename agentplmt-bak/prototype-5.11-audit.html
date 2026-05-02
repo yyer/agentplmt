@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>安全审计报告 | 5.11 审计追踪与运营治理 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-pass{background:#ecfdf5;color:#059669}.badge-fail{background:#fef2f2;color:#dc2626}.badge-warn{background:#fef3c7;color:#92400e}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f5f1ed}.check-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px}
+.check-icon.pass{background:#dcfce7;color:#15803d}.check-icon.fail{background:#fee2e2;color:#b91c1c}.check-icon.warn{background:#fef3c7;color:#92400e}
+.check-info .check-name{font-size:13px;font-weight:600;color:var(--text-h)}.check-info .check-id{font-size:11px;font-family:monospace;color:#8f8681}.check-info .check-detail{font-size:12px;color:var(--text);margin-top:3px}
+.score-circle{width:80px;height:80px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.5rem;line-height:1}
+.score-circle .score-label{font-size:.6rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.stat-row{display:flex;gap:16px;margin-bottom:22px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.fr-section{border-radius:22px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);margin-bottom:22px;overflow:hidden}
+.fr-section-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #f1e7e1;background:linear-gradient(180deg,#fffaf6,#fff6f1);cursor:pointer;transition:background .2s}
+.fr-section-header:hover{background:linear-gradient(180deg,#fff7f2,#fff3ec)}
+.fr-section-header .fr-title{display:flex;align-items:center;gap:10px}
+.fr-section-header .fr-code{font-size:13px;font-weight:700;color:#dc2626;font-family:monospace}
+.fr-section-header .fr-name{font-size:14px;font-weight:700;color:var(--text-h)}
+.fr-section-header .fr-meta{display:flex;align-items:center;gap:10px}
+.fr-section-header .fr-score{font-size:13px;font-weight:700;font-family:monospace}
+.fr-section-header .fr-toggle{font-size:16px;color:#b4a9a0;transition:transform .2s}
+.fr-section-header.collapsed .fr-toggle{transform:rotate(-90deg)}
+.fr-section-body{padding:4px 22px 16px}
+.fr-section-body.collapsed{display:none}
+.audit-bar{height:6px;border-radius:3px;background:#f1e7e1;overflow:hidden;display:flex;margin-top:6px}
+.audit-bar .bar-pass{background:#059669}.audit-bar .bar-warn{background:#f59e0b}.audit-bar .bar-fail{background:#dc2626}
+.score-ring{position:relative;width:120px;height:120px;flex-shrink:0}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-ring .ring-num{font-size:2rem;font-weight:800;color:var(--text-h);line-height:1}
+.score-ring .ring-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:2px}
+.progress-ring-bg{fill:none;stroke:#f1e7e1;stroke-width:8}
+.progress-ring-fg{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+.export-bar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-radius:18px;border:1px solid #eadfd8;background:rgba(255,255,255,0.85);margin-top:8px}
+.remediation-card{border-radius:12px;border:1px solid #fecaca;background:#fef2f2;padding:14px 18px;margin-top:10px;font-size:12px;color:#7f1d1d;line-height:1.7}
+.remediation-card .rc-title{font-weight:700;margin-bottom:4px}
+.remediation-card .rc-steps{padding-left:16px;margin-top:6px}
+.remediation-card .rc-steps li{margin-bottom:4px}
+.warn-card{border-radius:12px;border:1px solid #fde68a;background:#fef3c7;padding:14px 18px;margin-top:10px;font-size:12px;color:#92400e;line-height:1.7}
+.warn-card .wc-title{font-weight:700;margin-bottom:4px}
+.warn-card .wc-steps{padding-left:16px;margin-top:6px}
+.warn-card .wc-steps li{margin-bottom:4px}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.stat-row{flex-wrap:wrap}.stat-card{min-width:120px}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.11 审计追踪与运营治理</div>
+    <div class="nav-item" data-page="fr65"><span>FR-65 全链路追踪</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr66"><span>FR-66 安全事件日志</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr67"><span>FR-67 日志防篡改</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr68"><span>FR-68 期望态合规</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr69"><span>FR-69 自动隔离与快照</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr70"><span>FR-70 证据保留与回放</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr71"><span>FR-71 风险运营与策略闭环</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item active" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.11 审计追踪与运营治理</div>
+      <div class="page-title">安全审计报告 | FR-65 ~ FR-71</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-secondary btn-sm">&#x21bb; 刷新审计</button>
+      <button class="btn-primary btn-sm" onclick="handleExport()">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- ============================== -->
+    <!-- 1. Overall Score + Summary     -->
+    <!-- ============================== -->
+    <div class="app-panel-warm">
+      <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+        <!-- Score Ring -->
+        <div class="score-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="progress-ring-bg" cx="60" cy="60" r="50"></circle>
+            <circle class="progress-ring-fg" cx="60" cy="60" r="50" stroke="#d97706" stroke-dasharray="314.16" stroke-dashoffset="44.0"></circle>
+          </svg>
+          <div class="ring-text">
+            <span class="ring-num">86</span>
+            <span class="ring-label">/ 100</span>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:1.15rem;font-weight:700;color:var(--text-h);margin-bottom:4px">5.11 审计追踪与运营治理 &mdash; 综合审计评分</div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">覆盖 FR-65 ~ FR-71 共 7 项功能需求、21 条验收标准。整体安全合规水平中等偏上，但存在 2 项失败项和 5 项警告项需重点关注。主要风险集中在 FR-70 执行链回放功能不完整（AC-70.2 缺少可视化回放界面，仅有原始日志记录），以及 FR-71 策略优化闭环缺乏自动化反馈机制（AC-71.4 依赖人工触发优化，未实现自动闭环）。FR-67 的不可抵赖保护和 FR-69 的恢复审批流程也存在改进空间。</div>
+
+          <!-- Stats Row -->
+          <div class="stat-row" style="margin-bottom:0">
+            <div class="stat-card">
+              <div class="sc-value" style="color:var(--text-h)">21</div>
+              <div class="sc-label">总检查项</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#059669">14</div>
+              <div class="sc-label">通过 Pass</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#dc2626">2</div>
+              <div class="sc-label">失败 Fail</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#d97706">5</div>
+              <div class="sc-label">警告 Warn</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score Badge -->
+        <div class="score-circle score-med">
+          <span class="score-num">86</span>
+          <span class="score-label">SCORE</span>
+        </div>
+      </div>
+
+      <!-- Overall Bar -->
+      <div style="margin-top:18px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:#8f8681;margin-bottom:4px">
+          <span>总体合规进度</span>
+          <span>14/21 = 66.7% 完全通过</span>
+        </div>
+        <div class="audit-bar" style="height:10px">
+          <div class="bar-pass" style="width:66.7%"></div>
+          <div class="bar-warn" style="width:23.8%"></div>
+          <div class="bar-fail" style="width:9.5%"></div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:10px;color:#8f8681;margin-top:4px">
+          <span>&#x25cf; Pass 66.7%</span>
+          <span>&#x25cf; Warn 23.8%</span>
+          <span>&#x25cf; Fail 9.5%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 2. FR-65 全链路追踪            -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-65</span>
+          <span class="fr-name">全链路追踪</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-pass">3/3 Pass</span>
+          <span class="fr-score" style="color:#059669">100%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:100%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">端到端 trace_id 关联</div>
+            <div class="check-id">AC-65.1</div>
+            <div class="check-detail">所有安全事件均通过trace_id实现端到端关联。TraceID-7f3a验证8步链路完整，从UserRequest到Disposition所有步骤均有trace_id传播。ClawManager InstanceCommand、ClawAegis拦截日志、KubeArmor策略执行日志均携带trace_id。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">请求响应可追溯</div>
+            <div class="check-id">AC-65.2</div>
+            <div class="check-detail">每个请求的完整生命周期（请求发起、权限检查、工具分发、策略执行、命令执行、拦截判定、风险评估、最终处置）均有时间戳记录。stop_openclaw命令6个生命周期事件均完整记录，支持全链路回溯。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">按 trace_id 查询</div>
+            <div class="check-id">AC-65.3</div>
+            <div class="check-detail">支持按trace_id查询完整链路日志。TraceID-a2b1发现链路断点（step 4缺失KubeArmor日志），系统自动标记不完整链路并触发告警。断点检测延迟&lt;10s。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 3. FR-66 安全事件日志          -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-66</span>
+          <span class="fr-name">安全事件日志</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-pass">3/3 Pass</span>
+          <span class="fr-score" style="color:#059669">100%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:100%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">安全事件完整日志</div>
+            <div class="check-id">AC-66.1</div>
+            <div class="check-detail">ClawManager InstanceCommand完整记录命令生命周期（创建、审批、分发、执行、结果、归档）。ClawAegis拦截事件、KubeArmor告警、KSecure基线检查结果均结构化记录。日志采集覆盖所有安全子系统，gRPC断连自动重连机制已验证（16s内完成重连）。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">日志包含时间/来源/目标/动作</div>
+            <div class="check-id">AC-66.2</div>
+            <div class="check-detail">每条日志包含：timestamp（毫秒级精度）、source（事件来源系统）、target（目标实例/进程）、action（执行动作）。InstanceCommand日志包含operator、approver、target agent、exit_code等完整字段。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">按时间/类型/实例查询</div>
+            <div class="check-id">AC-66.3</div>
+            <div class="check-detail">支持按时间范围、事件类型（InstanceCommand/AegisIntercept/KubeArmorAlert/BaselineCheck）、实例ID等多维度查询。查询响应时间&lt;200ms（10万条日志规模）。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 4. FR-67 日志防篡改            -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-67</span>
+          <span class="fr-name">日志防篡改</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-warn">2 Pass, 1 Warn</span>
+          <span class="fr-score" style="color:#d97706">78%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:66.7%"></div><div class="bar-warn" style="width:33.3%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">关键日志有数字签名</div>
+            <div class="check-id">AC-67.1</div>
+            <div class="check-detail">关键操作日志使用RSA-SHA256签名，每12小时批量签名一次。覆盖InstanceCommand、PermissionChange、RiskAlert、AegisIntercept等类型。签名密钥LOG-SIGN-KEY-2026-Q2，347条日志已签名。签名验证机制正常工作，已成功检测到1起签名校验失败事件（SEC-5.11-0007）。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">日志篡改可检测</div>
+            <div class="check-id">AC-67.2</div>
+            <div class="check-detail">SelfIntegrityRecord检测到handlers.ts文件指纹不匹配（SHA256从7b3a9f...e2c4变为4d8c21...f7a9），InstanceCommand日志签名校验失败（CMD-20260501-0038，restart_openclaw命令）。篡改检测有效触发告警，证明检测机制工作正常。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon warn">&#x26a0;</div>
+          <div class="check-info">
+            <div class="check-name">不可抵赖保护</div>
+            <div class="check-id">AC-67.3</div>
+            <div class="check-detail">当前签名机制使用服务端密钥，缺乏操作者身份绑定。签名仅证明日志由系统生成，无法证明特定操作者执行了特定操作。需要增加操作者证书签名（如用户私钥签名）或引入HSM硬件签名模块实现不可抵赖性。</div>
+          </div>
+          <span class="badge badge-warn">WARN</span>
+        </div>
+
+        <div class="warn-card">
+          <div class="wc-title">AC-67.3 改进建议</div>
+          <ol class="wc-steps">
+            <li>为关键操作增加操作者证书签名（双签名：系统签名 + 操作者签名）</li>
+            <li>引入HSM硬件安全模块保护签名密钥，防止密钥泄露</li>
+            <li>实现签名时间戳服务(TSP)，提供可信第三方时间证明</li>
+            <li>建立签名密钥轮换机制，每季度更新签名密钥</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 5. FR-68 期望态合规            -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-68</span>
+          <span class="fr-name">期望态合规</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-pass">3/3 Pass</span>
+          <span class="fr-score" style="color:#059669">100%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:100%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">配置偏差可检测</div>
+            <div class="check-id">AC-68.1</div>
+            <div class="check-detail">KSecure 38个基线脚本持续检查配置偏差。SSH-EmptyPW检测到PermitEmptyPasswords=yes违反CIS Benchmark 5.2.2。InstanceDesiredState与RuntimeStatus不一致时自动检测（instance-oc-12期望running但实际degraded，15分钟漂移超阈值）。偏差检测覆盖率97.2%。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">偏差有修复建议</div>
+            <div class="check-id">AC-68.2</div>
+            <div class="check-detail">每项偏差检测均附带修复建议。SSH-EmptyPW建议"Set PermitEmptyPasswords no in /etc/ssh/sshd_config"。SHA512-Password建议更新密码哈希算法从MD5到SHA-512。修复建议与CIS Benchmark参考关联，提供可执行命令。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">支持自动修正</div>
+            <div class="check-id">AC-68.3</div>
+            <div class="check-detail">G_MODE=s自动修正模式已验证。sha512.sh脚本自动执行修复：1) SSH配置PermitEmptyPasswords yes改为no；2) 密码哈希算法从MD5加固为SHA-512。修复前后均创建快照（SNAP-PRE/POST），修复后自动验证合规状态。自动修复成功率100%（本月3次自动修复均成功）。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 6. FR-69 自动隔离与快照        -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-69</span>
+          <span class="fr-name">自动隔离与快照</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-warn">2 Pass, 1 Warn</span>
+          <span class="fr-score" style="color:#d97706">78%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:66.7%"></div><div class="bar-warn" style="width:33.3%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高危事件自动隔离</div>
+            <div class="check-id">AC-69.1</div>
+            <div class="check-detail">agent-rogue循环触发5次/5min（超过Loop Guard阈值3次/5min），系统自动执行quarantine隔离。隔离响应时间&lt;30s（从最后一次触发到隔离完成）。同时触发NetworkPolicy全出站拒绝（deny-all-egress-quarantine），确保被隔离实例无法外联。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">断网/冻结/隔离操作</div>
+            <div class="check-id">AC-69.2</div>
+            <div class="check-detail">支持三种隔离操作：1) NetworkPolicy全出站拒绝（已应用于instance-17）；2) 进程冻结（quarantine模式，agent进程暂停但保留状态）；3) 完全隔离（网络+进程双重阻断）。三种模式可根据威胁等级选择，当前默认使用quarantine+NetworkPolicy组合。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon warn">&#x26a0;</div>
+          <div class="check-info">
+            <div class="check-name">恢复操作审批</div>
+            <div class="check-id">AC-69.3</div>
+            <div class="check-detail">恢复操作需安全团队审批，但当前审批流程缺乏分级机制。低风险场景（如健康检查误报导致的隔离）和高风险场景（如真实攻击后的恢复）使用相同审批流程，导致低风险恢复延迟过长。建议引入分级审批：低风险自动审批+事后审计，高风险强制人工审批。</div>
+          </div>
+          <span class="badge badge-warn">WARN</span>
+        </div>
+
+        <div class="warn-card">
+          <div class="wc-title">AC-69.3 改进建议</div>
+          <ol class="wc-steps">
+            <li>建立恢复审批分级机制：Level 1（自动审批+事后审计）、Level 2（单人审批）、Level 3（双人审批）</li>
+            <li>误报导致的隔离可自动恢复，但需记录完整审计日志</li>
+            <li>设置恢复冷却期（如15分钟），防止攻击者利用恢复操作</li>
+            <li>恢复前自动执行安全扫描，确认威胁已消除</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 7. FR-70 证据保留与回放        -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-70</span>
+          <span class="fr-name">证据保留与回放</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-fail">2 Pass, 1 Fail</span>
+          <span class="fr-score" style="color:#dc2626">67%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:66.7%"></div><div class="bar-fail" style="width:33.3%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高危事件自动快照</div>
+            <div class="check-id">AC-70.1</div>
+            <div class="check-detail">高危事件自动创建ConfigRevision SHA256快照（EVD-0042）。快照包含：InstanceConfig、AgentState、NetworkPolicy、ProcessList（47个进程）、FileIntegrityBaseline（312个文件）。快照保留期365天，满足合规要求。证据链连续（EVD-0041 &#x2192; EVD-0042）。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div class="check-info">
+            <div class="check-name">执行链可回放</div>
+            <div class="check-id">AC-70.2</div>
+            <div class="check-detail">当前系统仅支持通过trace_id查询原始日志记录，缺乏执行链可视化回放界面。安全分析人员需要手动关联多步骤日志并理解执行流程，效率低下且容易遗漏关键步骤。需要开发图形化执行链回放工具，支持时间线视图、步骤导航和事件详情面板。</div>
+          </div>
+          <span class="badge badge-fail">FAIL</span>
+        </div>
+
+        <div class="remediation-card">
+          <div class="rc-title">AC-70.2 修复方案</div>
+          <ol class="rc-steps">
+            <li>开发执行链可视化回放界面，包含时间线视图和步骤导航</li>
+            <li>实现步骤间自动关联，支持一键跳转到上下游事件</li>
+            <li>添加执行链摘要视图，快速了解整体流程和关键节点</li>
+            <li>支持回放控制（播放/暂停/快进/慢放），时间精度到毫秒</li>
+            <li>预计开发周期：2周，优先级P1</li>
+          </ol>
+        </div>
+
+        <div class="check-item" style="margin-top:12px">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">证据链时间戳签名</div>
+            <div class="check-id">AC-70.3</div>
+            <div class="check-detail">证据快照使用RSA-SHA256签名（密钥LOG-SIGN-KEY-2026-Q2），时间戳经签名保护不可篡改。ConfigRevision SHA256快照的timestamp_signed字段为TRUE。证据保管链(Chain of Custody)连续，EVD-0041 &#x2192; EVD-0042 序列完整。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 8. FR-71 风险运营与策略闭环    -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-71</span>
+          <span class="fr-name">风险运营与策略闭环</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-fail">3 Pass, 1 Fail</span>
+          <span class="fr-score" style="color:#dc2626">75%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:75%"></div><div class="bar-fail" style="width:25%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">误报率可追踪</div>
+            <div class="check-id">AC-71.1</div>
+            <div class="check-detail">规则误报率可追踪：RiskRule R-007误报率从12%降至3%（调整后v3.7.2）；ClawAegis Command Block chmod 777误报率20.7%（待优化）；Loop Guard误报率11.8%（阈值已调整）；Dispatch Guard Group2误报率15.7%（A/B测试中）。误报追踪开关已启用，每条告警标记TP/FP分类。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">规则版本管理</div>
+            <div class="check-id">AC-71.2</div>
+            <div class="check-detail">规则版本管理完整：RiskRule当前v3.7系列（v3.7.0 ~ v3.7.2），ClawAegis Defense Module v2.3 ~ v2.5-rc，KSecure Baseline v2.3，KubeArmor Policy v1.8。版本使用Semantic版本号，保留最近20个版本。每次变更自动生成新版本号，支持版本对比和回滚。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">策略变更可审计</div>
+            <div class="check-id">AC-71.3</div>
+            <div class="check-detail">策略变更完整审计：CHG-0342记录R-007 Pattern调整和Severity降级，审批人陈磊；CHG-0340记录Loop Guard阈值从3x/5min调整为4x/5min；CHG-0339记录KSecure密码哈希期望值从md5改为sha512。变更记录包含旧值/新值diff、变更原因、审批人、时间戳。审计日志保留365天。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div class="check-info">
+            <div class="check-name">策略优化闭环</div>
+            <div class="check-id">AC-71.4</div>
+            <div class="check-detail">策略优化流程依赖人工触发，缺乏自动化闭环机制。当前流程：运营人员发现误报率偏高 &#x2192; 手动提交优化请求 &#x2192; 人工分析根因 &#x2192; 手动调整参数 &#x2192; 审批 &#x2192; A/B测试 &#x2192; 发布。从发现问题到优化生效平均需要7-14天。验收标准要求"基于审计、告警、误报、处置结果和业务反馈持续优化"，但"持续"目前仅体现在定期人工Review，缺乏自动化的Monitor&#x2192;Analyze&#x2192;Optimize闭环。</div>
+          </div>
+          <span class="badge badge-fail">FAIL</span>
+        </div>
+
+        <div class="remediation-card">
+          <div class="rc-title">AC-71.4 修复方案</div>
+          <ol class="rc-steps">
+            <li>实现误报率自动监控：当规则误报率超过阈值（10%）时，自动创建优化工单</li>
+            <li>开发根因自动分析：基于历史误报模式自动识别根因（如CI/CD管道误触发、部署更新误报）</li>
+            <li>建立自动优化建议引擎：根据根因分析自动生成阈值调整、模式切换、白名单等建议</li>
+            <li>实现半自动优化流程：自动建议 + 人工审批 + 自动A/B测试 + 灰度发布</li>
+            <li>目标：从发现问题到优化建议生成&lt;1小时，优化生效&lt;3天（含7天A/B测试）</li>
+            <li>预计开发周期：4周，优先级P1</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 9. Export Bar                  -->
+    <!-- ============================== -->
+    <div class="export-bar">
+      <div style="font-size:13px;color:var(--text)">
+        <strong>审计报告生成时间:</strong> 2026-05-01 18:00:00 &nbsp;|&nbsp;
+        <strong>审计范围:</strong> FR-65 ~ FR-71 (5.11 审计追踪与运营治理) &nbsp;|&nbsp;
+        <strong>下次审计:</strong> 2026-05-08
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary btn-sm">&#x1f4c4; 导出 PDF</button>
+        <button class="btn-secondary btn-sm">&#x1f4ca; 导出 CSV</button>
+        <button class="btn-primary btn-sm">&#x1f4be; 导出完整报告</button>
+      </div>
+    </div>
+
+  </div><!-- content-area -->
+</div><!-- main-content -->
+
+</div><!-- app-shell -->
+
+<script>
+// Toggle FR sections
+function toggleSection(header) {
+  header.classList.toggle('collapsed');
+  var body = header.nextElementSibling;
+  if (body) body.classList.toggle('collapsed');
+}
+
+function handleExport() {
+  alert('审计报告导出功能：将生成包含FR-65~FR-71完整审计结果的PDF报告。');
+}
+</script>
+</body>
+</html>

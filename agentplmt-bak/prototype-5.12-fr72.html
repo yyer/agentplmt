@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-72 国密与统一密钥管理 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-pass{background:#ecfdf5;color:#059669}.badge-fail{background:#fef2f2;color:#dc2626}.badge-warn{background:#fef3c7;color:#92400e}
+.badge-optimize{background:#ede9fe;color:#6d28d9}.badge-stable{background:#d1fae5;color:#065f46}.badge-review{background:#fef3c7;color:#92400e}
+.badge-sm{background:#dbeafe;color:#1d4ed8}.badge-rsa{background:#e0e7ff;color:#4338ca}.badge-pqc{background:#f3e8ff;color:#7c3aed}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.rule-card{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.rule-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.rule-card .rc-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.rule-card .rc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-left:10px}
+.rule-card .rc-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.rule-card .rc-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.flow-step{display:flex;align-items:center;gap:14px;margin-bottom:18px;position:relative}
+.flow-step-num{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;z-index:2}
+.flow-step-content{flex:1;border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:14px 18px}
+.flow-step-content .fs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:4px}
+.flow-step-content .fs-desc{font-size:12px;color:var(--text);line-height:1.7}
+.flow-step-content .fs-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.flow-connector{width:2px;height:18px;background:#eadfd8;margin-left:19px}
+.score-circle{width:80px;height:80px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;margin:0 auto}
+.score-circle .sc-pct{font-size:22px;line-height:1}
+.score-circle .sc-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-top:2px}
+.log-entry{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-bottom:1px solid #f2e8e2;font-size:12px}
+.log-entry:last-child{border-bottom:none}
+.log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.log-time{font-family:monospace;font-size:11px;color:#8f8681;flex-shrink:0;min-width:70px}
+.log-msg{flex:1;color:var(--text)}
+.stat-mini{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600}
+.mode-selector{display:flex;gap:4px;border-radius:12px;background:#f5efea;padding:3px}
+.mode-btn{border-radius:10px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active{background:#fff;color:#dc2626;box-shadow:0 1px 4px rgba(72,44,24,0.12)}
+.arch-tier{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px;margin-bottom:12px}
+.arch-tier .at-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;margin-bottom:10px}
+.arch-tier .at-items{display:flex;flex-wrap:wrap;gap:8px}
+.arch-tier .at-item{border-radius:12px;padding:8px 14px;font-size:12px;font-weight:600;border:1px solid #eadfd8;background:rgba(255,255,255,0.92)}
+.arch-connector-v{width:2px;height:20px;background:linear-gradient(180deg,#eadfd8,#d4c5bb);margin:0 auto}
+.cmp-table{width:100%;margin:8px 0}.cmp-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#9d7d6e;background:#fffaf6;padding:8px 12px;text-align:left;border-bottom:1px solid #f1e7e1}
+.cmp-table td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f2e8e2;color:var(--text)}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.12 底座安全增强与高安全扩展</div>
+    <div class="nav-item active" data-page="fr72"><span>FR-72 国密与统一密钥管理</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr73"><span>FR-73 安全启动与可信度量</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr74"><span>FR-74 零信任网络与微隔离</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr75"><span>FR-75 硬件安全模块集成</span><span class="fr-badge">P2</span></div>
+    <div class="nav-item" data-page="fr76"><span>FR-76 抗量子密码迁移</span><span class="fr-badge">P2</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.12 底座安全增强与高安全扩展</div>
+      <div class="page-title">FR-72 | 国密与统一密钥管理 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">KSecure</span>
+      <span class="badge badge-sys">KubeArmor</span>
+      <span class="badge badge-sys">ClawManager</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">密钥架构</div>
+      <div class="tab" data-tab="keys">密钥管理</div>
+      <div class="tab" data-tab="rules">加密规则</div>
+      <div class="tab" data-tab="monitor">加密监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ===================== TAB 1: 密钥架构 ===================== -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">3</div>
+          <div class="sc-label">算法族</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#1d4ed8">SM2/SM3/SM4</div>
+          <div class="sc-label">国密算法</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#4338ca">RSA/AES/SHA</div>
+          <div class="sc-label">国际算法</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#7c3aed">Kyber/Dilithium</div>
+          <div class="sc-label">抗量子算法</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">12</div>
+          <div class="sc-label">托管密钥数</div>
+        </div>
+      </div>
+
+      <!-- Algorithm Families -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Unified Cryptographic Architecture</div>
+            <div class="panel-title">统一密钥管理架构 - 三算法族体系</div>
+          </div>
+          <span class="badge badge-pass">&#x2713; 运行中</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+          统一密钥管理架构为高安全行业提供国密算法（SM2/SM3/SM4）、国际加密算法（RSA/AES/SHA）和抗量子密码算法（Kyber/Dilithium）三族并行能力。当前KubeArmor PKI体系采用RSA-2048国际算法作为基础，SM2/SM3/SM4国密算法将通过扩展CertConfig和CertLoader接口集成至现有PKI框架，实现国密/国际双栈证书管理。KSecure提供SHA256工具和系统UUID标识，ClawManager通过SecretRefService实现凭据的安全存储与解析。
+        </p>
+
+        <!-- Three Algorithm Families -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#1d4ed8"></div>
+            <div class="rc-header">
+              <span class="rc-title">国密算法 (SM)</span>
+              <span class="badge badge-sm">GB/T 32907-2016</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>SM2</strong> - 椭圆曲线公钥密码算法，256位密钥强度等同RSA-3072，用于数字签名、密钥交换和加密。将集成至KubeArmor CertConfig替代RSA证书签发。</p>
+              <p style="margin-top:6px"><strong>SM3</strong> - 密码杂凑算法，256位输出，用于数据完整性验证和数字签名。将扩展KSecure GetSHA256ofImage为双哈希模式。</p>
+              <p style="margin-top:6px"><strong>SM4</strong> - 分组密码算法，128位密钥，用于数据加密。将用于会话令牌、凭据存储和日志加密。</p>
+              <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+                <span class="badge badge-sys">签名</span>
+                <span class="badge badge-sys">哈希</span>
+                <span class="badge badge-sys">加密</span>
+                <span class="badge badge-sys">密钥交换</span>
+              </div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#4338ca"></div>
+            <div class="rc-header">
+              <span class="rc-title">国际算法 (RSA/AES/SHA)</span>
+              <span class="badge badge-rsa">当前基础</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>RSA-2048/4096</strong> - KubeArmor当前PKI基础，CertConfig中KeyUsage支持KeyEncipherment|DigitalSignature，CA证书使用RSA-2048密钥对（rsa.GenerateKey(rand.Reader, 2048)），3年有效期。</p>
+              <p style="margin-top:6px"><strong>AES-256</strong> - 对称加密标准，用于数据加密密钥(DEK)和密钥加密密钥(KEK)层级。</p>
+              <p style="margin-top:6px"><strong>SHA-256</strong> - KSecure已实现GetSHA256ofImage函数，用于镜像完整性校验和配置哈希。</p>
+              <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+                <span class="badge badge-sys">KubeArmor PKI</span>
+                <span class="badge badge-sys">TLS</span>
+                <span class="badge badge-sys">mTLS</span>
+                <span class="badge badge-sys">镜像校验</span>
+              </div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#7c3aed"></div>
+            <div class="rc-header">
+              <span class="rc-title">抗量子算法 (PQC)</span>
+              <span class="badge badge-pqc">NIST FIPS 203/204</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>ML-KEM (Kyber)</strong> - NIST FIPS 203密钥封装机制，用于替代RSA/ECDH密钥交换，抵御量子计算Shor算法攻击。Kyber-768安全级别等同AES-192。</p>
+              <p style="margin-top:6px"><strong>ML-DSA (Dilithium)</strong> - NIST FIPS 204数字签名算法，用于替代RSA/ECDSA签名，Dilithium3安全级别等同AES-192。</p>
+              <p style="margin-top:6px"><strong>混合模式</strong> - 短期内采用RSA+Kyber、ECDSA+Dilithium混合密钥交换，同时兼容经典和量子安全。</p>
+              <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+                <span class="badge badge-sys">密钥封装</span>
+                <span class="badge badge-sys">数字签名</span>
+                <span class="badge badge-sys">混合模式</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Hierarchy -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Key Hierarchy</div>
+            <div class="panel-title">密钥层级体系</div>
+          </div>
+          <span class="badge badge-sys">DEK/KEK双层加密</span>
+        </div>
+
+        <!-- Tier 1: Root CA -->
+        <div class="arch-tier">
+          <div class="at-label" style="color:#b91c1c">Tier 1 - Root CA 根证书颁发机构</div>
+          <div class="at-items">
+            <div class="at-item" style="border-color:#fecaca;background:#fef2f2">
+              <div style="font-size:11px;color:#b91c1c;font-weight:700">KubeArmor CA</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">CN=kubearmor-ca | RSA-2048 | 1yr | IsCa=true</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:1px">KeyUsage: KeyEncipherment|DigitalSignature|CertSign|CRLSign</div>
+              <div style="font-size:10px;color:#1d4ed8;margin-top:1px">&#x2192; SM2扩展: CertConfig新增SM2Curve字段，CA证书支持国密双签</div>
+            </div>
+            <div class="at-item" style="border-color:#e0e7ff;background:#eef2ff">
+              <div style="font-size:11px;color:#4338ca;font-weight:700">国密Root CA (规划)</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">CN=sm-root-ca | SM2-256 | 5yr | IsCa=true</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:1px">独立国密根CA，与RSA根CA交叉认证</div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-connector-v"></div>
+
+        <!-- Tier 2: Intermediate CA -->
+        <div class="arch-tier">
+          <div class="at-label" style="color:#c2410c">Tier 2 - Intermediate CA 中间证书颁发机构</div>
+          <div class="at-items">
+            <div class="at-item" style="border-color:#fed7aa;background:#fff7ed">
+              <div style="font-size:11px;color:#c2410c;font-weight:700">KubeArmor Client CA</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">CN=kubearmor | ExtKeyUsage: ClientAuth | 1yr</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:1px">SecretRef: kubearmor-client (tls.crt + tls.key + ca.crt)</div>
+            </div>
+            <div class="at-item" style="border-color:#fed7aa;background:#fff7ed">
+              <div style="font-size:11px;color:#c2410c;font-weight:700">KubeArmor Relay Server CA</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">DNS: kubearmor.{ns}, kubearmor.{ns}.svc, kubearmor.{ns}.svc.cluster.local | 1yr</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:1px">ExtKeyUsage: ServerAuth | ExtraDnsNames + ExtraIpAddresses</div>
+            </div>
+            <div class="at-item" style="border-color:#dbeafe;background:#eff6ff">
+              <div style="font-size:11px;color:#1d4ed8;font-weight:700">SM2中间CA (规划)</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">CN=sm-intermediate | SM2-256 | 3yr | 签发SM2终端证书</div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-connector-v"></div>
+
+        <!-- Tier 3: Service Keys -->
+        <div class="arch-tier">
+          <div class="at-label" style="color:#6d28d9">Tier 3 - Service Keys 服务密钥</div>
+          <div class="at-items">
+            <div class="at-item" style="border-color:#ede9fe;background:#f5f3ff">
+              <div style="font-size:11px;color:#6d28d9;font-weight:700">KubeArmor TLS凭证</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">TlsCredentialManager | RequireAndVerifyClientCert (mTLS)</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:1px">CertLoader: SelfSignedCertLoader / ExternalCertLoader / K8sCertLoader</div>
+            </div>
+            <div class="at-item" style="border-color:#ede9fe;background:#f5f3ff">
+              <div style="font-size:11px;color:#6d28d9;font-weight:700">ClawManager凭据</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">AccessToken, AgentBootstrapToken (json:"-" 不暴露)</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:1px">SecretRefService: name:key / namespace/name:key / k8s-secret/namespace/name:key</div>
+            </div>
+            <div class="at-item" style="border-color:#ede9fe;background:#f5f3ff">
+              <div style="font-size:11px;color:#6d28d9;font-weight:700">API密钥</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">LLM Model APIKeySecretRef | SecretRefService.ResolveString()</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:1px">K8s Secret: api_key_secret_ref VARCHAR(255)</div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-connector-v"></div>
+
+        <!-- Tier 4: Data Encryption Keys -->
+        <div class="arch-tier">
+          <div class="at-label" style="color:#059669">Tier 4 - Data Encryption Keys 数据加密密钥</div>
+          <div class="at-items">
+            <div class="at-item" style="border-color:#d1fae5;background:#ecfdf5">
+              <div style="font-size:11px;color:#059669;font-weight:700">会话令牌DEK</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">agt_sess_* 会话加密 | SM4/AES-256 | 自动轮换</div>
+            </div>
+            <div class="at-item" style="border-color:#d1fae5;background:#ecfdf5">
+              <div style="font-size:11px;color:#059669;font-weight:700">日志加密DEK</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">安全日志加密 | KEK包裹 | 按日志流隔离</div>
+            </div>
+            <div class="at-item" style="border-color:#d1fae5;background:#ecfdf5">
+              <div style="font-size:11px;color:#059669;font-weight:700">配置哈希DEK</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">InstanceConfigRevision | SHA256 &#x2192; SM3 双哈希 | KSecure GetSHA256ofImage</div>
+            </div>
+            <div class="at-item" style="border-color:#d1fae5;background:#ecfdf5">
+              <div style="font-size:11px;color:#059669;font-weight:700">凭据存储DEK</div>
+              <div style="font-size:10px;color:var(--text);margin-top:2px">SecretRefService存储加密 | SM4/AES-256 | 静态加密</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current KubeArmor PKI -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Current KubeArmor PKI Foundation</div>
+            <div class="panel-title">KubeArmor PKI 国际加密基础设施</div>
+          </div>
+          <span class="badge badge-rsa">RSA-2048</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          KubeArmor当前PKI体系基于RSA-2048国际算法构建，提供完整的证书生成、加载和mTLS通信能力。CertConfig定义证书配置（CN、Organization、DNS、IPs、IsCa、KeyUsage、ExtKeyUsage、NotAfter），CertKeyPair管理x509证书与RSA私钥对，CertBytes存储PEM编码的证书与密钥字节。TlsCredentialManager通过CertLoader接口支持三种证书加载模式：SelfSignedCertLoader（自签名）、ExternalCertLoader（外部提供）、K8sCertLoader（K8s Secret加载）。Server端强制RequireAndVerifyClientCert实现双向TLS认证。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#dc2626"></div>
+            <div class="rc-header"><span class="rc-title">K8s Secret: kubearmor-ca</span></div>
+            <div class="rc-body">
+              <p><strong>类型:</strong> kubernetes.io/tls</p>
+              <p><strong>数据:</strong> tls.crt (CA证书), tls.key (CA私钥)</p>
+              <p><strong>标签:</strong> kubearmor-app: kubearmor-ca</p>
+              <p><strong>KeyUsage:</strong> KeyEncipherment | DigitalSignature | CertSign | CRLSign</p>
+              <p><strong>有效期:</strong> 1年 (NotAfter: Now+1yr)</p>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#f59e0b"></div>
+            <div class="rc-header"><span class="rc-title">K8s Secret: kubearmor-client</span></div>
+            <div class="rc-body">
+              <p><strong>类型:</strong> kubernetes.io/tls</p>
+              <p><strong>数据:</strong> tls.crt, tls.key, ca.crt</p>
+              <p><strong>标签:</strong> kubearmor-app: kubearmor-client</p>
+              <p><strong>ExtKeyUsage:</strong> ClientAuth</p>
+              <p><strong>有效期:</strong> 1年 (由CA签发)</p>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#3b82f6"></div>
+            <div class="rc-header"><span class="rc-title">K8s Secret: kubearmor-relay-server</span></div>
+            <div class="rc-body">
+              <p><strong>类型:</strong> kubernetes.io/tls</p>
+              <p><strong>数据:</strong> tls.crt, tls.key, ca.crt</p>
+              <p><strong>标签:</strong> kubearmor-app: kubearmor-relay-server</p>
+              <p><strong>DNS:</strong> kubearmor.{ns}, kubearmor.{ns}.svc, kubearmor.{ns}.svc.cluster.local</p>
+              <p><strong>ExtKeyUsage:</strong> ServerAuth | 支持ExtraDnsNames + ExtraIpAddresses</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SM Integration Points -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">SM Algorithm Integration Points</div>
+            <div class="panel-title">国密算法集成路径</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#1d4ed8,#1e40af)">1</div>
+          <div class="flow-step-content">
+            <div class="fs-title">CertConfig 扩展</div>
+            <div class="fs-desc">在KubeArmor cert/cert.go的CertConfig结构体中新增Algorithm字段（"RSA"|"SM2"|"ML-DSA"），GenerateCert函数根据Algorithm选择rsa.GenerateKey或SM2密钥生成。DefaultKubeArmorCAConfig/ClientConfig/ServerConfig各增加SM2变体默认配置。x509.Certificate模板支持SM2签名算法OID。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">cert.go</span>
+              <span class="badge badge-sys">CertConfig</span>
+              <span class="badge badge-sys">GenerateCert</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#1d4ed8,#1e40af)">2</div>
+          <div class="flow-step-content">
+            <div class="fs-title">CertLoader 双栈加载</div>
+            <div class="fs-desc">扩展CertLoader接口支持SM2证书加载。SelfSignedCertLoader新增SM2CA路径，K8sCertLoader支持从K8s Secret读取SM2证书（tls-sm2.crt/tls-sm2.key）。TlsCredentialManager.CreateTlsServerCredentials支持双证书配置（RSA+SM2），客户端自动选择算法族。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">certloader.go</span>
+              <span class="badge badge-sys">tls.go</span>
+              <span class="badge badge-sys">TlsCredentialManager</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#1d4ed8,#1e40af)">3</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Operator certgen 国密签发</div>
+            <div class="fs-desc">KubeArmor Operator cert/certgen.go新增GenerateKubeArmorSM2CACert、GenerateKubeArmorSM2ClientCert、GenerateKubeArmorSM2RelayCert函数。GetAllTlsCertSecrets同时生成RSA和SM2两套K8s Secret（kubearmor-ca-sm2, kubearmor-client-sm2, kubearmor-relay-server-sm2），实现双栈证书管理。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">certgen.go</span>
+              <span class="badge badge-sys">GetAllTlsCertSecrets</span>
+              <span class="badge badge-sys">K8s Secret</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#059669,#047857)">4</div>
+          <div class="flow-step-content">
+            <div class="fs-title">SecretRefService 加密增强</div>
+            <div class="fs-desc">ClawManager SecretRefService的ResolveString方法增加SM4透明加密层。从K8s Secret读取的值若标记为SM4加密，自动使用配置的SM4密钥解密后返回。SecretReference新增Encrypted字段标识加密算法。APIKeySecretRef和AccessToken/AgentBootstrapToken均支持SM4静态加密。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">secret_ref_service.go</span>
+              <span class="badge badge-sys">SecretReference</span>
+              <span class="badge badge-sys">Instance.AccessToken</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#059669,#047857)">5</div>
+          <div class="flow-step-content">
+            <div class="fs-title">KSecure 双哈希支持</div>
+            <div class="fs-desc">KSecure GetSHA256ofImage扩展为GetHashOfImage(algorithm)函数，支持"sha256"和"sm3"两种哈希算法。配置基线检查脚本的InstanceConfigRevision同时生成SHA256和SM3哈希值，实现配置完整性双校验。KSecure system-UUID基础decoy命名机制也支持SM3哈希派生。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">common.go</span>
+              <span class="badge badge-sys">GetSHA256ofImage</span>
+              <span class="badge badge-sys">system-UUID</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 2: 密钥管理 ===================== -->
+    <div class="tab-content" id="tab-keys">
+
+      <!-- Key Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">12</div>
+          <div class="sc-label">托管密钥总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#1d4ed8">3</div>
+          <div class="sc-label">国密密钥</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#4338ca">6</div>
+          <div class="sc-label">国际算法密钥</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">3</div>
+          <div class="sc-label">抗量子密钥</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">2</div>
+          <div class="sc-label">即将过期</div>
+        </div>
+      </div>
+
+      <!-- Toggles -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">密钥策略</div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用密钥自动轮换</div>
+            <div class="desc">到期前30天自动触发密钥轮换，CA证书轮换需人工审批，服务密钥和DEK自动轮换</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="key-rotation" checked>
+            <label class="toggle-slider" for="key-rotation"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">高安全场景强制SM2/SM3/SM4</div>
+            <div class="desc">对标记为高安全等级的对象，强制使用国密算法进行签名、哈希和加密操作</div>
+          </div>
+          <div>
+            <div class="mode-selector">
+              <div class="mode-btn active">强制</div>
+              <div class="mode-btn">观察</div>
+              <div class="mode-btn">关闭</div>
+            </div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">密钥使用审计</div>
+            <div class="desc">记录所有密钥生成、轮换、使用和销毁操作，审计日志保留365天</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="key-audit" checked>
+            <label class="toggle-slider" for="key-audit"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">抗量子混合密钥交换</div>
+            <div class="desc">TLS握手同时使用RSA+Kyber密钥交换，兼容经典和量子安全</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="pqc-hybrid">
+            <label class="toggle-slider" for="pqc-hybrid"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Managed Keys</div>
+            <div class="panel-title">密钥清单</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" style="width:200px" placeholder="搜索密钥...">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+            <button class="btn-primary btn-sm">+ 生成密钥</button>
+            <button class="btn-secondary btn-sm">&#x21e5; 导入密钥</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Key ID</th><th>类型</th><th>算法</th><th>用途</th><th>创建时间</th><th>过期时间</th><th>轮换状态</th><th>归属系统</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">KA-CA-001</td>
+              <td><span class="badge badge-rsa">CA根证书</span></td>
+              <td>RSA-2048</td>
+              <td>KubeArmor PKI根CA签发</td>
+              <td>2026-01-15</td>
+              <td>2027-01-15</td>
+              <td><span class="badge badge-stable">正常</span></td>
+              <td><span class="badge badge-sys">KubeArmor</span></td>
+              <td><button class="btn-secondary btn-sm">轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">KA-CL-001</td>
+              <td><span class="badge badge-rsa">客户端证书</span></td>
+              <td>RSA-2048</td>
+              <td>KubeArmor gRPC客户端mTLS认证</td>
+              <td>2026-01-15</td>
+              <td>2027-01-15</td>
+              <td><span class="badge badge-stable">正常</span></td>
+              <td><span class="badge badge-sys">KubeArmor</span></td>
+              <td><button class="btn-secondary btn-sm">轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">KA-RS-001</td>
+              <td><span class="badge badge-rsa">服务端证书</span></td>
+              <td>RSA-2048</td>
+              <td>KubeArmor Relay Server mTLS (DNS: kubearmor.{ns}.svc.cluster.local)</td>
+              <td>2026-01-15</td>
+              <td>2027-01-15</td>
+              <td><span class="badge badge-stable">正常</span></td>
+              <td><span class="badge badge-sys">KubeArmor</span></td>
+              <td><button class="btn-secondary btn-sm">轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">SM-CA-001</td>
+              <td><span class="badge badge-sm">CA根证书</span></td>
+              <td>SM2-256</td>
+              <td>国密根CA签发，与KA-CA-001交叉认证</td>
+              <td>2026-04-01</td>
+              <td>2031-04-01</td>
+              <td><span class="badge badge-stable">正常</span></td>
+              <td><span class="badge badge-sys">KSecure</span></td>
+              <td><button class="btn-secondary btn-sm">轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">SM-SG-001</td>
+              <td><span class="badge badge-sm">签名密钥</span></td>
+              <td>SM2-256</td>
+              <td>会话令牌签名、配置变更签名验证</td>
+              <td>2026-04-01</td>
+              <td>2027-04-01</td>
+              <td><span class="badge badge-stable">正常</span></td>
+              <td><span class="badge badge-sys">KSecure</span></td>
+              <td><button class="btn-secondary btn-sm">轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">SM-ENC-001</td>
+              <td><span class="badge badge-sm">数据加密密钥</span></td>
+              <td>SM4-128</td>
+              <td>会话令牌加密、凭据静态加密、日志加密</td>
+              <td>2026-04-01</td>
+              <td>2026-10-01</td>
+              <td><span class="badge badge-review">90天轮换</span></td>
+              <td><span class="badge badge-sys">KSecure</span></td>
+              <td><button class="btn-secondary btn-sm">轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CM-AT-001</td>
+              <td><span class="badge badge-rsa">访问令牌</span></td>
+              <td>AES-256-GCM</td>
+              <td>ClawManager Instance.AccessToken 加密存储</td>
+              <td>2026-03-01</td>
+              <td>2026-09-01</td>
+              <td><span class="badge badge-warn">即将过期</span></td>
+              <td><span class="badge badge-sys">ClawManager</span></td>
+              <td><button class="btn-primary btn-sm">立即轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CM-BT-001</td>
+              <td><span class="badge badge-rsa">引导令牌</span></td>
+              <td>AES-256-GCM</td>
+              <td>ClawManager Instance.AgentBootstrapToken 加密存储</td>
+              <td>2026-03-01</td>
+              <td>2026-06-01</td>
+              <td><span class="badge badge-fail">30天内过期</span></td>
+              <td><span class="badge badge-sys">ClawManager</span></td>
+              <td><button class="btn-primary btn-sm">立即轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CM-SR-001</td>
+              <td><span class="badge badge-rsa">API密钥</span></td>
+              <td>AES-256-GCM</td>
+              <td>ClawManager SecretRefService API密钥加密</td>
+              <td>2026-02-15</td>
+              <td>2027-02-15</td>
+              <td><span class="badge badge-stable">正常</span></td>
+              <td><span class="badge badge-sys">ClawManager</span></td>
+              <td><button class="btn-secondary btn-sm">轮换</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">PQC-KEM-001</td>
+              <td><span class="badge badge-pqc">密钥封装</span></td>
+              <td>ML-KEM-768 (Kyber)</td>
+              <td>TLS混合密钥交换 (RSA+Kyber)</td>
+              <td>2026-04-10</td>
+              <td>2027-04-10</td>
+              <td><span class="badge badge-optimize">测试中</span></td>
+              <td><span class="badge badge-sys">KSecure</span></td>
+              <td><button class="btn-secondary btn-sm">查看</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">PQC-DSA-001</td>
+              <td><span class="badge badge-pqc">签名密钥</span></td>
+              <td>ML-DSA-65 (Dilithium3)</td>
+              <td>混合数字签名 (ECDSA+Dilithium)</td>
+              <td>2026-04-10</td>
+              <td>2027-04-10</td>
+              <td><span class="badge badge-optimize">测试中</span></td>
+              <td><span class="badge badge-sys">KSecure</span></td>
+              <td><button class="btn-secondary btn-sm">查看</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">KS-HASH-001</td>
+              <td><span class="badge badge-rsa">哈希密钥</span></td>
+              <td>HMAC-SHA256</td>
+              <td>KSecure GetSHA256ofImage 镜像完整性校验</td>
+              <td>2026-01-01</td>
+              <td>2027-01-01</td>
+              <td><span class="badge badge-stable">正常</span></td>
+              <td><span class="badge badge-sys">KSecure</span></td>
+              <td><button class="btn-secondary btn-sm">轮换</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Key Operations -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">密钥操作</div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn-primary">+ 生成密钥</button>
+          <button class="btn-secondary">&#x21e5; 导入密钥</button>
+          <button class="btn-secondary">&#x21bb; 批量轮换</button>
+          <button class="btn-secondary" style="border-color:#dc2626;color:#dc2626">&#x26d4; 吊销密钥</button>
+          <button class="btn-secondary">&#x21e7; 导出公钥</button>
+          <button class="btn-secondary">&#x1f4cb; 审计日志</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 3: 加密规则 ===================== -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- Rule Cards -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Encryption Rules</div>
+            <div class="panel-title">加密规则定义</div>
+          </div>
+          <button class="btn-primary btn-sm">+ 新建规则</button>
+        </div>
+
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#dc2626"></div>
+          <div class="rc-header">
+            <span class="rc-title">会话令牌加密</span>
+            <span class="badge badge-critical">CRITICAL</span>
+            <span class="badge badge-enforce">ENFORCE</span>
+          </div>
+          <div class="rc-body">
+            <p><strong>范围:</strong> ClawManager Instance AccessToken、AgentBootstrapToken，以及Agent会话令牌 agt_sess_*</p>
+            <p><strong>算法:</strong> SM4-128-CBC (高安全) / AES-256-GCM (默认)</p>
+            <p><strong>密钥引用:</strong> SM-ENC-001 (SM4) / CM-AT-001 (AES-256)</p>
+            <p><strong>动作:</strong> 所有会话令牌在存储和传输时必须加密。AccessToken和AgentBootstrapToken字段标记json:"-"不暴露API，存储时使用SM4/AES-256透明加密。高安全等级实例强制SM4加密。</p>
+            <p><strong>验证:</strong> 令牌解密成功率 &gt; 99.9%，密钥轮换后旧令牌仍可解密（KEK包裹机制）</p>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#f59e0b"></div>
+          <div class="rc-header">
+            <span class="rc-title">凭据存储加密</span>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-enforce">ENFORCE</span>
+          </div>
+          <div class="rc-body">
+            <p><strong>范围:</strong> ClawManager SecretRefService管理的所有K8s Secret，包括LLM Model APIKeySecretRef</p>
+            <p><strong>算法:</strong> SM4-128 (高安全) / AES-256-GCM (默认)</p>
+            <p><strong>密钥引用:</strong> SM-ENC-001 (SM4) / CM-SR-001 (AES-256)</p>
+            <p><strong>动作:</strong> SecretRefService.ResolveString()读取的K8s Secret值必须静态加密。SecretReference格式 name:key / namespace/name:key / k8s-secret/namespace/name:key 解析后，使用配置的DEK解密返回。K8s Secret启用encryptionConfiguration加密存储。</p>
+            <p><strong>验证:</strong> 所有Secret值加密存储，明文不可出现在etcd中。Secret读取-解密延迟 &lt; 5ms。</p>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#3b82f6"></div>
+          <div class="rc-header">
+            <span class="rc-title">日志加密</span>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-observe">OBSERVE</span>
+          </div>
+          <div class="rc-body">
+            <p><strong>范围:</strong> 安全审计日志、KubeArmor策略执行日志、KSecure基线检查日志</p>
+            <p><strong>算法:</strong> SM4-128 (DEK) + SM2 (KEK签名) / AES-256 (DEK) + RSA-2048 (KEK)</p>
+            <p><strong>密钥引用:</strong> SM-ENC-001 (DEK) + SM-SG-001 (KEK签名)</p>
+            <p><strong>动作:</strong> 安全日志使用DEK/KEK双层加密体系。每个日志流独立DEK，DEK由KEK包裹后存储。日志写入时使用当前DEK加密，密钥轮换时旧DEK不删除（保证历史日志可解密）。KEK签名保证日志完整性。</p>
+            <p><strong>验证:</strong> 日志加密覆盖率 &gt; 95%，历史日志可解密率 100%</p>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#6d28d9"></div>
+          <div class="rc-header">
+            <span class="rc-title">配置完整性保护</span>
+            <span class="badge badge-medium">MEDIUM</span>
+            <span class="badge badge-enforce">ENFORCE</span>
+          </div>
+          <div class="rc-body">
+            <p><strong>范围:</strong> InstanceConfigRevision、KSecure基线检查期望值、KubeArmor策略配置</p>
+            <p><strong>算法:</strong> SM3 (高安全) / SHA-256 (默认) 双哈希</p>
+            <p><strong>密钥引用:</strong> KS-HASH-001 (SHA-256) / SM-SG-001 (SM3 HMAC)</p>
+            <p><strong>动作:</strong> 配置变更时同时生成SHA-256和SM3哈希值。KSecure GetSHA256ofImage扩展为GetHashOfImage支持双算法。InstanceConfigRevision记录双哈希用于完整性校验。KubeArmor策略配置变更时SM3签名验证。</p>
+            <p><strong>验证:</strong> 配置篡改检测率 100%，双哈希一致性 &gt; 99.99%</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Algorithm Comparison -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Algorithm Comparison</div>
+            <div class="panel-title">国密 vs 国际算法对比</div>
+          </div>
+        </div>
+
+        <!-- SM2 vs RSA -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px">数字签名: SM2 vs RSA</div>
+          <table class="cmp-table">
+            <thead><tr><th>维度</th><th style="color:#1d4ed8">SM2-256</th><th style="color:#4338ca">RSA-2048</th><th style="color:#4338ca">RSA-4096</th></tr></thead>
+            <tbody>
+              <tr><td>密钥长度</td><td>256 bit</td><td>2048 bit</td><td>4096 bit</td></tr>
+              <tr><td>安全强度</td><td>128 bit (等同RSA-3072)</td><td>112 bit</td><td>128 bit</td></tr>
+              <tr><td>签名速度</td><td>~1.5ms (快3-5x)</td><td>~5ms</td><td>~25ms</td></tr>
+              <tr><td>验证速度</td><td>~2ms</td><td>~0.2ms</td><td>~0.5ms</td></tr>
+              <tr><td>标准</td><td>GB/T 32918-2016</td><td>PKCS#1 v2.2</td><td>PKCS#1 v2.2</td></tr>
+              <tr><td>合规性</td><td>国密局认证，等保三级必选</td><td>国际通用</td><td>国际通用</td></tr>
+              <tr><td>当前状态</td><td><span class="badge badge-sm">规划集成</span></td><td><span class="badge badge-rsa">KubeArmor PKI</span></td><td><span class="badge badge-rsa">CA证书(规划)</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SM3 vs SHA-256 -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px">哈希算法: SM3 vs SHA-256</div>
+          <table class="cmp-table">
+            <thead><tr><th>维度</th><th style="color:#1d4ed8">SM3</th><th style="color:#4338ca">SHA-256</th></tr></thead>
+            <tbody>
+              <tr><td>输出长度</td><td>256 bit</td><td>256 bit</td></tr>
+              <tr><td>安全强度</td><td>128 bit</td><td>128 bit</td></tr>
+              <tr><td>计算速度</td><td>~200 MB/s</td><td>~250 MB/s</td></tr>
+              <tr><td>标准</td><td>GB/T 32905-2016</td><td>FIPS 180-4</td></tr>
+              <tr><td>合规性</td><td>国密局认证，等保三级必选</td><td>国际通用</td></tr>
+              <tr><td>当前状态</td><td><span class="badge badge-sm">规划集成</span></td><td><span class="badge badge-rsa">KSecure GetSHA256ofImage</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- SM4 vs AES-256 -->
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px">对称加密: SM4 vs AES-256</div>
+          <table class="cmp-table">
+            <thead><tr><th>维度</th><th style="color:#1d4ed8">SM4-128</th><th style="color:#4338ca">AES-256-GCM</th></tr></thead>
+            <tbody>
+              <tr><td>密钥长度</td><td>128 bit</td><td>256 bit</td></tr>
+              <tr><td>安全强度</td><td>128 bit</td><td>256 bit</td></tr>
+              <tr><td>分组模式</td><td>CBC/CTR/GCM</td><td>GCM (AEAD)</td></tr>
+              <tr><td>加密速度</td><td>~1.2 GB/s</td><td>~1.5 GB/s (AES-NI)</td></tr>
+              <tr><td>标准</td><td>GB/T 32907-2016</td><td>NIST SP 800-38D</td></tr>
+              <tr><td>合规性</td><td>国密局认证，等保三级必选</td><td>国际通用</td></tr>
+              <tr><td>当前状态</td><td><span class="badge badge-sm">规划集成</span></td><td><span class="badge badge-rsa">ClawManager凭据加密</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 4: 加密监控 ===================== -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- Score Circle + Stats -->
+      <div class="stat-row">
+        <div class="stat-card" style="padding:20px">
+          <div class="score-circle" style="background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(5,150,105,0.06));color:#059669">
+            <div class="sc-pct">78%</div>
+            <div class="sc-lbl">加密覆盖</div>
+          </div>
+          <div class="sc-label" style="margin-top:8px">Encryption Coverage</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">156</div>
+          <div class="sc-label">加密对象数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#1d4ed8">42.3%</div>
+          <div class="sc-label">国密覆盖</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#4338ca">87.2%</div>
+          <div class="sc-label">RSA/AES覆盖</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">91.7%</div>
+          <div class="sc-label">密钥健康度</div>
+        </div>
+      </div>
+
+      <!-- Coverage Gap -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Coverage Analysis</div>
+            <div class="panel-title">加密覆盖分析</div>
+          </div>
+          <span class="badge badge-warn">存在覆盖缺口</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#059669"></div>
+            <div class="rc-header"><span class="rc-title">已加密对象</span></div>
+            <div class="rc-body">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-size:28px;font-weight:800;color:#059669">122</div>
+                  <div style="font-size:11px;color:#8f8681">占总对象 78.2%</div>
+                </div>
+                <div style="text-align:right;font-size:12px">
+                  <div>SM4加密: <strong style="color:#1d4ed8">38</strong></div>
+                  <div>AES-256加密: <strong style="color:#4338ca">67</strong></div>
+                  <div>SM2签名: <strong style="color:#1d4ed8">12</strong></div>
+                  <div>RSA签名: <strong style="color:#4338ca">5</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#dc2626"></div>
+            <div class="rc-header"><span class="rc-title">未加密对象</span></div>
+            <div class="rc-body">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-size:28px;font-weight:800;color:#dc2626">34</div>
+                  <div style="font-size:11px;color:#8f8681">占总对象 21.8%</div>
+                </div>
+                <div style="text-align:right;font-size:12px">
+                  <div>会话令牌: <strong style="color:#dc2626">8</strong></div>
+                  <div>API密钥: <strong style="color:#f59e0b">12</strong></div>
+                  <div>日志流: <strong style="color:#dc2626">9</strong></div>
+                  <div>配置对象: <strong style="color:#f59e0b">5</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>加密对象</th><th>当前算法</th><th>密钥ID</th><th>加密时间</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Instance.AccessToken (inst-0042)</td>
+              <td><span class="badge badge-rsa">AES-256-GCM</span></td>
+              <td style="font-family:monospace;font-size:12px">CM-AT-001</td>
+              <td>2026-04-30 08:15:32</td>
+              <td><span class="badge badge-stable">已加密</span></td>
+            </tr>
+            <tr>
+              <td>Instance.AgentBootstrapToken (inst-0042)</td>
+              <td><span class="badge badge-rsa">AES-256-GCM</span></td>
+              <td style="font-family:monospace;font-size:12px">CM-BT-001</td>
+              <td>2026-04-30 08:15:32</td>
+              <td><span class="badge badge-warn">即将过期</span></td>
+            </tr>
+            <tr>
+              <td>LLM APIKeySecretRef (gpt-4o)</td>
+              <td><span class="badge badge-rsa">AES-256-GCM</span></td>
+              <td style="font-family:monospace;font-size:12px">CM-SR-001</td>
+              <td>2026-04-28 14:22:10</td>
+              <td><span class="badge badge-stable">已加密</span></td>
+            </tr>
+            <tr>
+              <td>KubeArmor CA证书 (kubearmor-ca)</td>
+              <td><span class="badge badge-rsa">RSA-2048</span></td>
+              <td style="font-family:monospace;font-size:12px">KA-CA-001</td>
+              <td>2026-01-15 00:00:00</td>
+              <td><span class="badge badge-stable">正常</span></td>
+            </tr>
+            <tr>
+              <td>KubeArmor Relay Server证书</td>
+              <td><span class="badge badge-rsa">RSA-2048</span></td>
+              <td style="font-family:monospace;font-size:12px">KA-RS-001</td>
+              <td>2026-01-15 00:00:00</td>
+              <td><span class="badge badge-stable">正常</span></td>
+            </tr>
+            <tr>
+              <td>会话令牌 agt_sess_a7f3b2</td>
+              <td><span class="badge badge-sm">SM4-128-CBC</span></td>
+              <td style="font-family:monospace;font-size:12px">SM-ENC-001</td>
+              <td>2026-04-30 10:45:18</td>
+              <td><span class="badge badge-stable">已加密</span></td>
+            </tr>
+            <tr>
+              <td>安全审计日志 (2026-04-30)</td>
+              <td><span class="badge badge-sm">SM4-128</span></td>
+              <td style="font-family:monospace;font-size:12px">SM-ENC-001</td>
+              <td>2026-04-30 00:00:00</td>
+              <td><span class="badge badge-stable">已加密</span></td>
+            </tr>
+            <tr>
+              <td>InstanceConfigRevision #128</td>
+              <td><span class="badge badge-rsa">SHA-256</span></td>
+              <td style="font-family:monospace;font-size:12px">KS-HASH-001</td>
+              <td>2026-04-29 16:30:45</td>
+              <td><span class="badge badge-review">缺少SM3</span></td>
+            </tr>
+            <tr>
+              <td>KSecure镜像校验 (ubuntu:22.04)</td>
+              <td><span class="badge badge-rsa">SHA-256</span></td>
+              <td style="font-family:monospace;font-size:12px">KS-HASH-001</td>
+              <td>2026-04-29 12:00:00</td>
+              <td><span class="badge badge-review">缺少SM3</span></td>
+            </tr>
+            <tr>
+              <td style="color:#dc2626;font-weight:600">Instance.AccessToken (inst-0087)</td>
+              <td><span class="badge badge-fail">未加密</span></td>
+              <td style="font-family:monospace;font-size:12px;color:#8f8681">--</td>
+              <td>--</td>
+              <td><span class="badge badge-fail">需加密</span></td>
+            </tr>
+            <tr>
+              <td style="color:#dc2626;font-weight:600">KSecure基线日志流 #3</td>
+              <td><span class="badge badge-fail">未加密</span></td>
+              <td style="font-family:monospace;font-size:12px;color:#8f8681">--</td>
+              <td>--</td>
+              <td><span class="badge badge-fail">需加密</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Crypto Operation Logs -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Crypto Operation Log</div>
+            <div class="panel-title">加密操作日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" style="width:200px" placeholder="搜索操作日志...">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+        <div style="border-radius:14px;border:1px solid #f1e7e1;overflow:hidden">
+          <div class="log-entry">
+            <div class="log-dot" style="background:#059669"></div>
+            <div class="log-time">10:45:18</div>
+            <div class="log-msg"><strong>SM4加密成功</strong> - 会话令牌 agt_sess_a7f3b2 已使用SM4-128-CBC加密，密钥SM-ENC-001 v3</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#1d4ed8"></div>
+            <div class="log-time">10:42:05</div>
+            <div class="log-msg"><strong>SM2签名验证</strong> - KubeArmor策略配置变更签名验证通过，签名者SM-SG-001，配置版本v3.7.2</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#059669"></div>
+            <div class="log-time">10:38:22</div>
+            <div class="log-msg"><strong>密钥轮换完成</strong> - SM-ENC-001从v2轮换至v3，旧密钥保留用于解密，DEK重新包裹完成，影响3个日志流</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#f59e0b"></div>
+            <div class="log-time">10:30:15</div>
+            <div class="log-msg"><strong>密钥过期预警</strong> - CM-BT-001 (AgentBootstrapToken加密密钥) 将于2026-06-01过期，剩余32天，建议立即轮换</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#dc2626"></div>
+            <div class="log-time">10:22:44</div>
+            <div class="log-msg"><strong>加密覆盖缺口</strong> - Instance inst-0087的AccessToken未加密存储，违反CRITICAL级加密规则，需立即修复</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#059669"></div>
+            <div class="log-time">10:15:30</div>
+            <div class="log-msg"><strong>SM4解密成功</strong> - SecretRefService.ResolveString()成功解密LLM API密钥，引用格式: openai-creds:api_key</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#6d28d9"></div>
+            <div class="log-time">10:10:08</div>
+            <div class="log-msg"><strong>SM3哈希生成</strong> - InstanceConfigRevision #128生成SM3哈希: 3a7b2c...（与SHA-256双哈希模式），配置完整性校验通过</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#f59e0b"></div>
+            <div class="log-time">09:58:12</div>
+            <div class="log-msg"><strong>密钥过期预警</strong> - CM-AT-001 (AccessToken加密密钥) 将于2026-09-01过期，剩余124天，建议安排轮换</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#7c3aed"></div>
+            <div class="log-time">09:45:00</div>
+            <div class="log-msg"><strong>PQC混合测试</strong> - ML-KEM-768 (Kyber) + RSA-2048混合密钥交换测试完成，延迟增加1.2ms，握手成功率99.8%</div>
+          </div>
+          <div class="log-entry">
+            <div class="log-dot" style="background:#059669"></div>
+            <div class="log-time">09:30:22</div>
+            <div class="log-msg"><strong>mTLS握手成功</strong> - KubeArmor gRPC客户端使用kubearmor-client证书完成双向认证，CertLoader: K8sCertLoader</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 5: 配置 ===================== -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Default Algorithm Selection -->
+        <div class="config-section">
+          <div class="cs-title">默认算法选择</div>
+          <div class="form-group">
+            <label class="form-label">会话令牌加密算法</label>
+            <select class="form-select" style="width:100%">
+              <option>SM4-128-CBC (国密)</option>
+              <option selected>AES-256-GCM (国际)</option>
+              <option>SM4/AES-256 双栈 (自动选择)</option>
+            </select>
+            <div class="form-hint">高安全等级实例强制使用SM4-128-CBC</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">凭据存储加密算法</label>
+            <select class="form-select" style="width:100%">
+              <option>SM4-128 (国密)</option>
+              <option selected>AES-256-GCM (国际)</option>
+              <option>SM4/AES-256 双栈</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">数字签名算法</label>
+            <select class="form-select" style="width:100%">
+              <option>SM2-256 (国密)</option>
+              <option selected>RSA-2048 (国际)</option>
+              <option>ECDSA-P256 (国际)</option>
+              <option>SM2/RSA 双签</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">哈希算法</label>
+            <select class="form-select" style="width:100%">
+              <option>SM3 (国密)</option>
+              <option selected>SHA-256 (国际)</option>
+              <option>SM3/SHA-256 双哈希</option>
+            </select>
+            <div class="form-hint">双哈希模式同时生成SM3和SHA-256用于完整性校验</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">密钥交换算法</label>
+            <select class="form-select" style="width:100%">
+              <option selected>RSA-2048 (当前KubeArmor PKI)</option>
+              <option>ECDH-P256</option>
+              <option>ML-KEM-768 (Kyber) + RSA 混合</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SM2/SM3/SM4 Enablement -->
+        <div class="config-section">
+          <div class="cs-title">国密算法启用</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">SM2 签名启用</div>
+              <div class="desc">启用SM2-256数字签名，用于KubeArmor证书签发和配置完整性验证</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-sm2" checked>
+              <label class="toggle-slider" for="cfg-sm2"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">SM3 哈希启用</div>
+              <div class="desc">启用SM3杂凑算法，扩展KSecure GetSHA256ofImage为双哈希模式</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-sm3" checked>
+              <label class="toggle-slider" for="cfg-sm3"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">SM4 加密启用</div>
+              <div class="desc">启用SM4-128对称加密，用于会话令牌、凭据存储和日志加密</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-sm4" checked>
+              <label class="toggle-slider" for="cfg-sm4"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">国密双栈模式</div>
+              <div class="desc">同时支持国密和国际算法，客户端自动协商选择算法族</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-sm-dual" checked>
+              <label class="toggle-slider" for="cfg-sm-dual"></label>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label class="form-label">国密SM2曲线</label>
+            <select class="form-select" style="width:100%">
+              <option selected>sm2p256v1 (推荐)</option>
+              <option>sm2p256r1</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Key Rotation Schedule -->
+        <div class="config-section">
+          <div class="cs-title">密钥轮换计划</div>
+          <div class="form-group">
+            <label class="form-label">CA根证书轮换周期</label>
+            <select class="form-select" style="width:100%">
+              <option>1年</option>
+              <option selected>3年</option>
+              <option>5年</option>
+            </select>
+            <div class="form-hint">KubeArmor当前CA证书有效期1年，建议扩展至3年</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">服务证书轮换周期</label>
+            <select class="form-select" style="width:100%">
+              <option selected>1年</option>
+              <option>2年</option>
+            </select>
+            <div class="form-hint">KubeArmor Client/Relay证书当前有效期1年</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">数据加密密钥(DEK)轮换周期</label>
+            <select class="form-select" style="width:100%">
+              <option>30天</option>
+              <option selected>90天</option>
+              <option>180天</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">自动轮换提前天数</label>
+            <input class="form-input" type="number" value="30" min="7" max="90">
+            <div class="form-hint">密钥到期前N天自动触发轮换（当前: 30天）</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">DEK/KEK层级深度</label>
+            <select class="form-select" style="width:100%">
+              <option>单层 (仅DEK)</option>
+              <option selected>双层 (DEK+KEK)</option>
+              <option>三层 (DEK+KEK+MasterKEK)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Key Length Requirements -->
+        <div class="config-section">
+          <div class="cs-title">密钥长度要求</div>
+          <div class="form-group">
+            <label class="form-label">RSA最小密钥长度</label>
+            <select class="form-select" style="width:100%">
+              <option>2048 bit (KubeArmor当前默认)</option>
+              <option selected>4096 bit (高安全推荐)</option>
+            </select>
+            <div class="form-hint">rsa.GenerateKey(rand.Reader, 2048) 可升级为 4096</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">AES密钥长度</label>
+            <select class="form-select" style="width:100%">
+              <option>AES-128</option>
+              <option>AES-192</option>
+              <option selected>AES-256</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SM2曲线参数</label>
+            <input class="form-input" type="text" value="sm2p256v1" readonly>
+            <div class="form-hint">国密SM2推荐曲线，256位密钥等同RSA-3072安全强度</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SM4密钥长度</label>
+            <input class="form-input" type="text" value="128 bit (固定)" readonly>
+            <div class="form-hint">SM4密钥长度固定128位，安全强度等同AES-128</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ML-KEM安全级别</label>
+            <select class="form-select" style="width:100%">
+              <option>ML-KEM-512 (AES-128等价)</option>
+              <option selected>ML-KEM-768 (AES-192等价)</option>
+              <option>ML-KEM-1024 (AES-256等价)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- KMS & SecretRefService -->
+        <div class="config-section">
+          <div class="cs-title">KMS 端点配置</div>
+          <div class="form-group">
+            <label class="form-label">KMS类型</label>
+            <select class="form-select" style="width:100%">
+              <option selected>Kubernetes Secrets (当前)</option>
+              <option>HashiCorp Vault</option>
+              <option>AWS KMS</option>
+              <option>阿里云KMS (国密支持)</option>
+              <option>腾讯云KMS (国密支持)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">KMS端点地址</label>
+            <input class="form-input" type="text" value="kubernetes://in-cluster" placeholder="https://vault.internal:8200">
+          </div>
+          <div class="form-group">
+            <label class="form-label">SecretRefService命名空间</label>
+            <input class="form-input" type="text" value="CLAWMANAGER_SECRET_NAMESPACE" readonly>
+            <div class="form-hint">环境变量或 /var/run/secrets/kubernetes.io/serviceaccount/namespace 自动检测</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Secret引用格式</label>
+            <select class="form-select" style="width:100%">
+              <option selected>name:key</option>
+              <option>namespace/name:key</option>
+              <option>k8s-secret/namespace/name:key</option>
+            </select>
+            <div class="form-hint">SecretRefService.ParseSecretReference支持以上所有格式</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">K8s Secret加密存储</div>
+              <div class="desc">启用Kubernetes encryptionConfiguration，etcd中Secret数据加密存储</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-etcd-enc" checked>
+              <label class="toggle-slider" for="cfg-etcd-enc"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- KubeArmor PKI & HSM -->
+        <div class="config-section">
+          <div class="cs-title">KubeArmor PKI 国密扩展 & HSM</div>
+          <div class="form-group">
+            <label class="form-label">证书加载模式 (CertLoader)</label>
+            <select class="form-select" style="width:100%">
+              <option selected>SelfSignedCertLoader (自签名)</option>
+              <option>K8sCertLoader (K8s Secret)</option>
+              <option>ExternalCertLoader (外部证书)</option>
+              <option>HsmCertLoader (HSM, 规划)</option>
+            </select>
+            <div class="form-hint">TlsCredentialManager根据CertProvider选择CertLoader实现</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">mTLS客户端认证</label>
+            <select class="form-select" style="width:100%">
+              <option selected>RequireAndVerifyClientCert (当前)</option>
+              <option>RequestClientCert</option>
+              <option>NoClientCert</option>
+            </select>
+            <div class="form-hint">CreateTlsServerCredentials强制双向TLS认证</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CA证书KeyUsage</label>
+            <input class="form-input" type="text" value="KeyEncipherment | DigitalSignature | CertSign | CRLSign" readonly>
+            <div class="form-hint">DefaultKubeArmorCAConfig.IsCa=true</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">HSM集成</label>
+            <select class="form-select" style="width:100%">
+              <option selected>未启用</option>
+              <option>SoftHSM (测试)</option>
+              <option>Thales Luna Network HSM</option>
+              <option>华为HSM (国密支持)</option>
+              <option>三未信安HSM (国密支持)</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">Relay Server DNS扩展</div>
+              <div class="desc">支持ExtraDnsNames和ExtraIpAddresses扩展KubeArmor Relay证书SAN</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-extra-dns" checked>
+              <label class="toggle-slider" for="cfg-extra-dns"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audit Logging -->
+        <div class="config-section">
+          <div class="cs-title">加解密操作审计</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">密钥生成审计</div>
+              <div class="desc">记录所有密钥生成操作，包含算法、长度、操作人、时间</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-audit-gen" checked>
+              <label class="toggle-slider" for="cfg-audit-gen"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">密钥轮换审计</div>
+              <div class="desc">记录密钥轮换操作，包含旧密钥版本、新密钥版本、影响范围</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-audit-rot" checked>
+              <label class="toggle-slider" for="cfg-audit-rot"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">加解密操作审计</div>
+              <div class="desc">记录所有加密/解密/签名/验签操作，包含算法、密钥ID、数据摘要</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-audit-crypto" checked>
+              <label class="toggle-slider" for="cfg-audit-crypto"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">密钥使用异常检测</div>
+              <div class="desc">检测异常密钥使用模式：非授权算法、密钥越权访问、异常高频解密</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-audit-anomaly" checked>
+              <label class="toggle-slider" for="cfg-audit-anomaly"></label>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label class="form-label">审计日志保留</label>
+            <select class="form-select" style="width:100%">
+              <option>90天</option>
+              <option>180天</option>
+              <option selected>365天</option>
+              <option>永久保留</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">审计日志加密</label>
+            <select class="form-select" style="width:100%">
+              <option>不加密</option>
+              <option selected>SM4-128加密</option>
+              <option>AES-256-GCM加密</option>
+            </select>
+            <div class="form-hint">审计日志自身也应加密存储，防止审计数据被篡改</div>
+          </div>
+        </div>
+
+        <!-- Acceptance Criteria -->
+        <div class="config-section">
+          <div class="cs-title">验收标准</div>
+          <div style="font-size:12px;line-height:2">
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1e7e1">
+              <span class="badge badge-pass">&#x2713;</span>
+              <span><strong>1) 支持国密SM2/SM3/SM4</strong></span>
+            </div>
+            <div style="padding:4px 0 4px 28px;color:var(--text)">
+              SM2-256签名: <span class="badge badge-pass">已启用</span> | SM3哈希: <span class="badge badge-pass">已启用</span> | SM4-128加密: <span class="badge badge-pass">已启用</span>
+            </div>
+            <div style="padding:4px 0 4px 28px;color:var(--text)">
+              SM2证书: <span class="badge badge-sm">规划集成</span> (CertConfig扩展) | SM3双哈希: <span class="badge badge-sm">规划集成</span> (GetHashOfImage) | SM4静态加密: <span class="badge badge-sm">规划集成</span> (SecretRefService)
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1e7e1">
+              <span class="badge badge-pass">&#x2713;</span>
+              <span><strong>2) 密钥统一托管</strong></span>
+            </div>
+            <div style="padding:4px 0 4px 28px;color:var(--text)">
+              KMS: <span class="badge badge-stable">Kubernetes Secrets</span> | 密钥层级: <span class="badge badge-stable">DEK/KEK双层</span> | 托管密钥: <span class="badge badge-stable">12个</span>
+            </div>
+            <div style="padding:4px 0 4px 28px;color:var(--text)">
+              KubeArmor 3 K8s Secrets: <span class="badge badge-rsa">kubearmor-ca</span> <span class="badge badge-rsa">kubearmor-client</span> <span class="badge badge-rsa">kubearmor-relay-server</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+              <span class="badge badge-pass">&#x2713;</span>
+              <span><strong>3) 加解密操作可审计</strong></span>
+            </div>
+            <div style="padding:4px 0 4px 28px;color:var(--text)">
+              密钥生成审计: <span class="badge badge-pass">已启用</span> | 轮换审计: <span class="badge badge-pass">已启用</span> | 加解密审计: <span class="badge badge-pass">已启用</span> | 异常检测: <span class="badge badge-pass">已启用</span>
+            </div>
+            <div style="padding:4px 0 4px 28px;color:var(--text)">
+              审计保留: <span class="badge badge-stable">365天</span> | 审计加密: <span class="badge badge-sm">SM4-128</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Save Actions -->
+      <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end">
+        <button class="btn-secondary">&#x21bb; 重置默认</button>
+        <button class="btn-primary">&#x1f4be; 保存配置</button>
+      </div>
+    </div>
+
+  </div><!-- content-area -->
+</div><!-- main-content -->
+
+</div><!-- app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Mode selector
+document.querySelectorAll('.mode-selector').forEach(function(selector) {
+  selector.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      selector.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>

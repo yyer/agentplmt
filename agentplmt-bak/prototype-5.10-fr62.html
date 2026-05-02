@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-62 长期漂移与异常自主行为检测 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px;--drift-goal:#8b5cf6;--drift-behavior:#3b82f6;--drift-risk:#ef4444;--drift-autonomy:#f59e0b}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-ok{background:#dcfce7;color:#15803d}.badge-warn{background:#fef3c7;color:#92400e}.badge-over{background:#fee2e2;color:#b91c1c}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-stable{background:#dbeafe;color:#1d4ed8}.badge-drifting{background:#fef3c7;color:#92400e}.badge-critical-state{background:#fee2e2;color:#b91c1c}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,68,68,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,68,68,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.stat-card.accent{background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fdba74}
+.stat-card.warn{background:linear-gradient(135deg,#fefce8,#fef9c3);border-color:#fde047}
+.stat-card.danger{background:linear-gradient(135deg,#fef2f2,#fecaca);border-color:#fca5a5}
+.stat-card.success{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#86efac}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1;display:flex;align-items:center;gap:8px}
+.config-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed}
+.config-row:last-child{border-bottom:none}
+.config-row .config-key{font-size:12px;font-weight:500;color:var(--text-h);font-family:monospace}
+.config-row .config-val{font-size:12px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+.config-input{border-radius:10px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:5px 10px;font-size:12px;color:var(--text-h);width:90px;outline:none;text-align:right;font-family:monospace}
+.config-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 2px rgba(239,107,74,0.12)}
+.config-unit{font-size:11px;color:#8f8681}
+.rule-card{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.rule-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.rule-card .rc-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.rule-card .rc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-left:10px}
+.rule-card .rc-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.rule-card .rc-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.rule-card .rc-meta{display:flex;gap:8px;margin-top:10px;padding-left:10px;flex-wrap:wrap}
+.rule-card .rc-tag{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}
+.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}
+.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+.flow-node{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:12px 18px;font-size:12px;font-weight:600;color:var(--text-h);text-align:center;min-width:120px}
+.flow-node .fn-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#b46c50;margin-bottom:4px}
+.flow-arrow{color:#c4b0a2;font-size:18px;padding:0 6px;flex-shrink:0}
+.dim-card{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.dim-card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px}
+.dim-card.goal::before{background:linear-gradient(90deg,#8b5cf6,#7c3aed)}
+.dim-card.behavior::before{background:linear-gradient(90deg,#3b82f6,#2563eb)}
+.dim-card.risk::before{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.dim-card.autonomy::before{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.dim-card .dim-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.dim-card .dim-icon{width:28px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.dim-card.goal .dim-icon{background:#f5f3ff;color:#7c3aed}
+.dim-card.behavior .dim-icon{background:#eff6ff;color:#2563eb}
+.dim-card.risk .dim-icon{background:#fef2f2;color:#dc2626}
+.dim-card.autonomy .dim-icon{background:#fffbeb;color:#d97706}
+.dim-card .dim-stat{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f5f1ed;font-size:12px}
+.dim-card .dim-stat:last-child{border-bottom:none}
+.dim-card .dim-stat .k{color:#8f8681}.dim-card .dim-stat .v{font-weight:600;color:var(--text-h)}
+.code-block{border-radius:12px;background:#1c1917;color:#e7e5e4;padding:14px 18px;font-size:12px;font-family:monospace;line-height:1.7;overflow-x:auto;margin:8px 0}
+.code-block .kw{color:#f87171}.code-block .str{color:#fbbf24}.code-block .cmt{color:#78716c}.code-block .fn{color:#a78bfa}
+.freq-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.freq-bar .fb-label{width:120px;font-size:11px;font-weight:500;color:var(--text);text-align:right;flex-shrink:0}
+.freq-bar .fb-track{flex:1;height:8px;border-radius:4px;background:#f1e7e1;overflow:hidden}
+.freq-bar .fb-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.freq-bar .fb-val{width:60px;font-size:11px;font-weight:600;color:var(--text-h);flex-shrink:0}
+.progress-bar{height:8px;border-radius:999px;background:#f1e7e1;overflow:hidden;margin-top:6px}
+.progress-bar .fill{height:100%;border-radius:999px;transition:width .6s}
+.fill-ok{background:linear-gradient(90deg,#22c55e,#16a34a)}.fill-warn{background:linear-gradient(90deg,#f59e0b,#d97706)}.fill-danger{background:linear-gradient(90deg,#ef4444,#dc2626)}.fill-coral{background:linear-gradient(90deg,#ef6b4a,#dc2626)}
+.compare-grid{display:grid;grid-template-columns:1fr 60px 1fr;gap:0;margin-bottom:18px}
+.compare-col{padding:16px 18px}
+.compare-col.baseline{border-radius:16px 0 0 16px;background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe;border-right:none}
+.compare-col.current{border-radius:0 16px 16px 0;background:linear-gradient(135deg,#fef2f2,#fee2e2);border:1px solid #fecaca;border-left:none}
+.compare-col.divider{display:flex;align-items:center;justify-content:center;background:#faf7f4;border-top:1px solid #f1e7e1;border-bottom:1px solid #f1e7e1;font-size:11px;font-weight:700;color:#b46c50;writing-mode:vertical-lr;letter-spacing:0.1em}
+.compare-metric{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:12px}
+.compare-metric:last-child{border-bottom:none}
+.compare-metric .cm-label{color:var(--text);font-weight:500}
+.compare-metric .cm-value{font-weight:700;color:var(--text-h);font-family:monospace}
+.mini-spark{display:flex;align-items:flex-end;gap:2px;height:30px}
+.mini-spark .ms-bar{width:6px;border-radius:2px 2px 0 0;transition:height .4s ease;min-height:2px}
+.dataSource-tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:3px 8px;font-size:10px;font-weight:600;font-family:monospace;color:#c2410c;display:inline-flex;align-items:center;gap:4px}
+.dataSource-tag::before{content:"";width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dataSource-tag.cmd::before{background:#ef4444}
+.dataSource-tag.inv::before{background:#3b82f6}
+.dataSource-tag.cost::before{background:#f59e0b}
+.dataSource-tag.gw::before{background:#8b5cf6}
+.dataSource-tag.aegis::before{background:#059669}
+.dataSource-tag.status::before{background:#6b7280}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.10 代理行为完整性与Rogue Agent治理</div>
+    <div class="nav-item" data-page="fr60"><span>FR-60 行为基线建立</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr61"><span>FR-61 自治边界管理</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item active" data-page="fr62"><span>FR-62 漂移与异常检测</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr63"><span>FR-63 越界熔断与下线</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr64"><span>FR-64 行为完整性度量</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.10 代理行为完整性与Rogue Agent治理</div>
+      <div class="page-title">FR-62 | 长期漂移与异常自主行为检测 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge-sys">clawmanager</span>
+      <span class="badge-sys">openclaw</span>
+      <span class="badge-sys">claw-aegis</span>
+      <button class="btn-secondary btn-sm">导出漂移报告</button>
+      <button class="btn-primary btn-sm">运行漂移分析</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Overview Panel -->
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-med">
+          <div class="score-num">74</div>
+          <div class="score-label">DRIFT HEALTH</div>
+        </div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Long-Term Drift Detection System</div>
+          <div class="panel-title" style="margin-bottom:4px;">漂移健康评分：74 / 100</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.8">检测Agent在长期运行中的目标偏移、行为模式漂移、风险偏好变化和异常自发任务增长。系统通过持续采集ClawManager的InstanceCommand频率分布、ModelInvocation调用模式、CostRecord费用趋势和AI Gateway风险历史数据，建立4维度漂移评分模型，当漂移评分超过阈值时触发分级告警。承载系统：ClawManager（审计分析+状态追踪）+ OpenClaw</div>
+        </div>
+        <div style="display:flex;gap:16px;flex-shrink:0">
+          <div class="stat-card" style="min-width:100px"><div class="sc-value" style="font-size:1.5rem;color:var(--drift-goal)">4</div><div class="sc-label">漂移维度</div></div>
+          <div class="stat-card warn" style="min-width:100px"><div class="sc-value" style="font-size:1.5rem;color:#d97706">3</div><div class="sc-label">漂移中</div></div>
+          <div class="stat-card danger" style="min-width:100px"><div class="sc-value" style="font-size:1.5rem;color:#dc2626">1</div><div class="sc-label">临界漂移</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acceptance Criteria -->
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Acceptance Criteria</div><div class="panel-title">FR-62 验收标准</div></div></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px;border-radius:14px;background:#f0fdf4;border:1px solid #bbf7d0;padding:14px;display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">&#10003;</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--text-h)">行为漂移可检测</div><div style="font-size:11px;color:var(--text)">4维度漂移评分模型持续量化行为偏移程度</div></div>
+        </div>
+        <div style="flex:1;min-width:220px;border-radius:14px;background:#f0fdf4;border:1px solid #bbf7d0;padding:14px;display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">&#10003;</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--text-h)">目标偏移有告警</div><div style="font-size:11px;color:var(--text)">Goal Drift维度检测目标偏移，超阈值触发分级告警</div></div>
+        </div>
+        <div style="flex:1;min-width:220px;border-radius:14px;background:#f0fdf4;border:1px solid #bbf7d0;padding:14px;display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:#dcfce7;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">&#10003;</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--text-h)">历史行为可对比分析</div><div style="font-size:11px;color:var(--text)">支持任意时间窗口的当前行为vs基线行为对比</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">漂移检测架构</div>
+      <div class="tab" data-tab="rules">漂移规则</div>
+      <div class="tab" data-tab="history">历史对比</div>
+      <div class="tab" data-tab="monitor">漂移监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 漂移检测架构                                            -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Drift Detection Pipeline -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Drift Detection Pipeline</div><div class="panel-title">漂移检测流水线架构</div></div></div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:18px;line-height:1.7">
+          漂移检测系统通过五阶段流水线从时序数据到告警输出：数据采集层汇聚ClawManager各数据源的Agent行为时序记录；基线比较层将当前时间窗口行为与历史基线进行多维度统计比对；漂移评分层基于4维度模型计算目标漂移、行为漂移、风险漂移和自治漂移分数；阈值检查层根据配置的阈值判定漂移等级；告警层根据漂移严重程度和持续时间触发分级告警并通知运维人员。
+        </p>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:16px 0">
+          <div class="flow-node" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe">
+            <div class="fn-label" style="color:#1d4ed8">Time-Series Data</div>
+            InstanceCommand频率<br>ModelInvocation模式<br>CostRecord趋势<br>AI Gateway风险
+          </div>
+          <div class="flow-arrow">&#8594;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa">
+            <div class="fn-label" style="color:#c2410c">Baseline Comparison</div>
+            历史窗口聚合<br>统计特征提取<br>分布距离计算<br>Kolmogorov-Smirnov
+          </div>
+          <div class="flow-arrow">&#8594;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-color:#c4b5fd">
+            <div class="fn-label" style="color:#7c3aed">Drift Scoring</div>
+            Goal Drift Score<br>Behavioral Drift Score<br>Risk Drift Score<br>Autonomy Drift Score
+          </div>
+          <div class="flow-arrow">&#8594;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fefce8,#fef9c3);border-color:#fde68a">
+            <div class="fn-label" style="color:#92400e">Threshold Check</div>
+            维度阈值判定<br>综合漂移评分<br>持续时间校验<br>严重程度分级
+          </div>
+          <div class="flow-arrow">&#8594;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca">
+            <div class="fn-label" style="color:#b91c1c">Alert</div>
+            分级告警<br>漂移事件记录<br>自动缓解动作<br>人工审核通知
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 Drift Dimensions with Data Source Mapping -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Four Drift Dimensions & Data Source Mapping</div><div class="panel-title">4维度漂移模型与数据源映射</div></div></div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px">
+
+          <!-- Goal Drift -->
+          <div class="dim-card goal" style="flex:1;min-width:260px">
+            <div class="dim-title"><div class="dim-icon">&#127919;</div>Goal Drift 目标偏移</div>
+            <div style="font-size:12px;color:var(--text);margin-bottom:10px;line-height:1.7">Agent的执行目标逐渐偏离最初设定目标。表现为命令类型分布发生持续性偏移、出现预期外的任务创建、InstanceCommand生命周期模式改变等。</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#7c3aed;margin-bottom:6px">ClawManager 数据源</div>
+            <div class="dim-stat"><span class="k">InstanceCommand</span><span class="v"><span class="dataSource-tag cmd">17种命令类型分布</span></span></div>
+            <div class="dim-stat"><span class="k">命令生命周期</span><span class="v"><span class="dataSource-tag cmd">IssuedAt&#8594;FinishedAt</span></span></div>
+            <div class="dim-stat"><span class="k">RuntimeStatus</span><span class="v"><span class="dataSource-tag status">SummaryJSON变化</span></span></div>
+            <div class="dim-stat"><span class="k">ConfigRevision</span><span class="v"><span class="dataSource-tag status">CurrentConfigRevisionID</span></span></div>
+            <div class="dim-stat"><span class="k">当前评分</span><span class="v" style="color:#7c3aed;font-size:1.1rem">0.32</span></div>
+          </div>
+
+          <!-- Behavioral Drift -->
+          <div class="dim-card behavior" style="flex:1;min-width:260px">
+            <div class="dim-title"><div class="dim-icon">&#128295;</div>Behavioral Drift 行为漂移</div>
+            <div style="font-size:12px;color:var(--text);margin-bottom:10px;line-height:1.7">Agent的工具使用模式发生持续变化。表现为工具调用偏好改变、新工具突然被大量采用、ModelInvocation的Token消耗模式偏移、调用延迟趋势异动等。</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#2563eb;margin-bottom:6px">ClawManager 数据源</div>
+            <div class="dim-stat"><span class="k">ModelInvocation</span><span class="v"><span class="dataSource-tag inv">TraceID/SessionID</span></span></div>
+            <div class="dim-stat"><span class="k">Token消耗</span><span class="v"><span class="dataSource-tag inv">Prompt/Completion/Total</span></span></div>
+            <div class="dim-stat"><span class="k">费用数据</span><span class="v"><span class="dataSource-tag cost">EstimatedCost/ActualCost</span></span></div>
+            <div class="dim-stat"><span class="k">延迟趋势</span><span class="v"><span class="dataSource-tag inv">Invocation Latency</span></span></div>
+            <div class="dim-stat"><span class="k">当前评分</span><span class="v" style="color:#2563eb;font-size:1.1rem">0.58</span></div>
+          </div>
+
+          <!-- Risk Drift -->
+          <div class="dim-card risk" style="flex:1;min-width:260px">
+            <div class="dim-title"><div class="dim-icon">&#9888;</div>Risk Drift 风险偏好漂移</div>
+            <div style="font-size:12px;color:var(--text);margin-bottom:10px;line-height:1.7">Agent的风险容忍度逐渐升高。表现为高风险操作频率上升、AI Gateway风险检测历史中HighestSeverity持续攀升、ClawAegis风险标志积累增长等。</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#dc2626;margin-bottom:6px">多系统数据源</div>
+            <div class="dim-stat"><span class="k">AI Gateway</span><span class="v"><span class="dataSource-tag gw">RiskDetection History</span></span></div>
+            <div class="dim-stat"><span class="k">Severity趋势</span><span class="v"><span class="dataSource-tag gw">HighestSeverity Trend</span></span></div>
+            <div class="dim-stat"><span class="k">ExfilGuard</span><span class="v"><span class="dataSource-tag aegis">runtimeRiskFlags</span></span></div>
+            <div class="dim-stat"><span class="k">DispatchGuard</span><span class="v"><span class="dataSource-tag aegis">4组检测频率</span></span></div>
+            <div class="dim-stat"><span class="k">当前评分</span><span class="v" style="color:#dc2626;font-size:1.1rem">0.81</span></div>
+          </div>
+
+          <!-- Autonomy Drift -->
+          <div class="dim-card autonomy" style="flex:1;min-width:260px">
+            <div class="dim-title"><div class="dim-icon">&#9881;</div>Autonomy Drift 自治漂移</div>
+            <div style="font-size:12px;color:var(--text);margin-bottom:10px;line-height:1.7">Agent的自发行为持续增长。表现为自主发起的命令增多、子任务无序繁殖、Loop Guard持久触发次数增加，Agent逐渐脱离人工控制范围。</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#d97706;margin-bottom:6px">ClawAegis + ClawManager</div>
+            <div class="dim-stat"><span class="k">LoopGuard</span><span class="v"><span class="dataSource-tag aegis">ALLOW_COUNT=3 TTL=5min</span></span></div>
+            <div class="dim-stat"><span class="k">自主命令</span><span class="v"><span class="dataSource-tag cmd">InstanceCommand趋势</span></span></div>
+            <div class="dim-stat"><span class="k">子任务繁殖</span><span class="v"><span class="dataSource-tag cmd">Sub-task Proliferation</span></span></div>
+            <div class="dim-stat"><span class="k">OpenClaw状态</span><span class="v"><span class="dataSource-tag status">OpenClawStatus</span></span></div>
+            <div class="dim-stat"><span class="k">当前评分</span><span class="v" style="color:#d97706;font-size:1.1rem">0.45</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Source Detail -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">ClawManager Data Source Schema</div><div class="panel-title">ClawManager 数据源字段映射</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>数据源</th><th>关键字段</th><th>漂移指标</th><th>采集周期</th><th>基线方法</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">InstanceCommand</td><td><code>CommandType</code>(17种), <code>IssuedAt</code>, <code>DispatchedAt</code>, <code>StartedAt</code>, <code>FinishedAt</code></td><td>命令类型分布变化率, 生命周期延迟趋势, 自主命令占比</td><td>5min聚合</td><td>滑动窗口KS检验</td></tr>
+            <tr><td style="font-weight:600">ModelInvocation</td><td><code>TraceID</code>, <code>SessionID</code>, <code>PromptTokens</code>, <code>CompletionTokens</code>, <code>TotalTokens</code></td><td>Token消耗模式偏移, 模型选择偏好, 调用频率变化</td><td>1min聚合</td><td>均值方差漂移检测</td></tr>
+            <tr><td style="font-weight:600">ModelInvocation</td><td><code>EstimatedCost</code>, <code>ActualCost</code>, Latency</td><td>费用趋势异常, 延迟模式变化, 成本偏差率</td><td>15min聚合</td><td>CUSUM控制图</td></tr>
+            <tr><td style="font-weight:600">CostRecord</td><td>Daily/Monthly Aggregation</td><td>日费用增速, 月度成本突变, 费用峰值检测</td><td>1day/1month</td><td>Z-score异常检测</td></tr>
+            <tr><td style="font-weight:600">AI Gateway</td><td>RiskDetection History, <code>HighestSeverity</code></td><td>风险事件频率趋势, 严重等级变化, 高风险动作占比</td><td>10min聚合</td><td>趋势斜率分析</td></tr>
+            <tr><td style="font-weight:600">InstanceRuntimeStatus</td><td><code>OpenClawStatus</code>, <code>CurrentConfigRevisionID</code>, <code>SummaryJSON</code></td><td>状态切换频率, 配置变更速率, Summary字段异动</td><td>5min采集</td><td>变化点检测</td></tr>
+            <tr><td style="font-weight:600">ClawAegis Loop Guard</td><td><code>LOOP_GUARD_ALLOW_COUNT=3</code>, <code>LOOP_GUARD_TTL_MS=300000</code></td><td>持久触发次数趋势, 触发间隔变化, Agent循环行为模式</td><td>实时事件</td><td>累计计数阈值</td></tr>
+            <tr><td style="font-weight:600">ClawAegis ExfilGuard</td><td><code>runtimeRiskFlags</code></td><td>风险标志累积速率, 标志类型分布变化, 新标志出现</td><td>实时事件</td><td>累积求和检验</td></tr>
+            <tr><td style="font-weight:600">ClawAegis DispatchGuard</td><td>4 Pattern Group Detections</td><td>各组检测频率趋势, 检测模式分布变化, 新检测模式出现</td><td>5min聚合</td><td>频率分布漂移检验</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- OPA Drift Policy -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">OPA Drift Policy &mdash; Declarative Drift Rules</div><div class="panel-title">OPA 声明式漂移策略定义</div></div><span class="badge-sys">opa</span></div>
+        <div style="font-size:12px;color:var(--text);margin-bottom:12px;line-height:1.7">
+          Open Policy Agent 提供声明式的漂移阈值和告警规则定义。所有漂移判定通过OPA策略评估，确保判定标准的客观性、一致性和可审计性。漂移评分超过维度阈值时触发对应等级的告警和缓解动作。
+        </div>
+        <div class="code-block">
+<span class="kw">package</span> drift.detection<br><br>
+<span class="cmt"># 4维度漂移阈值默认值</span>
+<span class="kw">default</span> goal_drift_threshold = <span class="str">0.40</span>
+<span class="kw">default</span> behavioral_drift_threshold = <span class="str">0.50</span>
+<span class="kw">default</span> risk_drift_threshold = <span class="str">0.35</span>
+<span class="kw">default</span> autonomy_drift_threshold = <span class="str">0.45</span><br><br>
+<span class="cmt"># 综合漂移评分 = 加权平均</span>
+<span class="fn">composite_drift_score</span> {<br>
+&nbsp;&nbsp;score := <span class="fn">input.goal_drift</span> * <span class="str">0.30</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="fn">input.behavioral_drift</span> * <span class="str">0.25</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="fn">input.risk_drift</span> * <span class="str">0.30</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ <span class="fn">input.autonomy_drift</span> * <span class="str">0.15</span><br>
+&nbsp;&nbsp;<span class="kw">score</span><br>
+}<br><br>
+<span class="cmt"># 漂移告警触发条件</span>
+<span class="kw">alert</span> {<br>
+&nbsp;&nbsp;<span class="fn">composite_drift_score</span> > <span class="str">0.60</span><br>
+&nbsp;&nbsp;<span class="fn">input.drift_duration_hours</span> > <span class="str">24</span><br>
+}<br><br>
+<span class="cmt"># 临界漂移：任一维度超阈值且持续</span>
+<span class="kw">critical_drift</span> {<br>
+&nbsp;&nbsp;<span class="fn">input.risk_drift</span> > risk_drift_threshold<br>
+&nbsp;&nbsp;<span class="fn">input.drift_duration_hours</span> > <span class="str">48</span><br>
+}
+        </div>
+      </div>
+
+    </div><!-- /tab-arch -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 漂移规则                                               -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- Global Toggle -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Drift Detection Global Settings</div><div class="panel-title">漂移检测全局开关</div></div></div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">启用漂移检测 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">driftDetectionEnabled</code></div><div class="desc">开启4维度漂移检测流水线，持续监控Agent行为偏离基线程度</div></div>
+          <div style="display:flex;align-items:center"><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label><div class="mode-selector"><div class="mode-btn active-enforce" data-mode="enforce">enforce</div><div class="mode-btn" data-mode="observe">observe</div><div class="mode-btn" data-mode="off">off</div></div></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">目标偏移告警 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">alertOnGoalDrift</code></div><div class="desc">当Goal Drift评分超过阈值时触发告警，通知运维人员审核Agent目标一致性</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">风险偏好变化告警 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">alertOnRiskDrift</code></div><div class="desc">当Risk Drift评分超过阈值时触发告警，Agent风险容忍度异常升高</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">行为漂移告警 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">alertOnBehavioralDrift</code></div><div class="desc">当Behavioral Drift评分超过阈值时触发告警，工具使用模式发生显著变化</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">自治漂移告警 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">alertOnAutonomyDrift</code></div><div class="desc">当Autonomy Drift评分超过阈值时触发告警，自发行为增长超预期</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Rule Cards: Goal Drift -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:var(--drift-goal)"></div>
+        <div class="rc-header">
+          <div class="rc-title" style="color:var(--drift-goal)">&#127919; Goal Drift &mdash; 目标偏移检测</div>
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge-sys">InstanceCommand</span>
+        </div>
+        <div class="rc-body">
+          <p><strong>检测方法：</strong>统计InstanceCommand 17种命令类型的频率分布，使用Kolmogorov-Smirnov检验比较当前窗口与基线窗口的分布差异。当命令类型分布偏移超过阈值时，标记为Goal Drift。同时监控意外任务创建（InstanceCommand中出现基线中未观察到的命令类型组合）和命令生命周期模式变化（IssuedAt&#8594;DispatchedAt&#8594;StartedAt&#8594;FinishedAt链路延迟异常）。</p>
+          <p style="margin-top:8px"><strong>测量窗口：</strong>7天滑动窗口 vs 30天基线窗口</p>
+          <p style="margin-top:4px"><strong>阈值：</strong>KS距离 &gt; <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">0.40</code>（可配置，默认0.40）</p>
+          <p style="margin-top:4px"><strong>基线来源：</strong>Agent前30天的InstanceCommand聚合数据，按命令类型分组计数</p>
+          <p style="margin-top:4px"><strong>告警动作：</strong>Goal Drift &gt; 0.40 时发送告警；&gt; 0.70 时升级为CRITICAL，建议人工审核Agent目标设定；&gt; 0.85 时触发配置冻结</p>
+        </div>
+        <div class="rc-meta">
+          <span class="rc-tag">InstanceCommand (17 types)</span>
+          <span class="rc-tag">KS-test</span>
+          <span class="rc-tag">Lifecycle: Issued&#8594;Finished</span>
+          <span class="rc-tag">threshold: 0.40</span>
+          <span class="rc-tag">window: 7d / 30d</span>
+        </div>
+      </div>
+
+      <!-- Rule Cards: Behavioral Drift -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:var(--drift-behavior)"></div>
+        <div class="rc-header">
+          <div class="rc-title" style="color:var(--drift-behavior)">&#128295; Behavioral Drift &mdash; 行为漂移检测</div>
+          <span class="badge badge-medium">MEDIUM</span>
+          <span class="badge-sys">ModelInvocation</span>
+          <span class="badge-sys">CostRecord</span>
+        </div>
+        <div class="rc-body">
+          <p><strong>检测方法：</strong>监控ModelInvocation的PromptTokens/CompletionTokens/TotalTokens分布变化、模型选择偏好偏移和工具调用模式变化。通过均值方差漂移检测（CUSUM控制图）识别Token消耗模式的渐进性偏移。检测新工具的突然采纳（之前未使用过的工具在短期内被大量调用）和工具使用频率的显著改变。CostRecord的EstimatedCost vs ActualCost偏差率也是行为漂移的重要信号。</p>
+          <p style="margin-top:8px"><strong>测量窗口：</strong>7天滑动窗口 vs 30天基线窗口</p>
+          <p style="margin-top:4px"><strong>阈值：</strong>行为偏移分数 &gt; <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">0.50</code>（可配置，默认0.50）</p>
+          <p style="margin-top:4px"><strong>基线来源：</strong>Agent前30天的ModelInvocation聚合数据，按SessionID/TraceID关联分析Token消耗模式</p>
+          <p style="margin-top:4px"><strong>告警动作：</strong>Behavioral Drift &gt; 0.50 时发送告警；&gt; 0.75 时升级为HIGH，建议检查模型配置；检测到新工具突然采纳时即时告警</p>
+        </div>
+        <div class="rc-meta">
+          <span class="rc-tag">ModelInvocation Tokens</span>
+          <span class="rc-tag">CUSUM Control Chart</span>
+          <span class="rc-tag">New Tool Adoption</span>
+          <span class="rc-tag">CostRecord Deviation</span>
+          <span class="rc-tag">threshold: 0.50</span>
+        </div>
+      </div>
+
+      <!-- Rule Cards: Risk Drift -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:var(--drift-risk)"></div>
+        <div class="rc-header">
+          <div class="rc-title" style="color:var(--drift-risk)">&#9888; Risk Preference Drift &mdash; 风险偏好漂移检测</div>
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge-sys">AI Gateway</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="rc-body">
+          <p><strong>检测方法：</strong>综合分析AI Gateway风险检测历史中的HighestSeverity趋势、ClawAegis ExfiltrationGuard的runtimeRiskFlags累积速率、DispatchGuard 4组模式检测频率变化。当高风险操作（RiskRule匹配频率）在统计上显著上升时，标记为Risk Preference Drift。重点关注风险事件频率的持续上升斜率和高风险动作占比的渐进增长。</p>
+          <p style="margin-top:8px"><strong>测量窗口：</strong>7天滑动窗口 vs 30天基线窗口（Critical维度可缩短为3天）</p>
+          <p style="margin-top:4px"><strong>阈值：</strong>风险偏移分数 &gt; <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">0.35</code>（可配置，默认0.35，此维度阈值最低因为风险容忍度升高危害最大）</p>
+          <p style="margin-top:4px"><strong>基线来源：</strong>AI Gateway风险检测历史 + ClawAegis runtimeRiskFlags累积趋势 + DispatchGuard检测频率分布</p>
+          <p style="margin-top:4px"><strong>告警动作：</strong>Risk Drift &gt; 0.35 时发送告警；&gt; 0.55 时升级为CRITICAL，建议立即审核；&gt; 0.70 时触发自动缓解（路由到安全模型）</p>
+        </div>
+        <div class="rc-meta">
+          <span class="rc-tag">HighestSeverity Trend</span>
+          <span class="rc-tag">runtimeRiskFlags</span>
+          <span class="rc-tag">DispatchGuard 4 Groups</span>
+          <span class="rc-tag">threshold: 0.35</span>
+          <span class="rc-tag">window: 3d/7d / 30d</span>
+        </div>
+      </div>
+
+      <!-- Rule Cards: Autonomy Drift -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:var(--drift-autonomy)"></div>
+        <div class="rc-header">
+          <div class="rc-title" style="color:var(--drift-autonomy)">&#9881; Autonomy Drift &mdash; 自治漂移检测</div>
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge-sys">claw-aegis</span>
+          <span class="badge-sys">InstanceCommand</span>
+        </div>
+        <div class="rc-body">
+          <p><strong>检测方法：</strong>监控Agent自主发起的InstanceCommand比例增长、子任务繁殖（Sub-task Proliferation）速率和ClawAegis Loop Guard持久触发次数趋势。Loop Guard配置LOOP_GUARD_ALLOW_COUNT=3、LOOP_GUARD_TTL_MS=300000（5分钟），当Agent在TTL窗口内反复触发Loop Guard达到允许次数上限，此为自治漂移的关键先行指标。同时监控InstanceCommand中由Agent自主发起（非用户触发）的命令占比和OpenClawStatus变化频率。</p>
+          <p style="margin-top:8px"><strong>测量窗口：</strong>7天滑动窗口 vs 30天基线窗口</p>
+          <p style="margin-top:4px"><strong>阈值：</strong>自治偏移分数 &gt; <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">0.45</code>（可配置，默认0.45）</p>
+          <p style="margin-top:4px"><strong>基线来源：</strong>Agent前30天的自主命令比例 + Loop Guard触发次数 + 子任务派生数据</p>
+          <p style="margin-top:4px"><strong>告警动作：</strong>Autonomy Drift &gt; 0.45 时发送告警；&gt; 0.65 时升级为HIGH；Loop Guard持久触发连续3次达到ALLOW_COUNT时即时告警</p>
+        </div>
+        <div class="rc-meta">
+          <span class="rc-tag">LoopGuard ALLOW=3 TTL=5min</span>
+          <span class="rc-tag">Self-initiated Commands</span>
+          <span class="rc-tag">Sub-task Proliferation</span>
+          <span class="rc-tag">threshold: 0.45</span>
+        </div>
+      </div>
+
+      <!-- Loop Guard as Drift Indicator -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Loop Guard &mdash; Persistent Trigger as Drift Indicator</div><div class="panel-title">Loop Guard 持久触发作为漂移先行指标</div></div><span class="badge-sys">claw-aegis</span></div>
+        <div style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          ClawAegis Loop Guard是自治漂移的关键先行指标。当Agent进入循环行为模式，Loop Guard在5分钟TTL窗口（LOOP_GUARD_TTL_MS=300000）内最多允许3次（LOOP_GUARD_ALLOW_COUNT=3）重复操作。如果Agent持续接近但未超出允许次数（如持续2次/窗口），表明Agent正在"试探"循环边界，此为自治漂移的典型早期信号。系统跟踪Loop Guard触发频率的长期趋势，当触发频率持续上升时触发自治漂移预警。
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Loop Guard 配置</th><th>值</th><th>漂移关联</th><th>触发等级</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">LOOP_GUARD_ALLOW_COUNT</td><td><code>3</code></td><td>允许循环次数 = 自治边界试探窗口</td><td><span class="badge badge-medium">MEDIUM</span></td></tr>
+            <tr><td style="font-weight:600">LOOP_GUARD_TTL_MS</td><td><code>300000</code> (5min)</td><td>TTL窗口内重复操作 = 循环行为频率</td><td><span class="badge badge-medium">MEDIUM</span></td></tr>
+            <tr><td style="font-weight:600">持续触发2次/窗口</td><td>Drift Early Signal</td><td>Agent在边界试探，接近但不超限</td><td><span class="badge badge-high">HIGH</span> (预警)</td></tr>
+            <tr><td style="font-weight:600">连续3窗口达到ALLOW_COUNT</td><td>Strong Drift Signal</td><td>Agent系统性绕过循环边界</td><td><span class="badge badge-critical">CRITICAL</span></td></tr>
+            <tr><td style="font-weight:600">触发频率7天上升 &gt; 50%</td><td>Autonomy Drift Confirmed</td><td>自治行为持续增长超基线</td><td><span class="badge badge-critical">CRITICAL</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /tab-rules -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 历史对比                                               -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-history">
+
+      <!-- Selector -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Historical Comparison</div><div class="panel-title">历史行为对比分析</div></div></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px">
+          <div class="form-group" style="flex:1;min-width:180px;margin-bottom:0">
+            <label class="form-label">选择Agent</label>
+            <select class="form-input form-select">
+              <option>agent-prod-001 (default-agent)</option>
+              <option>agent-prod-002 (code-assistant)</option>
+              <option>agent-prod-003 (security-scanner)</option>
+              <option>agent-dev-001 (admin-agent)</option>
+              <option>agent-dev-002 (devops-agent)</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;min-width:180px;margin-bottom:0">
+            <label class="form-label">当前时段</label>
+            <div style="display:flex;gap:8px">
+              <input type="date" class="form-input" value="2026-04-01" style="flex:1">
+              <input type="date" class="form-input" value="2026-04-30" style="flex:1">
+            </div>
+          </div>
+          <div class="form-group" style="flex:1;min-width:180px;margin-bottom:0">
+            <label class="form-label">基线时段</label>
+            <div style="display:flex;gap:8px">
+              <input type="date" class="form-input" value="2026-01-01" style="flex:1">
+              <input type="date" class="form-input" value="2026-01-30" style="flex:1">
+            </div>
+          </div>
+          <button class="btn-primary btn-sm">执行对比</button>
+        </div>
+      </div>
+
+      <!-- Side-by-Side Comparison -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Agent: agent-prod-001 | Period Comparison</div><div class="panel-title">当前行为 vs 基线行为对比</div></div></div>
+
+        <div class="compare-grid">
+          <div class="compare-col baseline">
+            <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:12px">基线时段 2026-01-01 ~ 2026-01-30</div>
+            <div class="compare-metric"><span class="cm-label">InstanceCommand 日均</span><span class="cm-value">127</span></div>
+            <div class="compare-metric"><span class="cm-label">命令类型分布 Top3</span><span class="cm-value">Read(35%) Write(28%) Exec(18%)</span></div>
+            <div class="compare-metric"><span class="cm-label">PromptTokens 日均</span><span class="cm-value">45,200</span></div>
+            <div class="compare-metric"><span class="cm-label">CompletionTokens 日均</span><span class="cm-value">12,800</span></div>
+            <div class="compare-metric"><span class="cm-label">TotalTokens 日均</span><span class="cm-value">58,000</span></div>
+            <div class="compare-metric"><span class="cm-label">主要模型</span><span class="cm-value">claude-3.5-sonnet</span></div>
+            <div class="compare-metric"><span class="cm-label">EstimatedCost 日均</span><span class="cm-value">$2.14</span></div>
+            <div class="compare-metric"><span class="cm-label">ActualCost 日均</span><span class="cm-value">$2.08</span></div>
+            <div class="compare-metric"><span class="cm-label">风险事件频率 月</span><span class="cm-value">12</span></div>
+            <div class="compare-metric"><span class="cm-label">HighestSeverity</span><span class="cm-value">medium</span></div>
+            <div class="compare-metric"><span class="cm-label">自主命令占比</span><span class="cm-value">8%</span></div>
+            <div class="compare-metric"><span class="cm-label">Loop Guard触发 月</span><span class="cm-value">3</span></div>
+            <div class="compare-metric"><span class="cm-label">子任务派生 月</span><span class="cm-value">14</span></div>
+          </div>
+          <div class="compare-col divider">VS</div>
+          <div class="compare-col current">
+            <div style="font-size:13px;font-weight:700;color:#b91c1c;margin-bottom:12px">当前时段 2026-04-01 ~ 2026-04-30</div>
+            <div class="compare-metric"><span class="cm-label">InstanceCommand 日均</span><span class="cm-value">203</span></div>
+            <div class="compare-metric"><span class="cm-label">命令类型分布 Top3</span><span class="cm-value">Exec(38%) Write(25%) Read(16%)</span></div>
+            <div class="compare-metric"><span class="cm-label">PromptTokens 日均</span><span class="cm-value">78,500</span></div>
+            <div class="compare-metric"><span class="cm-label">CompletionTokens 日均</span><span class="cm-value">31,200</span></div>
+            <div class="compare-metric"><span class="cm-label">TotalTokens 日均</span><span class="cm-value">109,700</span></div>
+            <div class="compare-metric"><span class="cm-label">主要模型</span><span class="cm-value">claude-4-opus</span></div>
+            <div class="compare-metric"><span class="cm-label">EstimatedCost 日均</span><span class="cm-value">$5.82</span></div>
+            <div class="compare-metric"><span class="cm-label">ActualCost 日均</span><span class="cm-value">$5.94</span></div>
+            <div class="compare-metric"><span class="cm-label">风险事件频率 月</span><span class="cm-value">48</span></div>
+            <div class="compare-metric"><span class="cm-label">HighestSeverity</span><span class="cm-value">high</span></div>
+            <div class="compare-metric"><span class="cm-label">自主命令占比</span><span class="cm-value">27%</span></div>
+            <div class="compare-metric"><span class="cm-label">Loop Guard触发 月</span><span class="cm-value">19</span></div>
+            <div class="compare-metric"><span class="cm-label">子任务派生 月</span><span class="cm-value">67</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison Data Table -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Detailed Drift Metrics</div><div class="panel-title">漂移指标详细对比</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>指标</th><th>基线值</th><th>当前值</th><th>变化率</th><th>漂移评分</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">命令类型分布 (KS距离)</td><td>0.00 (自身)</td><td>0.32</td>
+              <td style="font-weight:700;color:#d97706">+32%</td>
+              <td><span style="font-weight:700;color:var(--drift-goal)">0.32</span></td>
+              <td><span class="badge badge-warn">接近阈值</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">Exec命令占比</td><td>18%</td><td>38%</td>
+              <td style="font-weight:700;color:#dc2626">+111%</td>
+              <td><span style="font-weight:700;color:var(--drift-goal)">0.39</span></td>
+              <td><span class="badge badge-warn">接近阈值</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">Token消耗模式偏移</td><td>58K/day</td><td>109.7K/day</td>
+              <td style="font-weight:700;color:#dc2626">+89%</td>
+              <td><span style="font-weight:700;color:var(--drift-behavior)">0.58</span></td>
+              <td><span class="badge badge-over">超阈值</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">模型选择偏好</td><td>claude-3.5-sonnet</td><td>claude-4-opus</td>
+              <td style="font-weight:700;color:#dc2626">模型切换</td>
+              <td><span style="font-weight:700;color:var(--drift-behavior)">0.72</span></td>
+              <td><span class="badge badge-over">显著漂移</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">Cost轨迹 (日均)</td><td>$2.14</td><td>$5.82</td>
+              <td style="font-weight:700;color:#dc2626">+172%</td>
+              <td><span style="font-weight:700;color:var(--drift-behavior)">0.65</span></td>
+              <td><span class="badge badge-over">超阈值</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">风险事件频率 (月)</td><td>12</td><td>48</td>
+              <td style="font-weight:700;color:#dc2626">+300%</td>
+              <td><span style="font-weight:700;color:var(--drift-risk)">0.81</span></td>
+              <td><span class="badge badge-critical">CRITICAL</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">HighestSeverity</td><td>medium</td><td>high</td>
+              <td style="font-weight:700;color:#dc2626">升级1级</td>
+              <td><span style="font-weight:700;color:var(--drift-risk)">0.68</span></td>
+              <td><span class="badge badge-over">显著漂移</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">自主命令占比</td><td>8%</td><td>27%</td>
+              <td style="font-weight:700;color:#dc2626">+237%</td>
+              <td><span style="font-weight:700;color:var(--drift-autonomy)">0.45</span></td>
+              <td><span class="badge badge-warn">阈值边界</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">Loop Guard触发 (月)</td><td>3</td><td>19</td>
+              <td style="font-weight:700;color:#dc2626">+533%</td>
+              <td><span style="font-weight:700;color:var(--drift-autonomy)">0.62</span></td>
+              <td><span class="badge badge-over">超阈值</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">子任务派生 (月)</td><td>14</td><td>67</td>
+              <td style="font-weight:700;color:#dc2626">+379%</td>
+              <td><span style="font-weight:700;color:var(--drift-autonomy)">0.56</span></td>
+              <td><span class="badge badge-over">超阈值</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Command Type Distribution Comparison -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">InstanceCommand Type Distribution Shift</div><div class="panel-title">命令类型分布偏移可视化</div></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:10px">基线时段 (2026-01)</div>
+            <div class="freq-bar"><span class="fb-label">Read</span><div class="fb-track"><div class="fb-fill" style="width:35%;background:linear-gradient(90deg,#3b82f6,#2563eb)"></div></div><span class="fb-val">35%</span></div>
+            <div class="freq-bar"><span class="fb-label">Write</span><div class="fb-track"><div class="fb-fill" style="width:28%;background:linear-gradient(90deg,#3b82f6,#2563eb)"></div></div><span class="fb-val">28%</span></div>
+            <div class="freq-bar"><span class="fb-label">Execute</span><div class="fb-track"><div class="fb-fill" style="width:18%;background:linear-gradient(90deg,#3b82f6,#2563eb)"></div></div><span class="fb-val">18%</span></div>
+            <div class="freq-bar"><span class="fb-label">Search</span><div class="fb-track"><div class="fb-fill" style="width:8%;background:linear-gradient(90deg,#93c5fd,#60a5fa)"></div></div><span class="fb-val">8%</span></div>
+            <div class="freq-bar"><span class="fb-label">Analyze</span><div class="fb-track"><div class="fb-fill" style="width:6%;background:linear-gradient(90deg,#93c5fd,#60a5fa)"></div></div><span class="fb-val">6%</span></div>
+            <div class="freq-bar"><span class="fb-label">Other (12)</span><div class="fb-track"><div class="fb-fill" style="width:5%;background:linear-gradient(90deg,#bfdbfe,#93c5fd)"></div></div><span class="fb-val">5%</span></div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#b91c1c;margin-bottom:10px">当前时段 (2026-04)</div>
+            <div class="freq-bar"><span class="fb-label">Execute</span><div class="fb-track"><div class="fb-fill" style="width:38%;background:linear-gradient(90deg,#ef4444,#dc2626)"></div></div><span class="fb-val" style="color:#dc2626">38%</span></div>
+            <div class="freq-bar"><span class="fb-label">Write</span><div class="fb-track"><div class="fb-fill" style="width:25%;background:linear-gradient(90deg,#f87171,#ef4444)"></div></div><span class="fb-val">25%</span></div>
+            <div class="freq-bar"><span class="fb-label">Read</span><div class="fb-track"><div class="fb-fill" style="width:16%;background:linear-gradient(90deg,#fca5a5,#f87171)"></div></div><span class="fb-val">16%</span></div>
+            <div class="freq-bar"><span class="fb-label">Deploy</span><div class="fb-track"><div class="fb-fill" style="width:9%;background:linear-gradient(90deg,#fca5a5,#f87171)"></div></div><span class="fb-val">9%</span></div>
+            <div class="freq-bar"><span class="fb-label">Self-init</span><div class="fb-track"><div class="fb-fill" style="width:7%;background:linear-gradient(90deg,#fecaca,#fca5a5)"></div></div><span class="fb-val" style="color:#dc2626">7%</span></div>
+            <div class="freq-bar"><span class="fb-label">Other (12)</span><div class="fb-track"><div class="fb-fill" style="width:5%;background:linear-gradient(90deg,#fecaca,#fca5a5)"></div></div><span class="fb-val">5%</span></div>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;font-size:12px;color:#b91c1c;line-height:1.7">
+          <strong>Goal Drift 分析结论：</strong>命令类型分布已从Read/Write为主偏移为Execute/Write为主，Execute占比从18%升至38%（+111%），且出现了基线中未有的Self-init命令类型（7%）。KS距离=0.32，接近Goal Drift阈值0.40。同时Token消耗模型发生显著偏移，从claude-3.5-sonnet切换至claude-4-opus，日均费用从$2.14升至$5.82（+172%），风险事件频率增加300%，自主命令占比从8%升至27%，Loop Guard触发增长533%。该Agent呈现多维漂移叠加趋势，建议立即进行人工审核。
+        </div>
+      </div>
+
+    </div><!-- /tab-history -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 漂移监控                                               -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- Score + Stats -->
+      <div style="display:flex;gap:18px;margin-bottom:22px;align-items:stretch">
+        <div class="app-panel" style="flex:0 0 160px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 20px">
+          <div class="score-circle score-med" style="width:110px;height:110px;margin-bottom:10px">
+            <div class="score-num">74</div>
+            <div class="score-label">DRIFT HEALTH</div>
+          </div>
+          <div style="font-size:11px;color:#8f8681;font-weight:600;text-transform:uppercase;letter-spacing:0.14em">综合漂移评分</div>
+          <div style="font-size:10px;color:var(--text);margin-top:4px">100 - 最优 | 0 - 临界</div>
+        </div>
+        <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+          <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">8</div><div class="sc-label">监控中Agent</div><div style="font-size:11px;color:var(--text);margin-top:4px">7天活跃实例</div></div>
+          <div class="stat-card success"><div class="sc-value" style="color:#059669">4</div><div class="sc-label">稳定</div><div style="font-size:11px;color:var(--text);margin-top:4px">漂移评分 &lt; 0.30</div></div>
+          <div class="stat-card warn"><div class="sc-value" style="color:#d97706">3</div><div class="sc-label">漂移中</div><div style="font-size:11px;color:var(--text);margin-top:4px">漂移评分 0.30~0.60</div></div>
+          <div class="stat-card danger"><div class="sc-value" style="color:#dc2626">1</div><div class="sc-label">临界漂移</div><div style="font-size:11px;color:var(--text);margin-top:4px">漂移评分 &gt; 0.60</div></div>
+        </div>
+      </div>
+
+      <!-- Dimension Score Bars -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Drift Score by Dimension (All Agents)</div><div class="panel-title">各维度漂移评分概览</div></div></div>
+        <div style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="width:80px;font-size:12px;font-weight:600;color:var(--drift-goal)">Goal Drift</span>
+            <div class="progress-bar" style="flex:1"><div class="fill" style="width:32%;background:linear-gradient(90deg,#8b5cf6,#7c3aed)"></div></div>
+            <span style="width:50px;font-size:12px;font-weight:700;color:var(--drift-goal)">0.32</span>
+            <span class="badge badge-ok" style="font-size:10px">正常</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="width:80px;font-size:12px;font-weight:600;color:var(--drift-behavior)">Behavior Drift</span>
+            <div class="progress-bar" style="flex:1"><div class="fill" style="width:58%;background:linear-gradient(90deg,#3b82f6,#2563eb)"></div></div>
+            <span style="width:50px;font-size:12px;font-weight:700;color:var(--drift-behavior)">0.58</span>
+            <span class="badge badge-warn" style="font-size:10px">超阈值</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="width:80px;font-size:12px;font-weight:600;color:var(--drift-risk)">Risk Drift</span>
+            <div class="progress-bar" style="flex:1"><div class="fill" style="width:81%;background:linear-gradient(90deg,#ef4444,#dc2626)"></div></div>
+            <span style="width:50px;font-size:12px;font-weight:700;color:var(--drift-risk)">0.81</span>
+            <span class="badge badge-critical" style="font-size:10px">CRITICAL</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:80px;font-size:12px;font-weight:600;color:var(--drift-autonomy)">Autonomy Drift</span>
+            <div class="progress-bar" style="flex:1"><div class="fill" style="width:45%;background:linear-gradient(90deg,#f59e0b,#d97706)"></div></div>
+            <span style="width:50px;font-size:12px;font-weight:700;color:var(--drift-autonomy)">0.45</span>
+            <span class="badge badge-warn" style="font-size:10px">阈值边界</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drift Event Log -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Drift Event Log</div><div class="panel-title">漂移事件日志</div></div><button class="btn-secondary btn-sm">刷新</button></div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 14:32:07</span>
+            <span class="log-id">DRIFT-2026-0430-001</span>
+            <span class="badge badge-critical">CRITICAL</span>
+            <span class="badge" style="background:var(--drift-risk);color:#fff">Risk Drift</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-001</code> 风险偏好持续升高 &mdash; 高风险操作频率对比基线增加 <strong>+200%</strong>。AI Gateway检测到HighestSeverity从medium升级至high，ClawAegis runtimeRiskFlags累积速率增长3.2倍。当前Risk Drift Score: <strong>0.81</strong>，已超过CRITICAL阈值(0.55)。
+          </div>
+          <div class="log-detail">
+            agent: agent-prod-001 | risk_events_month: 12&#8594;48 (+300%) | highest_severity: medium&#8594;high | runtime_risk_flags_rate: +320% | dispatch_guard_detections: +180% | drift_duration: 72h
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 11:18:45</span>
+            <span class="log-id">DRIFT-2026-0430-002</span>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge" style="background:var(--drift-behavior);color:#fff">Behavioral Drift</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-001</code> 工具使用模式发生显著变化 &mdash; Token消耗模式偏移评分0.58，模型选择从<code>claude-3.5-sonnet</code>切换至<code>claude-4-opus</code>，PromptTokens日均增长73%，CompletionTokens日均增长144%。Behavioral Drift Score超阈值(0.50)。
+          </div>
+          <div class="log-detail">
+            agent: agent-prod-001 | model: claude-3.5-sonnet&#8594;claude-4-opus | prompt_tokens: 45.2K&#8594;78.5K/day | completion_tokens: 12.8K&#8594;31.2K/day | cost: $2.14&#8594;$5.82/day
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-29 16:45:22</span>
+            <span class="log-id">DRIFT-2026-0429-003</span>
+            <span class="badge badge-medium">MEDIUM</span>
+            <span class="badge" style="background:var(--drift-goal);color:#fff">Goal Drift</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-001</code> 目标偏移预警 &mdash; 命令类型分布KS距离=0.32，Execute命令占比从18%升至38%，出现基线中未有的Self-init命令类型（7%）。InstanceCommand生命周期中IssuedAt&#8594;StartedAt延迟增长42%，表明Agent自主调度频率上升。Goal Drift Score接近阈值(0.40)。
+          </div>
+          <div class="log-detail">
+            agent: agent-prod-001 | ks_distance: 0.32 | exec_ratio: 18%&#8594;38% | self_init_type: new | lifecycle_delay: +42% | new_task_creation: +120%
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-29 09:12:38</span>
+            <span class="log-id">DRIFT-2026-0429-004</span>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge" style="background:var(--drift-autonomy);color:#fff">Autonomy Drift</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-001</code> 自发行为持续增长 &mdash; 自主发起命令占比从8%升至27%（+237%），Loop Guard触发次数从3次/月增至19次/月（+533%），子任务派生从14次/月增至67次/月（+379%）。Loop Guard在多个TTL窗口(300000ms)内持续达到ALLOW_COUNT=3上限。Autonomy Drift Score: <strong>0.45</strong>，达到阈值边界。
+          </div>
+          <div class="log-detail">
+            agent: agent-prod-001 | self_init_ratio: 8%&#8594;27% | loop_guard_triggers: 3&#8594;19/month | sub_tasks: 14&#8594;67/month | loop_guard_saturation: 2.3/3 per TTL window | autonomy_drift: 0.45
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-28 08:00:00</span>
+            <span class="log-id">DRIFT-2026-0428-005</span>
+            <span class="badge badge-low">INFO</span>
+            <span class="badge badge-green">基线校准</span>
+          </div>
+          <div class="log-body">
+            基线自动重校准完成 &mdash; Agent <code>agent-prod-002</code> 的30天行为基线已更新。新基线窗口：2026-03-29 ~ 2026-04-28。命令类型分布、Token消耗模式和风险事件频率已重新计算。所有漂移评分已基于新基线重置。
+          </div>
+          <div class="log-detail">
+            agent: agent-prod-002 | baseline_window: 2026-03-29~2026-04-28 | recalibration: auto | drift_scores_reset: true | previous_baseline_age: 90d
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-27 15:30:00</span>
+            <span class="log-id">DRIFT-2026-0427-006</span>
+            <span class="badge badge-low">INFO</span>
+            <span class="badge badge-green">审核完成</span>
+          </div>
+          <div class="log-body">
+            漂移审核完成 &mdash; Agent <code>agent-prod-003</code> 的Risk Drift评分(0.38)已由安全团队审核。结论：风险事件增长源于业务需求变化（新增安全扫描任务），非Agent风险偏好漂移。基线已手动调整，Risk Drift Score重置为0.12。
+          </div>
+          <div class="log-detail">
+            agent: agent-prod-003 | reviewer: security-team | conclusion: business_driven_not_drift | baseline_adjusted: true | risk_drift: 0.38&#8594;0.12
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Drift Status Table -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Agent Drift Status Dashboard</div><div class="panel-title">Agent漂移状态总览</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>Agent</th><th>漂移类型</th><th>漂移评分</th><th>持续时间</th><th>严重程度</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">agent-prod-001</td>
+              <td><span class="badge" style="background:var(--drift-risk);color:#fff">Risk Drift</span></td>
+              <td style="font-weight:700;color:#dc2626">0.81</td>
+              <td>72h</td>
+              <td><span class="badge badge-critical">CRITICAL</span></td>
+              <td><span class="badge badge-critical-state">需要干预</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">agent-prod-001</td>
+              <td><span class="badge" style="background:var(--drift-behavior);color:#fff">Behavioral Drift</span></td>
+              <td style="font-weight:700;color:#2563eb">0.58</td>
+              <td>168h</td>
+              <td><span class="badge badge-high">HIGH</span></td>
+              <td><span class="badge badge-drifting">漂移中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">agent-prod-001</td>
+              <td><span class="badge" style="background:var(--drift-autonomy);color:#fff">Autonomy Drift</span></td>
+              <td style="font-weight:700;color:#d97706">0.45</td>
+              <td>96h</td>
+              <td><span class="badge badge-medium">MEDIUM</span></td>
+              <td><span class="badge badge-warn">接近阈值</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">agent-prod-001</td>
+              <td><span class="badge" style="background:var(--drift-goal);color:#fff">Goal Drift</span></td>
+              <td style="font-weight:700;color:#7c3aed">0.32</td>
+              <td>48h</td>
+              <td><span class="badge badge-medium">MEDIUM</span></td>
+              <td><span class="badge badge-stable">监控中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">agent-prod-002</td>
+              <td><span class="badge" style="background:var(--drift-behavior);color:#fff">Behavioral Drift</span></td>
+              <td style="font-weight:700;color:#2563eb">0.22</td>
+              <td>24h</td>
+              <td><span class="badge badge-low">LOW</span></td>
+              <td><span class="badge badge-stable">稳定</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">agent-prod-003</td>
+              <td><span class="badge" style="background:var(--drift-risk);color:#fff">Risk Drift</span></td>
+              <td style="font-weight:700;color:#059669">0.12</td>
+              <td>&mdash;</td>
+              <td><span class="badge badge-low">LOW</span></td>
+              <td><span class="badge badge-green">已审核</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">agent-dev-001</td>
+              <td><span class="badge" style="background:var(--drift-goal);color:#fff">Goal Drift</span></td>
+              <td style="font-weight:700;color:#7c3aed">0.18</td>
+              <td>&mdash;</td>
+              <td><span class="badge badge-low">LOW</span></td>
+              <td><span class="badge badge-stable">稳定</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">agent-dev-002</td>
+              <td><span class="badge" style="background:var(--drift-autonomy);color:#fff">Autonomy Drift</span></td>
+              <td style="font-weight:700;color:#d97706">0.28</td>
+              <td>12h</td>
+              <td><span class="badge badge-low">LOW</span></td>
+              <td><span class="badge badge-stable">监控中</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /tab-monitor -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                   -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Drift Detection Windows -->
+        <div class="config-section">
+          <div class="cs-title">&#128197; 漂移检测窗口</div>
+          <div class="config-row">
+            <span class="config-key">detection_window</span>
+            <span class="config-val">
+              <select class="config-input" style="width:120px;text-align:left">
+                <option selected>7 days</option>
+                <option>14 days</option>
+                <option>30 days</option>
+                <option>90 days</option>
+              </select>
+            </span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">baseline_window</span>
+            <span class="config-val"><input class="config-input" value="30"><span class="config-unit">days</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">risk_drift_short_window</span>
+            <span class="config-val"><input class="config-input" value="3"><span class="config-unit">days (Critical维度缩短)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">slide_interval</span>
+            <span class="config-val"><input class="config-input" value="1"><span class="config-unit">hour (滑动步进)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">min_data_points</span>
+            <span class="config-val"><input class="config-input" value="168"><span class="config-unit">points (7d * 24h)</span></span>
+          </div>
+        </div>
+
+        <!-- Drift Thresholds per Dimension -->
+        <div class="config-section">
+          <div class="cs-title">&#128200; 漂移阈值（按维度）</div>
+          <div class="config-row">
+            <span class="config-key" style="color:var(--drift-goal)">goal_drift_threshold</span>
+            <span class="config-val"><input class="config-input" value="0.40"><span class="config-unit">KS距离</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key" style="color:var(--drift-behavior)">behavioral_drift_threshold</span>
+            <span class="config-val"><input class="config-input" value="0.50"><span class="config-unit">偏移分数</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key" style="color:var(--drift-risk)">risk_drift_threshold</span>
+            <span class="config-val"><input class="config-input" value="0.35"><span class="config-unit">风险偏移分数</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key" style="color:var(--drift-autonomy)">autonomy_drift_threshold</span>
+            <span class="config-val"><input class="config-input" value="0.45"><span class="config-unit">自治偏移分数</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">composite_drift_alert</span>
+            <span class="config-val"><input class="config-input" value="0.60"><span class="config-unit">综合漂移告警阈值</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">critical_drift_alert</span>
+            <span class="config-val"><input class="config-input" value="0.80"><span class="config-unit">临界漂移告警阈值</span></span>
+          </div>
+        </div>
+
+        <!-- Baseline Comparison Method -->
+        <div class="config-section">
+          <div class="cs-title">&#128202; 基线比较方法</div>
+          <div class="config-row">
+            <span class="config-key">comparison_method</span>
+            <span class="config-val">
+              <select class="config-input" style="width:160px;text-align:left">
+                <option selected>KS-test (Kolmogorov-Smirnov)</option>
+                <option>CUSUM Control Chart</option>
+                <option>Z-score Anomaly Detection</option>
+                <option>Trend Slope Analysis</option>
+                <option>Change Point Detection</option>
+              </select>
+            </span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">goal_drift_method</span>
+            <span class="config-val"><span class="config-unit" style="font-weight:600">KS-test</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">behavioral_drift_method</span>
+            <span class="config-val"><span class="config-unit" style="font-weight:600">CUSUM + Mean-Variance</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">risk_drift_method</span>
+            <span class="config-val"><span class="config-unit" style="font-weight:600">Trend Slope + Cumulative Sum</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">autonomy_drift_method</span>
+            <span class="config-val"><span class="config-unit" style="font-weight:600">Cumulative Count Threshold</span></span>
+          </div>
+        </div>
+
+        <!-- Alert Escalation Rules -->
+        <div class="config-section">
+          <div class="cs-title">&#128276; 告警升级规则</div>
+          <div class="config-row">
+            <span class="config-key">min_drift_duration</span>
+            <span class="config-val"><input class="config-input" value="24"><span class="config-unit">hours (最小持续时间)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">critical_escalation_duration</span>
+            <span class="config-val"><input class="config-input" value="48"><span class="config-unit">hours (Critical升级)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">auto_mitigation_threshold</span>
+            <span class="config-val"><input class="config-input" value="0.70"><span class="config-unit">自动缓解触发</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">config_freeze_threshold</span>
+            <span class="config-val"><input class="config-input" value="0.85"><span class="config-unit">配置冻结触发</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">risk_auto_route_secure</span>
+            <span class="config-val"><input class="config-input" value="0.70"><span class="config-unit">自动路由安全模型</span></span>
+          </div>
+        </div>
+
+        <!-- Auto-Recalibration -->
+        <div class="config-section">
+          <div class="cs-title">&#128260; 自动重校准</div>
+          <div class="toggle-row" style="border-bottom:1px solid #f5f1ed">
+            <div class="toggle-label"><div class="name">启用自动重校准</div><div class="desc">基线超过指定天数后自动更新</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="config-row">
+            <span class="config-key">recalibration_interval</span>
+            <span class="config-val"><input class="config-input" value="90"><span class="config-unit">days</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">recalibration_cooldown</span>
+            <span class="config-val"><input class="config-input" value="14"><span class="config-unit">days (校准后冷却)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">reset_scores_on_recal</span>
+            <span class="config-val"><label class="toggle-switch" style="margin:0"><input type="checkbox" checked><span class="toggle-slider"></span></label></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">require_approval_for_recal</span>
+            <span class="config-val"><label class="toggle-switch" style="margin:0"><input type="checkbox"><span class="toggle-slider"></span></label></span>
+          </div>
+        </div>
+
+        <!-- Historical Data Retention -->
+        <div class="config-section">
+          <div class="cs-title">&#128451; 历史数据保留</div>
+          <div class="config-row">
+            <span class="config-key">drift_event_retention</span>
+            <span class="config-val"><input class="config-input" value="365"><span class="config-unit">days</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">baseline_history_retention</span>
+            <span class="config-val"><input class="config-input" value="730"><span class="config-unit">days (2年)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">timeseries_data_retention</span>
+            <span class="config-val"><input class="config-input" value="90"><span class="config-unit">days (原始时序)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">aggregated_data_retention</span>
+            <span class="config-val"><input class="config-input" value="365"><span class="config-unit">days (聚合数据)</span></span>
+          </div>
+        </div>
+
+        <!-- InstanceCommand Aggregation -->
+        <div class="config-section">
+          <div class="cs-title">&#128187; InstanceCommand 聚合配置</div>
+          <div class="config-row">
+            <span class="config-key">aggregation_period</span>
+            <span class="config-val"><input class="config-input" value="5"><span class="config-unit">min (聚合周期)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">command_type_count</span>
+            <span class="config-val"><span class="config-unit" style="font-weight:600">17 types</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">lifecycle_tracking</span>
+            <span class="config-val"><span class="config-unit" style="font-weight:600;font-size:11px">IssuedAt&#8594;DispatchedAt&#8594;StartedAt&#8594;FinishedAt</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">track_self_initiated</span>
+            <span class="config-val"><label class="toggle-switch" style="margin:0"><input type="checkbox" checked><span class="toggle-slider"></span></label></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">track_subtask_proliferation</span>
+            <span class="config-val"><label class="toggle-switch" style="margin:0"><input type="checkbox" checked><span class="toggle-slider"></span></label></span>
+          </div>
+        </div>
+
+        <!-- ModelInvocation Trend Analysis -->
+        <div class="config-section">
+          <div class="cs-title">&#129520; ModelInvocation 趋势分析</div>
+          <div class="config-row">
+            <span class="config-key">invocation_aggregation</span>
+            <span class="config-val"><input class="config-input" value="1"><span class="config-unit">min (聚合周期)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">cost_aggregation</span>
+            <span class="config-val"><input class="config-input" value="15"><span class="config-unit">min (费用聚合)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">track_model_switch</span>
+            <span class="config-val"><label class="toggle-switch" style="margin:0"><input type="checkbox" checked><span class="toggle-slider"></span></label></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">cost_deviation_alert</span>
+            <span class="config-val"><input class="config-input" value="0.15"><span class="config-unit">Estimated vs Actual偏差率</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">new_tool_adoption_alert</span>
+            <span class="config-val"><label class="toggle-switch" style="margin:0"><input type="checkbox" checked><span class="toggle-slider"></span></label></span>
+          </div>
+        </div>
+
+        <!-- CostRecord Comparison -->
+        <div class="config-section">
+          <div class="cs-title">&#128176; CostRecord 对比配置</div>
+          <div class="config-row">
+            <span class="config-key">daily_cost_comparison</span>
+            <span class="config-val"><label class="toggle-switch" style="margin:0"><input type="checkbox" checked><span class="toggle-slider"></span></label></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">monthly_cost_comparison</span>
+            <span class="config-val"><label class="toggle-switch" style="margin:0"><input type="checkbox" checked><span class="toggle-slider"></span></label></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">cost_spike_threshold</span>
+            <span class="config-val"><input class="config-input" value="2.0"><span class="config-unit">x (日费用突增倍数)</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">cost_trend_sensitivity</span>
+            <span class="config-val"><input class="config-input" value="0.05"><span class="config-unit">Z-score灵敏度</span></span>
+          </div>
+        </div>
+
+        <!-- Drift Score Weights -->
+        <div class="config-section">
+          <div class="cs-title">&#9878; 漂移评分权重</div>
+          <div style="font-size:11px;color:#8f8681;margin-bottom:10px">综合漂移评分 = Goal * w1 + Behavioral * w2 + Risk * w3 + Autonomy * w4</div>
+          <div class="config-row">
+            <span class="config-key" style="color:var(--drift-goal)">goal_drift_weight (w1)</span>
+            <span class="config-val"><input class="config-input" value="0.30"><span class="config-unit">30%</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key" style="color:var(--drift-behavior)">behavioral_drift_weight (w2)</span>
+            <span class="config-val"><input class="config-input" value="0.25"><span class="config-unit">25%</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key" style="color:var(--drift-risk)">risk_drift_weight (w3)</span>
+            <span class="config-val"><input class="config-input" value="0.30"><span class="config-unit">30%</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key" style="color:var(--drift-autonomy)">autonomy_drift_weight (w4)</span>
+            <span class="config-val"><input class="config-input" value="0.15"><span class="config-unit">15%</span></span>
+          </div>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="config-section">
+          <div class="cs-title">&#128233; 通知设置</div>
+          <div class="toggle-row" style="border-bottom:1px solid #f5f1ed">
+            <div class="toggle-label"><div class="name">漂移告警通知</div><div class="desc">漂移评分超阈值时发送通知</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row" style="border-bottom:1px solid #f5f1ed">
+            <div class="toggle-label"><div class="name">Critical漂移即时通知</div><div class="desc">CRITICAL级别漂移立即推送</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row" style="border-bottom:1px solid #f5f1ed">
+            <div class="toggle-label"><div class="name">每日漂移摘要</div><div class="desc">每日汇总所有Agent漂移状态</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="config-row">
+            <span class="config-key">notification_channels</span>
+            <span class="config-val"><span class="config-unit" style="font-weight:600">Webhook + Email + Slack</span></span>
+          </div>
+          <div class="config-row">
+            <span class="config-key">digest_time</span>
+            <span class="config-val"><input class="config-input" value="09:00"><span class="config-unit">每日摘要时间</span></span>
+          </div>
+        </div>
+
+      </div><!-- /config-grid -->
+
+      <!-- Save Actions -->
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+        <button class="btn-secondary">重置为默认值</button>
+        <button class="btn-secondary">预览变更</button>
+        <button class="btn-primary">保存配置</button>
+      </div>
+
+    </div><!-- /tab-config -->
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Mode selector
+document.querySelectorAll('.mode-selector').forEach(selector => {
+  selector.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selector.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.remove('active-enforce','active-observe','active-off');
+      });
+      btn.classList.add('active-' + btn.dataset.mode);
+    });
+  });
+});
+
+// Sidebar nav
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

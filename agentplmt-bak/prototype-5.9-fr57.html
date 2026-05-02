@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-57 可疑建议识别与人工复核触发 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-blocked{background:#fee2e2;color:#b91c1c}.badge-observed{background:#fef3c7;color:#92400e}.badge-allowed{background:#d1fae5;color:#065f46}
+.badge-approved{background:#d1fae5;color:#065f46}.badge-pending{background:#fef3c7;color:#92400e}.badge-rejected{background:#fee2e2;color:#b91c1c}.badge-expired{background:#e5e7eb;color:#6b7280}.badge-overridden{background:#e0e7ff;color:#4338ca}
+.badge-review{background:#e0e7ff;color:#4338ca}.badge-escalated{background:#7c3aed15;color:#7c3aed;border:1px solid #7c3aed30}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-approve{border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;color:#065f46;background:#d1fae5;border:1px solid #a7f3d0;transition:all .2s;cursor:pointer}
+.btn-approve:hover{background:#a7f3d0}
+.btn-reject{border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;color:#b91c1c;background:#fee2e2;border:1px solid #fecaca;transition:all .2s;cursor:pointer}
+.btn-reject:hover{background:#fecaca}
+.btn-evidence{border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;color:#92400e;background:#fef3c7;border:1px solid #fde68a;transition:all .2s;cursor:pointer}
+.btn-evidence:hover{background:#fde68a}
+.btn-escalate{border-radius:14px;padding:5px 12px;font-size:12px;font-weight:600;color:#4338ca;background:#e0e7ff;border:1px solid #c7d2fe;transition:all .2s;cursor:pointer}
+.btn-escalate:hover{background:#c7d2fe}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+.log-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.log-chain-step{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:3px 10px;font-size:11px;font-weight:500}
+.log-chain-arrow{color:#c4b0a2;font-size:14px}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.rule-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:14px;margin-bottom:10px}
+.rule-card .rule-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.rule-card .rule-flag{font-size:12px;font-weight:700;font-family:monospace;color:#dc2626}
+.rule-card .rule-desc{font-size:12px;color:var(--text);line-height:1.6}
+.rule-card .rule-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.rule-card .rule-pattern{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar .filter-select{border-radius:10px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:6px 12px;font-size:12px;color:var(--text-h);outline:none;cursor:pointer}
+.flow-diagram{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:20px 0}
+.flow-step{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:12px 18px;font-size:12px;font-weight:600;color:var(--text-h);text-align:center;min-width:120px;position:relative;transition:all .2s}
+.flow-step:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.flow-step.step-accent{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca;color:#b91c1c}
+.flow-step.step-success{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#a7f3d0;color:#065f46}
+.flow-step.step-warn{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a;color:#92400e}
+.flow-step.step-info{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe;color:#1d4ed8}
+.flow-arrow{color:#c4b0a2;font-size:18px;padding:0 6px;flex-shrink:0}
+.pipeline-stage{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:16px 20px;min-width:140px;text-align:center;transition:all .2s;position:relative}
+.pipeline-stage:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.pipeline-stage .ps-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#b46c50;margin-bottom:4px}
+.pipeline-stage .ps-name{font-size:13px;font-weight:700;color:var(--text-h)}
+.pipeline-stage .ps-detail{font-size:10px;color:#8f8681;margin-top:4px}
+.integration-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;margin-bottom:12px}
+.integration-card .ic-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.integration-card .ic-badge{border-radius:8px;padding:3px 10px;font-size:11px;font-weight:700;font-family:monospace}
+.persuasion-bar{display:flex;align-items:center;gap:8px;margin-top:6px}
+.persuasion-bar .bar-track{flex:1;height:8px;border-radius:4px;background:#f1e7e1;overflow:hidden}
+.persuasion-bar .bar-fill{height:100%;border-radius:4px;transition:width .4s}
+.persuasion-bar .bar-fill.fill-high{background:linear-gradient(90deg,#f97316,#dc2626)}
+.persuasion-bar .bar-fill.fill-med{background:linear-gradient(90deg,#fbbf24,#f97316)}
+.persuasion-bar .bar-fill.fill-low{background:linear-gradient(90deg,#34d399,#059669)}
+.persuasion-bar .bar-label{font-size:11px;font-weight:600;min-width:32px;text-align:right}
+.indicator-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.indicator-item{border-radius:10px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.9);padding:10px 12px}
+.indicator-item .ii-name{font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:4px}
+.indicator-item .ii-detail{font-size:10px;color:#8f8681;line-height:1.5}
+.audit-trail{border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px 18px;margin-top:10px}
+.audit-trail .at-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1e7e1}
+.audit-trail .at-step:last-child{border-bottom:none}
+.audit-trail .at-marker{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.audit-trail .at-marker.m-green{background:#059669}.audit-trail .at-marker.m-red{background:#dc2626}.audit-trail .at-marker.m-yellow{background:#f59e0b}.audit-trail .at-marker.m-blue{background:#3b82f6}
+.audit-trail .at-text{font-size:12px;color:var(--text-h)}.audit-trail .at-time{font-size:10px;color:#8f8681;font-family:monospace;margin-top:2px}
+.expand-row{display:none}.expand-row.visible{display:table-row}
+.expand-content{padding:14px 18px;background:#faf7f4;border-radius:10px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.review-pulse{animation:pulse 1.5s infinite}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.9 人机信任与交互安全</div>
+    <div class="nav-item" data-page="fr55"><span>&#x1f50d; 交互意图透明化</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr56"><span>&#x1f6e1;&#xfe0f; 用户确认与授权机制</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item active" data-page="fr57"><span>&#x26a0;&#xfe0f; 可疑建议识别与人工复核</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr58"><span>&#x1f4cb; 操作可追溯与审计链</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr59"><span>&#x1f517; 信任衰减与动态重认证</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.9 人机信任与交互安全</div>
+      <div class="page-title">FR-57 | 可疑建议识别与人工复核触发 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawAegis</span>
+      <span class="badge badge-sys">OpenClaw</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">可疑建议架构</div>
+      <div class="tab" data-tab="rules">检测规则</div>
+      <div class="tab" data-tab="review">复核队列</div>
+      <div class="tab" data-tab="logs">检测日志</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 可疑建议架构                                            -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Suspicious Suggestion Detection & Human Review Trigger</div>
+        <div class="panel-title">可疑建议识别与人工复核触发架构</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          FR-57 旨在识别并标记 Agent 输出中的可疑建议——包括异常高风险建议、与基线流程不一致的建议、以及带有强说服性但证据不足的建议。核心挑战在于"高信心低证据"的建议最具欺骗性：Agent 使用确定性语言（"绝对安全"、"必须执行"）但缺乏工具调用结果、数据引用或规则匹配等实质证据支撑。此类建议若被直接采纳，可能导致操作人员基于虚假信心执行危险操作。系统通过多维度分析（说服力评分 vs 证据评分）实现可疑建议的自动标记与人工复核触发，确保标记原因可追溯、复核决策有据可依。
+        </p>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="badge badge-critical">异常高风险建议</span>
+          <span class="badge badge-high">基线不一致</span>
+          <span class="badge badge-medium">高说服-低证据</span>
+          <span class="badge badge-sys">ClawAegis Prompt Guard</span>
+          <span class="badge badge-sys">ClawAegis Dispatch Guard</span>
+          <span class="badge badge-sys">OpenClaw 原生</span>
+        </div>
+      </div>
+
+      <!-- Detection Pipeline -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Suspicious Suggestion Detection Pipeline</div>
+            <div class="panel-title">可疑建议检测管线</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:18px;line-height:1.7">
+          检测管线从 Agent 建议输出开始，依次经过基线对比（偏离正常工作流）、说服力与证据分析（高说服+低证据=可疑）、风险模式匹配（Dispatch Guard + Prompt Guard），最终做出放行、标记、要求复核或拦截的决策。PG-02 歧义意图检测是关键触发器——当输入意图不明确时，Agent 可能产生"自以为理解"的高信心建议，此类建议需要特别审查。
+        </p>
+
+        <!-- Pipeline Flow -->
+        <div class="flow-diagram" style="justify-content:center">
+          <div class="pipeline-stage step-accent">
+            <div class="ps-title">Stage 1</div>
+            <div class="ps-name">Agent 建议</div>
+            <div class="ps-detail">Suggestion Output</div>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="pipeline-stage">
+            <div class="ps-title">Stage 2</div>
+            <div class="ps-name">基线对比</div>
+            <div class="ps-detail">Baseline Comparison</div>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="pipeline-stage step-warn">
+            <div class="ps-title">Stage 3</div>
+            <div class="ps-name">说服力 vs 证据</div>
+            <div class="ps-detail">Persuasion vs Evidence</div>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="pipeline-stage">
+            <div class="ps-title">Stage 4</div>
+            <div class="ps-name">风险模式匹配</div>
+            <div class="ps-detail">Pattern Matching</div>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="pipeline-stage step-success">
+            <div class="ps-title">Stage 5</div>
+            <div class="ps-name">决策</div>
+            <div class="ps-detail">Decision</div>
+          </div>
+        </div>
+
+        <!-- Pipeline Stage Details -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px">
+          <!-- Stage 2 Detail -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px 18px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">Stage 2: 基线对比 (Baseline Comparison)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              系统为每种 Agent 操作类型维护历史基线行为档案，实时比对当前建议与基线的偏离程度：<br><br>
+              &bull; <strong>工作流模板匹配</strong>：将建议的操作序列与已建立的工作流模板进行比对，偏差超过阈值即标记<br>
+              &bull; <strong>历史模式对比</strong>：同类 Agent 在相似场景下的历史决策模式，检测异常操作路径<br>
+              &bull; <strong>工具调用序列</strong>：正常流程中工具调用顺序与频率基线，异常序列（如跳过验证直接执行）触发标记<br>
+              &bull; <strong>偏离度计算</strong>：<code>deviation_score = 1 - similarity(current_suggestion, baseline_pattern)</code>，阈值 &theta;=0.35
+            </div>
+          </div>
+          <!-- Stage 3 Detail -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px 18px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">Stage 3: 说服力 vs 证据分析 (Persuasion vs Evidence)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              核心检测逻辑——当建议的说服力评分显著高于证据评分时，标记为可疑建议：<br><br>
+              &bull; <strong>说服力指标</strong>：确定性语言（"绝对"、"必须"、"肯定"）、紧迫性框架（"立即执行"、"不可延迟"）、权威性声明（"根据安全策略"、"已验证"）、风险遗漏（未提及潜在风险）<br>
+              &bull; <strong>证据指标</strong>：工具调用结果引用、数据点支撑、规则匹配确认、交叉验证通过<br>
+              &bull; <strong>可疑判定</strong>：<code>persuasion_score &gt; 0.7 AND evidence_score &lt; 0.3</code> 触发人工复核<br>
+              &bull; <strong>PG-02 关联</strong>：歧义意图触发时，说服力评分权重 +0.15，因 Agent 面对歧义倾向于"虚假确定"
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 4 & 5 Details -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+          <!-- Stage 4 Detail -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px 18px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">Stage 4: 风险模式匹配 (Risk Pattern Matching)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              集成 ClawAegis 与 ClawManager 的安全组件进行模式匹配：<br><br>
+              <strong>ClawAegis Prompt Guard (PG-01~04)</strong>：<br>
+              &bull; <code>PG-01</code> 注入检测 - 识别操纵输入导致建议偏移<br>
+              &bull; <code>PG-02</code> 歧义意图 - 关键触发器，歧义输入增加虚假确定概率<br>
+              &bull; <code>PG-03</code> 上下文操纵 - 检测上下文污染导致的建议异常<br>
+              &bull; <code>PG-04</code> 有害内容 - 识别建议中隐含的有害指令<br><br>
+              <strong>ClawAegis Dispatch Guard</strong> (4 组模式)：<br>
+              &bull; <code>detectDispatchGuardViolation()</code> 返回 <code>{blocked, reason, flags}</code><br>
+              &bull; 建议中包含的命令与 Dispatch Guard 模式交叉匹配
+            </div>
+          </div>
+          <!-- Stage 5 Detail -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px 18px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">Stage 5: 决策 (Decision)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              综合各阶段评分做出最终决策，决策逻辑如下：<br><br>
+              &bull; <strong>放行 (Pass)</strong>：基线偏离 &lt; 0.35，且说服力-证据差距 &lt; 0.3，无 PG/Dispatch 触发<br>
+              &bull; <strong>标记 (Flag)</strong>：基线偏离 &ge; 0.35 或说服力-证据差距 &ge; 0.3，记录标记原因但不阻塞<br>
+              &bull; <strong>要求复核 (Require Review)</strong>：高说服-低证据（差距 &ge; 0.5）或 PG-02 触发+说服力 &gt; 0.7，进入人工复核队列<br>
+              &bull; <strong>拦截 (Block)</strong>：Dispatch Guard <code>blocked=true</code> 或 PG-01/PG-04 触发+高风险操作，立即拦截并通知<br><br>
+              <strong>ClawManager RiskRule 集成</strong>：<br>
+              &bull; <code>HighestSeverity</code> 升级复核优先级<br>
+              &bull; <code>HighestAction</code>=<code>require_approval</code> 自动触发人工复核
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Persuasion & Evidence Indicator Detail -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Persuasion & Evidence Indicators</div>
+            <div class="panel-title">说服力与证据指标体系</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          说服力与证据的双维度分析是可疑建议检测的核心。说服力指标衡量建议的"推动力"——Agent 多么努力地试图让操作者采纳其建议；证据指标衡量建议的"支撑力"——建议有多少实质性数据与验证结果作为依据。当推动力远超支撑力时，建议的可信度应被质疑。
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- Persuasion Indicators -->
+          <div style="border-radius:18px;border:1px solid #fecaca;background:linear-gradient(135deg,#fffbfb,#fef2f2);padding:18px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+              <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f97316,#dc2626);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700">P</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--text-h)">说服力指标 (Persuasion)</div>
+                <div style="font-size:11px;color:#8f8681">推动采纳的语言信号</div>
+              </div>
+            </div>
+            <div class="indicator-grid">
+              <div class="indicator-item">
+                <div class="ii-name">&#x1f4ac; 确定性语言</div>
+                <div class="ii-detail">使用"绝对"、"肯定"、"必须"、"毫无疑问"等绝对化表述。权重: 0.30</div>
+              </div>
+              <div class="indicator-item">
+                <div class="ii-name">&#x23f0; 紧迫性框架</div>
+                <div class="ii-detail">强调"立即执行"、"不可延迟"、"时间紧迫"等紧迫感。权重: 0.25</div>
+              </div>
+              <div class="indicator-item">
+                <div class="ii-name">&#x1f396;&#xfe0f; 权威性声明</div>
+                <div class="ii-detail">声称"根据安全策略"、"已验证通过"、"符合合规"等。权重: 0.25</div>
+              </div>
+              <div class="indicator-item">
+                <div class="ii-name">&#x1f6ab; 风险遗漏</div>
+                <div class="ii-detail">未提及任何潜在风险、副作用或替代方案。权重: 0.20</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.8);border:1px solid #fecaca">
+              <div style="font-size:11px;font-weight:600;color:#b91c1c;margin-bottom:4px">评分公式</div>
+              <div style="font-size:11px;font-family:monospace;color:#6e6763;line-height:1.6">
+                persuasion_score = 0.30 * confident_lang + 0.25 * urgency_frame + 0.25 * authority_claim + 0.20 * risk_omission
+              </div>
+            </div>
+          </div>
+
+          <!-- Evidence Indicators -->
+          <div style="border-radius:18px;border:1px solid #a7f3d0;background:linear-gradient(135deg,#fafffe,#ecfdf5);padding:18px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+              <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#34d399,#059669);display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700">E</div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--text-h)">证据指标 (Evidence)</div>
+                <div style="font-size:11px;color:#8f8681">支撑建议的实质依据</div>
+              </div>
+            </div>
+            <div class="indicator-grid">
+              <div class="indicator-item">
+                <div class="ii-name">&#x1f527; 工具调用结果</div>
+                <div class="ii-detail">引用了实际工具调用返回的数据和结果。权重: 0.30</div>
+              </div>
+              <div class="indicator-item">
+                <div class="ii-name">&#x1f4ca; 数据引用</div>
+                <div class="ii-detail">引用了可验证的数据源、指标或统计信息。权重: 0.25</div>
+              </div>
+              <div class="indicator-item">
+                <div class="ii-name">&#x1f4cb; 规则匹配</div>
+                <div class="ii-detail">建议与已知安全规则、合规要求或策略一致。权重: 0.25</div>
+              </div>
+              <div class="indicator-item">
+                <div class="ii-name">&#x2705; 交叉验证</div>
+                <div class="ii-detail">建议经多源验证或与其他 Agent 结论一致。权重: 0.20</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.8);border:1px solid #a7f3d0">
+              <div style="font-size:11px;font-weight:600;color:#065f46;margin-bottom:4px">评分公式</div>
+              <div style="font-size:11px;font-family:monospace;color:#6e6763;line-height:1.6">
+                evidence_score = 0.30 * tool_results + 0.25 * data_refs + 0.25 * rule_matches + 0.20 * cross_validation
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Suspicion Threshold -->
+        <div style="margin-top:18px;border-radius:14px;border:1px solid #fde68a;background:linear-gradient(135deg,#fffdf7,#fffbeb);padding:16px 20px">
+          <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px">可疑判定阈值 (Suspicion Threshold)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+            <div style="border-radius:10px;background:rgba(255,255,255,0.9);padding:12px;border:1px solid #fde68a">
+              <div style="font-size:11px;font-weight:600;color:#92400e;margin-bottom:4px">标记 (Flag)</div>
+              <div style="font-size:12px;color:var(--text);line-height:1.6">persuasion - evidence &ge; 0.3<br>或 baseline_deviation &ge; 0.35</div>
+            </div>
+            <div style="border-radius:10px;background:rgba(255,255,255,0.9);padding:12px;border:1px solid #fed7aa">
+              <div style="font-size:11px;font-weight:600;color:#c2410c;margin-bottom:4px">要求复核 (Require Review)</div>
+              <div style="font-size:12px;color:var(--text);line-height:1.6">persuasion - evidence &ge; 0.5<br>或 PG-02 + persuasion &gt; 0.7</div>
+            </div>
+            <div style="border-radius:10px;background:rgba(255,255,255,0.9);padding:12px;border:1px solid #fecaca">
+              <div style="font-size:11px;font-weight:600;color:#b91c1c;margin-bottom:4px">拦截 (Block)</div>
+              <div style="font-size:12px;color:var(--text);line-height:1.6">DispatchGuard blocked=true<br>或 PG-01/04 + high_risk_action</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PG-02 Key Trigger Detail -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Key Trigger: PG-02 Ambiguous Intent Detection</div>
+            <div class="panel-title">PG-02 歧义意图检测与可疑建议关联</div>
+          </div>
+          <span class="badge badge-high">关键触发器</span>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          PG-02 是可疑建议检测的关键触发器。当 Agent 输入存在歧义意图时，Agent 倾向于"填补空白"——用高信心表述来掩盖对意图的不确定性。这种"虚假确定"是高说服-低证据建议的主要来源。PG-02 触发后，系统自动提升后续建议的说服力评分权重，并降低证据评分的信任基线，确保歧义输入不会导致不可信建议被直接采纳。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="integration-card">
+            <div class="ic-header">
+              <span class="ic-badge" style="background:#fef3c7;color:#92400e">PG-02</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h)">歧义意图 → 虚假确定</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              &bull; <strong>机制</strong>：Agent 面对"重启实例"的歧义请求，可能将其解读为"停止并重启"而非"滚动重启"，并以"已确认安全重启流程"的高信心表述推荐停止操作<br>
+              &bull; <strong>说服力提升</strong>：PG-02 触发时，<code>persuasion_score += 0.15</code>，因为歧义意图使 Agent 更倾向于使用确定性语言来"消除不确定性"<br>
+              &bull; <strong>证据降级</strong>：<code>evidence_score -= 0.10</code>，因为歧义输入意味着 Agent 的工具调用可能基于错误理解
+            </div>
+          </div>
+          <div class="integration-card">
+            <div class="ic-header">
+              <span class="ic-badge" style="background:#fef3c7;color:#92400e">PG-02</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h)">歧义意图 → 基线偏离</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              &bull; <strong>机制</strong>：歧义意图导致 Agent 选择非标准工作流路径。例如用户意图"更新配置"被歧义解读后，Agent 可能建议直接修改生产配置而非通过变更管理流程<br>
+              &bull; <strong>基线偏离加剧</strong>：PG-02 触发时，<code>deviation_score *= 1.2</code>，因为歧义输入增加了 Agent 选择异常路径的概率<br>
+              &bull; <strong>复核触发</strong>：PG-02 + baseline_deviation &gt; 0.3 自动进入人工复核，确保歧义不会导致非标准操作未经审查执行
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Guard Integration -->
+        <div style="margin-top:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">其他 Prompt Guard 策略与可疑建议的关联</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div style="border-radius:12px;border:1px solid #fecaca;background:#fef2f2;padding:12px">
+              <div style="font-size:11px;font-weight:700;color:#b91c1c;margin-bottom:4px">PG-01 注入检测</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.6">注入攻击可能导致 Agent 建议偏离正常意图，产生"看似合理实则有害"的建议。PG-01 触发时，所有后续建议自动进入复核队列。</div>
+            </div>
+            <div style="border-radius:12px;border:1px solid #fde68a;background:#fffbeb;padding:12px">
+              <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:4px">PG-03 上下文操纵</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.6">上下文污染可能使 Agent 基于错误前提给出建议，导致"在错误框架内正确推理"的高说服建议。PG-03 触发时，证据评分基线 -0.15。</div>
+            </div>
+            <div style="border-radius:12px;border:1px solid #fecaca;background:#fef2f2;padding:12px">
+              <div style="font-size:11px;font-weight:700;color:#b91c1c;margin-bottom:4px">PG-04 有害内容</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.6">有害内容伪装可能使建议隐含危险操作。PG-04 触发时，若建议涉及高风险操作类型，直接拦截并触发人工复核。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exfiltration Guard & Loop Guard -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Additional Guard Integration</div>
+            <div class="panel-title">Exfiltration Guard 与 Loop Guard 联动</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px 18px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px">Exfiltration Guard (4 链决策)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              Exfiltration Guard 的 <code>runtimeRiskFlags</code> 追踪为可疑建议检测提供数据外泄风险信号：<br><br>
+              &bull; <code>encoded-secret-outbound-chain</code> - 建议涉及编码数据传输，证据评分需额外验证<br>
+              &bull; <code>legacy-service-script-chain</code> - 建议使用遗留脚本，基线对比需考虑历史遗留路径<br>
+              &bull; <code>sensitive-source-transform-sink-chain</code> - 建议涉及敏感源转换，自动升级为要求复核<br>
+              &bull; <code>encoded-outbound-chain-risk</code> / <code>sensitive-outbound-chain-risk</code> - 外传风险标志，与说服力-证据差距联合判断
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px 18px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px">Loop Guard (3次/5分钟)</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              Loop Guard 检测持续操纵尝试，与可疑建议检测联动：<br><br>
+              &bull; <strong>重复建议模式</strong>：Agent 在 5 分钟内 3 次以上重复相同或类似建议，即使每次建议单独看风险不高，但重复模式本身表明 Agent 试图"说服"操作者采纳<br>
+              &bull; <strong>说服力累积</strong>：重复建议的 persuasion_score 随重复次数递增，每次重复 +0.10<br>
+              &bull; <strong>触发复核</strong>：Loop Guard 触发时，所有相关建议自动标记并进入复核队列，标记原因包含"持续性重复建议"<br>
+              &bull; <strong>拦截升级</strong>：若重复建议同时触发 PG-01/PG-04，直接拦截
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-arch -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 检测规则                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- Rule Cards: 3 Suspicious Categories -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Suspicious Suggestion Detection Rules</div>
+        <div class="panel-title">可疑建议检测规则</div>
+        <p style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.7">
+          三类可疑建议的检测规则，每类包含检测方法、指标、阈值和动作。规则与 ClawAegis Prompt Guard (PG-01~04)、Dispatch Guard (4 组模式) 和 ClawManager RiskRule 集成。
+        </p>
+      </div>
+
+      <!-- Category 1: Anomalous High-Risk Suggestion -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Category 1</div>
+            <div class="panel-title">异常高风险建议 (Anomalous High-Risk Suggestion)</div>
+          </div>
+          <span class="badge badge-critical">Critical</span>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-flag">SS-CAT-01</span>
+            <span class="badge badge-critical">异常高风险</span>
+          </div>
+          <div class="rule-desc">
+            Agent 建议执行超出正常操作范围的高风险操作，例如建议停止生产实例、删除关键数据、修改安全策略等。此类建议的风险在于操作本身的高影响性——即使建议逻辑看似合理，高风险操作应始终经过人工确认。检测重点在于操作风险等级与建议确定性的匹配度：高风险操作不应以高确定性低证据的方式提出。
+          </div>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">检测方法</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.7">
+                &bull; <strong>操作风险等级</strong>：通过 Dispatch Guard 4 组模式匹配识别建议中的高风险操作<br>
+                &bull; <strong>ClawManager RiskRule</strong>：regex 匹配建议文本，<code>HighestSeverity</code>=high 触发<br>
+                &bullet; <strong>AI Gateway</strong>：<code>resolveTargetModel</code> 返回 <code>require_approval</code> 但建议未提及需审批<br>
+                &bull; <strong>异常范围检测</strong>：建议的操作超出该 Agent 类型的正常操作范围
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">指标与阈值</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.7">
+                &bull; <strong>操作风险</strong>：Dispatch Guard <code>blocked=true</code> 或 RiskRule <code>HighestAction</code>=<code>block</code><br>
+                &bull; <strong>范围偏离</strong>：操作类型不在 Agent 历史操作基线内<br>
+                &bull; <strong>确定性与风险不匹配</strong>：high_risk_action + persuasion &gt; 0.6<br>
+                &bull; <strong>阈值</strong>：任一条件满足即触发
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">典型示例</div>
+            <div style="border-radius:10px;background:#fef2f2;border:1px solid #fecaca;padding:10px 14px;font-size:11px;color:#6e6763;line-height:1.7">
+              Agent 建议"停止生产实例 prod-api-03 以释放资源"，使用了确定性语言"必须停止"，但未提供实例状态检查结果、未提及影响范围、未引用资源监控数据。Dispatch Guard 匹配到 <code>destructive-path-command</code> 模式，RiskRule <code>HighestSeverity</code>=high。建议被标记为异常高风险，触发人工复核。
+            </div>
+          </div>
+          <div class="rule-patterns" style="margin-top:10px">
+            <span class="rule-pattern">PG-01 injection</span>
+            <span class="rule-pattern">PG-04 harmful</span>
+            <span class="rule-pattern">DG:destructive-path-command</span>
+            <span class="rule-pattern">DG:destructive-intent</span>
+            <span class="rule-pattern">RiskRule:severity=high</span>
+            <span class="rule-pattern">RiskRule:action=block</span>
+            <span class="rule-pattern">AI Gateway:require_approval</span>
+          </div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:600;color:var(--text-h)">动作:</span>
+            <span class="badge badge-blocked">拦截 + 人工复核</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category 2: Baseline Inconsistency -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Category 2</div>
+            <div class="panel-title">基线不一致 (Baseline Inconsistency)</div>
+          </div>
+          <span class="badge badge-high">High</span>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-flag">SS-CAT-02</span>
+            <span class="badge badge-high">基线不一致</span>
+          </div>
+          <div class="rule-desc">
+            Agent 建议偏离已建立的工作流基线，例如使用非标准工具序列、跳过验证步骤、采用异常操作路径等。此类建议不一定具有高风险，但偏离基线意味着 Agent 可能受到了输入侧操纵（PG-03 上下文操纵）或歧义输入（PG-02 歧义意图）的影响，导致其选择了非标准决策路径。基线不一致是"过程异常"而非"结果异常"的信号。
+          </div>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">检测方法</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.7">
+                &bull; <strong>工作流模板匹配</strong>：将建议的操作序列与标准工作流模板对比<br>
+                &bull; <strong>历史模式对比</strong>：同类 Agent 在相似场景下的历史决策路径<br>
+                &bull; <strong>工具调用序列检查</strong>：检测跳过验证、省略确认步骤等异常序列<br>
+                &bull; <strong>PG-02/PG-03 关联</strong>：歧义意图或上下文操纵增加基线偏离概率
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">指标与阈值</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.7">
+                &bull; <strong>偏离度</strong>：<code>deviation_score &ge; 0.35</code> 触发标记<br>
+                &bull; <strong>序列跳步</strong>：跳过关键验证步骤，<code>skip_score &ge; 0.5</code><br>
+                &bull; <strong>PG-02 加成</strong>：歧义意图触发时，<code>deviation_score *= 1.2</code><br>
+                &bull; <strong>PG-03 加成</strong>：上下文操纵触发时，<code>deviation_score *= 1.3</code>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">典型示例</div>
+            <div style="border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;padding:10px 14px;font-size:11px;color:#6e6763;line-height:1.7">
+              Agent 建议修改配置文件，正常工作流应先备份当前配置、验证新配置格式、然后在测试环境验证后再推送到生产。但 Agent 建议直接在生产环境修改配置，跳过了备份和测试步骤。工具调用序列偏离基线，<code>deviation_score = 0.52</code>，PG-02 同时触发（歧义意图）。建议被标记为基线不一致，触发人工复核。
+            </div>
+          </div>
+          <div class="rule-patterns" style="margin-top:10px">
+            <span class="rule-pattern">PG-02 ambiguous</span>
+            <span class="rule-pattern">PG-03 context-manip</span>
+            <span class="rule-pattern">baseline:workflow-template</span>
+            <span class="rule-pattern">baseline:tool-sequence</span>
+            <span class="rule-pattern">baseline:historical-pattern</span>
+            <span class="rule-pattern">DG:openclaw-cli-command</span>
+          </div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:600;color:var(--text-h)">动作:</span>
+            <span class="badge badge-review">标记 + 人工复核</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category 3: High-Persuasion Low-Evidence -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Category 3</div>
+            <div class="panel-title">高说服-低证据 (High-Persuasion Low-Evidence)</div>
+          </div>
+          <span class="badge badge-medium">Medium-High</span>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-flag">SS-CAT-03</span>
+            <span class="badge badge-medium">高说服-低证据</span>
+          </div>
+          <div class="rule-desc">
+            Agent 使用高说服性语言推荐操作，但缺乏实质证据支撑。这是最具欺骗性的可疑类型——建议的表述方式让操作者"感觉"可信，但仔细审查后发现没有工具调用结果、数据引用或规则匹配等实质依据。此类建议是"伪安全"的典型表现，Agent 可能基于不完整信息或错误推理得出了高信心结论。
+          </div>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">检测方法</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.7">
+                &bull; <strong>说服力-证据差距分析</strong>：计算 persuasion_score 与 evidence_score 的差距<br>
+                &bull; <strong>确定性语言检测</strong>：NLP 识别绝对化表述、紧迫性框架<br>
+                &bull; <strong>证据缺失检测</strong>：检查建议中是否引用了工具结果、数据、规则<br>
+                &bull; <strong>PG-02 联动</strong>：歧义意图增加虚假确定的概率
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">指标与阈值</div>
+              <div style="font-size:11px;color:var(--text);line-height:1.7">
+                &bull; <strong>差距 &ge; 0.3</strong>：<code>persuasion - evidence &ge; 0.3</code> 标记<br>
+                &bull; <strong>差距 &ge; 0.5</strong>：<code>persuasion - evidence &ge; 0.5</code> 触发人工复核<br>
+                &bull; <strong>伪安全</strong>：<code>persuasion &gt; 0.7 AND evidence &lt; 0.2</code> 高优先级复核<br>
+                &bull; <strong>PG-02 加成</strong>：歧义触发时，persuasion += 0.15, evidence -= 0.10
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">典型示例</div>
+            <div style="border-radius:10px;background:#fffbeb;border:1px solid #fde68a;padding:10px 14px;font-size:11px;color:#6e6763;line-height:1.7">
+              Agent 声称"可以安全删除这些日志文件，绝对没有风险"，使用了确定性语言"绝对没有风险"（persuasion=0.85），但未引用任何工具调用结果来确认这些日志确实可以删除，未检查是否有依赖引用这些日志，未验证磁盘空间是否真正需要释放（evidence=0.15）。差距=0.70，触发高优先级人工复核。
+            </div>
+          </div>
+          <div class="rule-patterns" style="margin-top:10px">
+            <span class="rule-pattern">PG-02 ambiguous</span>
+            <span class="rule-pattern">persuasion:confident-lang</span>
+            <span class="rule-pattern">persuasion:urgency-frame</span>
+            <span class="rule-pattern">persuasion:authority-claim</span>
+            <span class="rule-pattern">persuasion:risk-omission</span>
+            <span class="rule-pattern">evidence:missing-tool-results</span>
+            <span class="rule-pattern">evidence:missing-data-refs</span>
+          </div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-weight:600;color:var(--text-h)">动作:</span>
+            <span class="badge badge-review">要求复核 + 证据补充</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toggle Controls -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Detection Controls</div>
+            <div class="panel-title">检测控制开关</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用可疑建议检测</div>
+            <div class="desc">开启后对所有 Agent 建议进行可疑性分析，包括基线对比、说服力-证据分析和风险模式匹配</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce">强制</div>
+            <div class="mode-btn">观察</div>
+            <div class="mode-btn">关闭</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">自动标记高说服力建议</div>
+            <div class="desc">当 persuasion_score &gt; 0.7 时自动标记建议为可疑，无需等待证据评分计算</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">高风险建议要求证据</div>
+            <div class="desc">涉及高风险操作的建议必须提供工具调用结果或数据引用作为证据，否则触发人工复核</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">PG-02 歧义意图自动触发复核</div>
+            <div class="desc">当 PG-02 检测到歧义意图时，后续所有建议自动进入人工复核队列</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">基线偏离自动标记</div>
+            <div class="desc">建议操作偏离工作流基线超过阈值时自动标记，记录偏离原因和基线参考</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Loop Guard 重复建议检测</div>
+            <div class="desc">5 分钟内 3 次以上重复类似建议时触发标记，防止持续说服性操纵</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- PG-01~04 Pattern Integration -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Prompt Guard Pattern Integration</div>
+            <div class="panel-title">PG-01~04 模式集成</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="integration-card">
+            <div class="ic-header">
+              <span class="ic-badge" style="background:#fee2e2;color:#b91c1c">PG-01</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h)">Prompt Injection Detection</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              与可疑建议检测联动：<br>
+              &bull; <strong>触发效果</strong>：所有后续建议自动进入复核队列，persuasion_score 基线 +0.15<br>
+              &bull; <strong>异常高风险关联</strong>：PG-01 + high_risk_action = 直接拦截<br>
+              &bull; <strong>高说服-低证据关联</strong>：PG-01 触发时证据评分额外 -0.10（注入可能伪造证据）<br>
+              &bull; <strong>Dispatch Guard 联动</strong>：PG-01 触发时 <code>detectDispatchGuardViolation()</code> 优先执行
+            </div>
+          </div>
+          <div class="integration-card">
+            <div class="ic-header">
+              <span class="ic-badge" style="background:#fef3c7;color:#92400e">PG-02</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h)">Ambiguous Intent Detection</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              与可疑建议检测联动：<br>
+              &bull; <strong>触发效果</strong>：后续建议 persuasion_score += 0.15，evidence_score -= 0.10<br>
+              &bull; <strong>基线不一致关联</strong>：PG-02 + deviation &gt; 0.3 = 自动人工复核<br>
+              &bull; <strong>虚假确定关联</strong>：PG-02 + persuasion &gt; 0.7 = 高优先级复核<br>
+              &bull; <strong>关键触发器</strong>：PG-02 是高说服-低证据建议的主要前置信号
+            </div>
+          </div>
+          <div class="integration-card">
+            <div class="ic-header">
+              <span class="ic-badge" style="background:#fef3c7;color:#92400e">PG-03</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h)">Context Manipulation Detection</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              与可疑建议检测联动：<br>
+              &bull; <strong>触发效果</strong>：evidence_score 基线 -0.15（上下文污染可能导致伪证据）<br>
+              &bull; <strong>基线不一致关联</strong>：PG-03 触发时 deviation_score *= 1.3<br>
+              &bull; <strong>伪安全解释关联</strong>：PG-03 + 建议引用"已验证"但无工具结果 = 高度可疑<br>
+              &bull; <strong>ExfilGuard 联动</strong>：PG-03 + runtimeRiskFlags 非空 = 数据外泄风险复核
+            </div>
+          </div>
+          <div class="integration-card">
+            <div class="ic-header">
+              <span class="ic-badge" style="background:#fee2e2;color:#b91c1c">PG-04</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h)">Harmful Content Detection</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              与可疑建议检测联动：<br>
+              &bull; <strong>触发效果</strong>：建议涉及高风险操作时直接拦截<br>
+              &bull; <strong>异常高风险关联</strong>：PG-04 + DispatchGuard blocked = 立即拦截+通知<br>
+              &bull; <strong>伪装检测关联</strong>：PG-04 + 高说服语言 = 有害内容伪装，拦截并标记<br>
+              &bull; <strong>ClawManager RiskRule</strong>：PG-04 触发时 RiskRule <code>HighestSeverity</code> 自动升级
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-rules -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 复核队列                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-review">
+
+      <!-- Queue Overview -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">7</div>
+          <div class="sc-label">待复核</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#f59e0b">3</div>
+          <div class="sc-label">等待证据补充</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#7c3aed">2</div>
+          <div class="sc-label">已升级</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">156</div>
+          <div class="sc-label">本月已处理</div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="app-panel">
+        <div class="filter-bar">
+          <select class="filter-select">
+            <option>全部状态</option>
+            <option>待复核</option>
+            <option>等待证据</option>
+            <option>已升级</option>
+            <option>已批准</option>
+            <option>已拒绝</option>
+          </select>
+          <select class="filter-select">
+            <option>全部类型</option>
+            <option>异常高风险</option>
+            <option>基线不一致</option>
+            <option>高说服-低证据</option>
+          </select>
+          <select class="filter-select">
+            <option>全部风险等级</option>
+            <option>Critical</option>
+            <option>High</option>
+            <option>Medium</option>
+          </select>
+          <select class="filter-select">
+            <option>全部Agent</option>
+            <option>ops-agent-01</option>
+            <option>config-agent-02</option>
+            <option>deploy-agent-03</option>
+          </select>
+          <button class="btn-secondary btn-sm">&#x1f50d; 筛选</button>
+          <button class="btn-primary btn-sm">&#x2699;&#xfe0f; 批量操作</button>
+        </div>
+
+        <!-- Review Queue Table -->
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>建议ID</th>
+              <th>Agent</th>
+              <th>建议类型</th>
+              <th>风险等级</th>
+              <th>说服力</th>
+              <th>证据</th>
+              <th>可疑指标</th>
+              <th>提交时间</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Entry 1: Stop production instance -->
+            <tr>
+              <td><span class="log-id">SSG-2026-0431</span></td>
+              <td><span class="tag">ops-agent-01</span></td>
+              <td><span class="badge badge-critical">异常高风险</span></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-high" style="width:85%"></div></div>
+                  <div class="bar-label" style="color:#dc2626">0.85</div>
+                </div>
+              </td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-low" style="width:10%"></div></div>
+                  <div class="bar-label" style="color:#059669">0.10</div>
+                </div>
+              </td>
+              <td>
+                <div class="tag-list">
+                  <span class="tag" style="color:#b91c1c;border-color:#fecaca">确定性语言</span>
+                  <span class="tag" style="color:#b91c1c;border-color:#fecaca">风险遗漏</span>
+                  <span class="tag" style="color:#c2410c;border-color:#fed7aa">DG:blocked</span>
+                </div>
+              </td>
+              <td style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 09:14</td>
+              <td><span class="badge badge-pending review-pulse">待复核</span></td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-approve">批准</button>
+                  <button class="btn-reject">拒绝</button>
+                  <button class="btn-evidence">补证据</button>
+                  <button class="btn-escalate">升级</button>
+                </div>
+              </td>
+            </tr>
+            <!-- Entry 2: Config change outside scope -->
+            <tr>
+              <td><span class="log-id">SSG-2026-0430</span></td>
+              <td><span class="tag">config-agent-02</span></td>
+              <td><span class="badge badge-high">基线不一致</span></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-med" style="width:55%"></div></div>
+                  <div class="bar-label" style="color:#d97706">0.55</div>
+                </div>
+              </td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-low" style="width:25%"></div></div>
+                  <div class="bar-label" style="color:#059669">0.25</div>
+                </div>
+              </td>
+              <td>
+                <div class="tag-list">
+                  <span class="tag" style="color:#92400e;border-color:#fde68a">跳过验证</span>
+                  <span class="tag" style="color:#92400e;border-color:#fde68a">基线偏离</span>
+                  <span class="tag" style="color:#c2410c;border-color:#fed7aa">PG-02</span>
+                </div>
+              </td>
+              <td style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 08:47</td>
+              <td><span class="badge badge-pending review-pulse">待复核</span></td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-approve">批准</button>
+                  <button class="btn-reject">拒绝</button>
+                  <button class="btn-evidence">补证据</button>
+                  <button class="btn-escalate">升级</button>
+                </div>
+              </td>
+            </tr>
+            <!-- Entry 3: "Safe to proceed" without assessment -->
+            <tr>
+              <td><span class="log-id">SSG-2026-0429</span></td>
+              <td><span class="tag">deploy-agent-03</span></td>
+              <td><span class="badge badge-medium">高说服-低证据</span></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-high" style="width:78%"></div></div>
+                  <div class="bar-label" style="color:#dc2626">0.78</div>
+                </div>
+              </td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-low" style="width:15%"></div></div>
+                  <div class="bar-label" style="color:#059669">0.15</div>
+                </div>
+              </td>
+              <td>
+                <div class="tag-list">
+                  <span class="tag" style="color:#b91c1c;border-color:#fecaca">权威性声明</span>
+                  <span class="tag" style="color:#b91c1c;border-color:#fecaca">伪安全</span>
+                  <span class="tag" style="color:#92400e;border-color:#fde68a">无工具结果</span>
+                </div>
+              </td>
+              <td style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 08:22</td>
+              <td><span class="badge badge-review">等待证据</span></td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-approve">批准</button>
+                  <button class="btn-reject">拒绝</button>
+                  <button class="btn-escalate">升级</button>
+                </div>
+              </td>
+            </tr>
+            <!-- Entry 4: Urgent scaling recommendation -->
+            <tr>
+              <td><span class="log-id">SSG-2026-0428</span></td>
+              <td><span class="tag">ops-agent-01</span></td>
+              <td><span class="badge badge-medium">高说服-低证据</span></td>
+              <td><span class="badge badge-medium">Medium</span></td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-med" style="width:72%"></div></div>
+                  <div class="bar-label" style="color:#d97706">0.72</div>
+                </div>
+              </td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-low" style="width:30%"></div></div>
+                  <div class="bar-label" style="color:#059669">0.30</div>
+                </div>
+              </td>
+              <td>
+                <div class="tag-list">
+                  <span class="tag" style="color:#92400e;border-color:#fde68a">紧迫性框架</span>
+                  <span class="tag" style="color:#92400e;border-color:#fde68a">无数据引用</span>
+                </div>
+              </td>
+              <td style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 07:58</td>
+              <td><span class="badge badge-pending review-pulse">待复核</span></td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-approve">批准</button>
+                  <button class="btn-reject">拒绝</button>
+                  <button class="btn-evidence">补证据</button>
+                  <button class="btn-escalate">升级</button>
+                </div>
+              </td>
+            </tr>
+            <!-- Entry 5: Repeated suggestion (Loop Guard) -->
+            <tr>
+              <td><span class="log-id">SSG-2026-0427</span></td>
+              <td><span class="tag">config-agent-02</span></td>
+              <td><span class="badge badge-high">基线不一致</span></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-high" style="width:80%"></div></div>
+                  <div class="bar-label" style="color:#dc2626">0.80</div>
+                </div>
+              </td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-low" style="width:20%"></div></div>
+                  <div class="bar-label" style="color:#059669">0.20</div>
+                </div>
+              </td>
+              <td>
+                <div class="tag-list">
+                  <span class="tag" style="color:#b91c1c;border-color:#fecaca">重复建议</span>
+                  <span class="tag" style="color:#92400e;border-color:#fde68a">LoopGuard</span>
+                  <span class="tag" style="color:#92400e;border-color:#fde68a">基线偏离</span>
+                </div>
+              </td>
+              <td style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 07:31</td>
+              <td><span class="badge badge-escalated">已升级</span></td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-approve">批准</button>
+                  <button class="btn-reject">拒绝</button>
+                </div>
+              </td>
+            </tr>
+            <!-- Entry 6: Approved after evidence -->
+            <tr>
+              <td><span class="log-id">SSG-2026-0426</span></td>
+              <td><span class="tag">deploy-agent-03</span></td>
+              <td><span class="badge badge-medium">高说服-低证据</span></td>
+              <td><span class="badge badge-medium">Medium</span></td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-med" style="width:62%"></div></div>
+                  <div class="bar-label" style="color:#d97706">0.62</div>
+                </div>
+              </td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-low" style="width:55%"></div></div>
+                  <div class="bar-label" style="color:#059669">0.55</div>
+                </div>
+              </td>
+              <td>
+                <div class="tag-list">
+                  <span class="tag" style="color:#065f46;border-color:#a7f3d0">已补证据</span>
+                </div>
+              </td>
+              <td style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 06:45</td>
+              <td><span class="badge badge-approved">已批准</span></td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm" style="font-size:11px">查看详情</button>
+                </div>
+              </td>
+            </tr>
+            <!-- Entry 7: Rejected -->
+            <tr>
+              <td><span class="log-id">SSG-2026-0425</span></td>
+              <td><span class="tag">ops-agent-01</span></td>
+              <td><span class="badge badge-critical">异常高风险</span></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-high" style="width:92%"></div></div>
+                  <div class="bar-label" style="color:#dc2626">0.92</div>
+                </div>
+              </td>
+              <td>
+                <div class="persuasion-bar">
+                  <div class="bar-track"><div class="bar-fill fill-low" style="width:5%"></div></div>
+                  <div class="bar-label" style="color:#059669">0.05</div>
+                </div>
+              </td>
+              <td>
+                <div class="tag-list">
+                  <span class="tag" style="color:#b91c1c;border-color:#fecaca">PG-01</span>
+                  <span class="tag" style="color:#b91c1c;border-color:#fecaca">注入检测</span>
+                  <span class="tag" style="color:#b91c1c;border-color:#fecaca">DG:blocked</span>
+                </div>
+              </td>
+              <td style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 05:12</td>
+              <td><span class="badge badge-rejected">已拒绝</span></td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm" style="font-size:11px">查看详情</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Detail Panel for SSG-2026-0431 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Review Detail</div>
+            <div class="panel-title">建议详情: SSG-2026-0431</div>
+          </div>
+          <span class="badge badge-critical">Critical</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">建议内容</div>
+            <div style="border-radius:12px;border:1px solid #fecaca;background:#fef2f2;padding:14px 18px;font-size:12px;color:var(--text);line-height:1.8">
+              "建议立即停止生产实例 prod-api-03 以释放计算资源。该实例当前处于空闲状态，停止后不会影响业务运行。必须立即执行，延迟将导致资源浪费持续扩大。"
+            </div>
+            <div style="margin-top:12px;font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">标记原因追溯</div>
+            <div class="audit-trail">
+              <div class="at-step">
+                <div class="at-marker m-red"></div>
+                <div>
+                  <div class="at-text"><strong>Dispatch Guard</strong>: 匹配 <code>destructive-path-command</code> 模式，<code>blocked=true</code>, reason="stop production instance"</div>
+                  <div class="at-time">2026-05-01 09:14:22.331</div>
+                </div>
+              </div>
+              <div class="at-step">
+                <div class="at-marker m-red"></div>
+                <div>
+                  <div class="at-text"><strong>RiskRule</strong>: Pattern <code>/stop.*instance/i</code> 匹配, HighestSeverity=high, HighestAction=block</div>
+                  <div class="at-time">2026-05-01 09:14:22.345</div>
+                </div>
+              </div>
+              <div class="at-step">
+                <div class="at-marker m-yellow"></div>
+                <div>
+                  <div class="at-text"><strong>说服力分析</strong>: 确定性语言("必须立即") 0.30 + 紧迫性("延迟将导致") 0.25 + 权威性("不会影响") 0.15 + 风险遗漏(未提及影响) 0.15 = <strong>0.85</strong></div>
+                  <div class="at-time">2026-05-01 09:14:22.358</div>
+                </div>
+              </div>
+              <div class="at-step">
+                <div class="at-marker m-green"></div>
+                <div>
+                  <div class="at-text"><strong>证据分析</strong>: 无工具调用结果 0.00 + 无数据引用 0.00 + 无规则匹配 0.05 + 无交叉验证 0.05 = <strong>0.10</strong></div>
+                  <div class="at-time">2026-05-01 09:14:22.362</div>
+                </div>
+              </div>
+              <div class="at-step">
+                <div class="at-marker m-red"></div>
+                <div>
+                  <div class="at-text"><strong>决策</strong>: 说服力-证据差距=0.75 &ge; 0.5, DG blocked=true → <strong>拦截 + 人工复核</strong></div>
+                  <div class="at-time">2026-05-01 09:14:22.370</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">评分可视化</div>
+            <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px">
+              <div class="score-circle score-low">
+                <div class="score-num">0.85</div>
+                <div class="score-label">说服力</div>
+              </div>
+              <div style="font-size:24px;color:#c4b0a2">vs</div>
+              <div class="score-circle score-high">
+                <div class="score-num">0.10</div>
+                <div class="score-label">证据</div>
+              </div>
+              <div style="margin-left:16px;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca">
+                <div style="font-size:11px;font-weight:600;color:#b91c1c;margin-bottom:4px">差距</div>
+                <div style="font-size:20px;font-weight:700;color:#dc2626">0.75</div>
+              </div>
+            </div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">复核操作</div>
+            <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px">
+              <div class="form-group">
+                <label class="form-label">复核决定</label>
+                <select class="form-select" style="width:100%">
+                  <option>选择操作...</option>
+                  <option>批准 - 允许执行</option>
+                  <option>拒绝 - 阻止执行</option>
+                  <option>要求更多证据 - 需 Agent 补充</option>
+                  <option>升级 - 转交高级审核员</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">复核意见</label>
+                <textarea class="form-input" style="min-height:80px;resize:vertical" placeholder="输入复核意见..."></textarea>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:flex-end">
+                <button class="btn-secondary">取消</button>
+                <button class="btn-primary">提交复核</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-review -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 检测日志                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-logs">
+
+      <!-- Score Circle & Stats -->
+      <div style="display:flex;gap:22px;align-items:flex-start;margin-bottom:22px">
+        <div class="score-circle score-med">
+          <div class="score-num">4.2%</div>
+          <div class="score-label">可疑检测率</div>
+        </div>
+        <div style="flex:1">
+          <div class="stat-row" style="margin-bottom:0">
+            <div class="stat-card">
+              <div class="sc-value" style="color:var(--text-h)">3,847</div>
+              <div class="sc-label">总建议数</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#dc2626">162</div>
+              <div class="sc-label">已标记</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#f59e0b">89</div>
+              <div class="sc-label">高说服力</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#7c3aed">73</div>
+              <div class="sc-label">基线偏离</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Entries -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Suspicious Suggestion Detection Log</div>
+            <div class="panel-title">检测日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <select class="filter-select" style="border-radius:10px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:6px 12px;font-size:12px;color:var(--text-h);outline:none;cursor:pointer">
+              <option>全部类型</option>
+              <option>可疑标记</option>
+              <option>基线偏离</option>
+              <option>高说服-低证据</option>
+              <option>人工复核</option>
+            </select>
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+
+        <!-- Log 1: PG-02 triggered suspicious flag -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">SSG-EVT-0431</span>
+            <span class="badge badge-critical">可疑标记</span>
+            <span class="badge badge-sys">PG-02</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="log-time">2026-05-01 09:14:22</span>
+          </div>
+          <div class="log-body">
+            可疑建议被标记: Agent <code>ops-agent-01</code> 建议停止生产实例 <code>prod-api-03</code>，PG-02 歧义意图检测触发，Dispatch Guard 匹配 <code>destructive-path-command</code> 模式。建议使用高确定性语言但未提供实例状态检查结果。建议已拦截并进入人工复核队列。
+          </div>
+          <div class="log-detail">
+            suggestion_id: SSG-2026-0431 | type: anomalous_high_risk | persuasion: 0.85 | evidence: 0.10 | gap: 0.75<br>
+            pg_triggers: [PG-02 ambiguous_intent] | dg_result: {blocked: true, reason: "stop production instance", flags: ["destructive-path-command"]}<br>
+            risk_rule: {pattern: /stop.*instance/i, severity: high, action: block}<br>
+            decision: BLOCK + REVIEW | reviewer: pending
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 建议</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">PG-02 触发</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#fef2f2;border-color:#fecaca">DG: blocked</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#fef2f2;border-color:#fecaca">拦截+复核</span>
+          </div>
+        </div>
+
+        <!-- Log 2: Baseline deviation detected -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">SSG-EVT-0430</span>
+            <span class="badge badge-high">基线偏离</span>
+            <span class="badge badge-sys">Baseline</span>
+            <span class="badge badge-high">High</span>
+            <span class="log-time">2026-05-01 08:47:15</span>
+          </div>
+          <div class="log-body">
+            基线偏离检测: Agent <code>config-agent-02</code> 建议直接修改生产配置文件，偏离标准工作流基线。正常工作流要求先备份、验证、测试后推送，但建议跳过了备份和测试步骤。PG-02 歧义意图同时触发（用户输入"更新配置"意图不明确）。偏离度 <code>0.52</code>，超过阈值 <code>0.35</code>。
+          </div>
+          <div class="log-detail">
+            suggestion_id: SSG-2026-0430 | type: baseline_inconsistency | deviation_score: 0.52 | threshold: 0.35<br>
+            pg_triggers: [PG-02 ambiguous_intent] | baseline_ref: config-change-workflow-v3<br>
+            skipped_steps: [backup_config, validate_format, test_env_verify]<br>
+            decision: FLAG + REVIEW | reviewer: pending
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 建议</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#fffbeb;border-color:#fde68a">基线对比</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">PG-02 触发</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">标记+复核</span>
+          </div>
+        </div>
+
+        <!-- Log 3: High-persuasion low-evidence identified -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">SSG-EVT-0429</span>
+            <span class="badge badge-medium">高说服-低证据</span>
+            <span class="badge badge-high">High</span>
+            <span class="log-time">2026-05-01 08:22:08</span>
+          </div>
+          <div class="log-body">
+            高说服-低证据建议识别: Agent <code>deploy-agent-03</code> 声称"可以安全继续部署，已通过所有验证"，persuasion_score=<code>0.78</code>（权威性声明"已通过验证" + 确定性语言"可以安全" + 风险遗漏），evidence_score=<code>0.15</code>（无工具调用结果引用、无验证报告数据、无交叉验证）。差距=<code>0.63</code>，超过复核阈值 <code>0.5</code>，触发人工复核。
+          </div>
+          <div class="log-detail">
+            suggestion_id: SSG-2026-0429 | type: high_persuasion_low_evidence<br>
+            persuasion: 0.78 | evidence: 0.15 | gap: 0.63<br>
+            persuasion_breakdown: {confident_lang: 0.22, urgency: 0.15, authority_claim: 0.26, risk_omission: 0.15}<br>
+            evidence_breakdown: {tool_results: 0.05, data_refs: 0.00, rule_matches: 0.05, cross_validation: 0.05}<br>
+            decision: REQUIRE_REVIEW + REQUEST_EVIDENCE | evidence_request_sent: true
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 建议</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#fffbeb;border-color:#fde68a">说服力分析</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#ecfdf5;border-color:#a7f3d0">证据分析</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#e0e7ff;border-color:#c7d2fe">要求复核</span>
+          </div>
+        </div>
+
+        <!-- Log 4: Human review completed -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">SSG-EVT-0426</span>
+            <span class="badge badge-approved">复核完成</span>
+            <span class="log-time">2026-05-01 07:12:33</span>
+          </div>
+          <div class="log-body">
+            人工复核完成: 建议 <code>SSG-2026-0426</code> 经复核员 <code>reviewer-zhang</code> 审核后批准执行。Agent <code>deploy-agent-03</code> 已补充工具调用结果（健康检查通过、资源使用率正常），evidence_score 从 <code>0.28</code> 提升至 <code>0.55</code>，说服力-证据差距降至 <code>0.07</code>。复核意见："证据充分，建议合理。"
+          </div>
+          <div class="log-detail">
+            suggestion_id: SSG-2026-0426 | decision: APPROVED<br>
+            reviewer: reviewer-zhang | review_time: 2026-05-01 07:12:33<br>
+            evidence_before: 0.28 → evidence_after: 0.55 | gap_before: 0.34 → gap_after: 0.07<br>
+            evidence_added: [health_check: pass, resource_usage: normal, deployment_history: verified]<br>
+            review_note: "证据充分，建议合理。"
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">标记复核</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#fffbeb;border-color:#fde68a">请求证据</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#ecfdf5;border-color:#a7f3d0">证据补充</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="background:#d1fae5;border-color:#a7f3d0">批准</span>
+          </div>
+        </div>
+
+        <!-- Log 5: Suggestion overridden -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">SSG-EVT-0424</span>
+            <span class="badge badge-overridden">建议覆盖</span>
+            <span class="badge badge-sys">Override</span>
+            <span class="log-time">2026-05-01 06:03:51</span>
+          </div>
+          <div class="log-body">
+            建议被操作者覆盖: 建议 <code>SSG-2026-0424</code> 被标记为"基线不一致"（非标准工具调用序列），但操作者 <code>admin-li</code> 选择覆盖标记并执行。覆盖原因："紧急情况，使用非标准流程是必要的。" 操作者具有 <code>admin</code> 角色，覆盖权限已验证。此覆盖行为已记录至审计日志。
+          </div>
+          <div class="log-detail">
+            suggestion_id: SSG-2026-0424 | flag: baseline_inconsistency | override_by: admin-li<br>
+            override_reason: "紧急情况，使用非标准流程是必要的。"<br>
+            operator_role: admin | override_authorized: true | audit_logged: true
+          </div>
+        </div>
+
+        <!-- Log 6: Evidence provided after flag -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">SSG-EVT-0422</span>
+            <span class="badge badge-observed">证据补充</span>
+            <span class="log-time">2026-05-01 05:45:19</span>
+          </div>
+          <div class="log-body">
+            标记后证据补充: 建议 <code>SSG-2026-0422</code> 被标记为"高说服-低证据"后，Agent <code>ops-agent-01</code> 自行补充了工具调用结果。补充的证据包括: 实例状态查询结果（运行中）、资源使用率报告（CPU 85%）、依赖服务健康检查（全部正常）。evidence_score 从 <code>0.18</code> 提升至 <code>0.72</code>，差距降至 <code>0.08</code>，建议自动降级为"已验证"。
+          </div>
+          <div class="log-detail">
+            suggestion_id: SSG-2026-0422 | flag: high_persuasion_low_evidence<br>
+            evidence_before: 0.18 → evidence_after: 0.72 | gap_before: 0.62 → gap_after: 0.08<br>
+            evidence_added: [instance_status: running, cpu_usage: 85%, health_check: all_pass]<br>
+            auto_downgrade: flagged → verified | review_required: false
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /tab-logs -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                   -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Suspicion Sensitivity -->
+        <div class="config-section">
+          <div class="cs-title">可疑敏感度配置</div>
+          <div class="form-group">
+            <label class="form-label">异常高风险建议敏感度</label>
+            <select class="form-select" style="width:100%">
+              <option selected>高 - 所有高风险操作均触发复核</option>
+              <option>中 - 仅 DispatchGuard blocked 触发</option>
+              <option>低 - 仅 Critical 级别触发</option>
+            </select>
+            <div class="form-hint">控制异常高风险建议的检测严格程度，高敏感度意味着更多建议进入复核</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">基线不一致敏感度</label>
+            <select class="form-select" style="width:100%">
+              <option>高 - deviation &ge; 0.25 触发</option>
+              <option selected>中 - deviation &ge; 0.35 触发</option>
+              <option>低 - deviation &ge; 0.50 触发</option>
+            </select>
+            <div class="form-hint">基线偏离阈值，越低越严格，更多建议被标记为基线不一致</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">高说服-低证据敏感度</label>
+            <select class="form-select" style="width:100%">
+              <option>高 - 差距 &ge; 0.3 触发复核</option>
+              <option selected>中 - 差距 &ge; 0.5 触发复核</option>
+              <option>低 - 差距 &ge; 0.7 触发复核</option>
+            </select>
+            <div class="form-hint">说服力与证据评分差距阈值，越低越严格</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">伪安全检测阈值</label>
+            <input type="text" class="form-input" value="persuasion > 0.7 AND evidence < 0.2">
+            <div class="form-hint">高说服极低证据的"伪安全"建议判定条件</div>
+          </div>
+        </div>
+
+        <!-- Persuasion Indicator Weights -->
+        <div class="config-section">
+          <div class="cs-title">说服力指标权重</div>
+          <div class="form-group">
+            <label class="form-label">确定性语言权重</label>
+            <input type="text" class="form-input" value="0.30">
+            <div class="form-hint">绝对化表述（"绝对"、"必须"、"肯定"）的权重</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">紧迫性框架权重</label>
+            <input type="text" class="form-input" value="0.25">
+            <div class="form-hint">紧迫感表述（"立即执行"、"不可延迟"）的权重</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">权威性声明权重</label>
+            <input type="text" class="form-input" value="0.25">
+            <div class="form-hint">权威引用（"根据安全策略"、"已验证"）的权重</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">风险遗漏权重</label>
+            <input type="text" class="form-input" value="0.20">
+            <div class="form-hint">未提及潜在风险的权重</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">证据指标权重</label>
+            <div style="font-size:11px;color:var(--text);line-height:1.7;margin-top:4px">
+              工具调用结果: <strong>0.30</strong> | 数据引用: <strong>0.25</strong> | 规则匹配: <strong>0.25</strong> | 交叉验证: <strong>0.20</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evidence Threshold Requirements -->
+        <div class="config-section">
+          <div class="cs-title">证据阈值要求</div>
+          <div class="form-group">
+            <label class="form-label">高风险操作最低证据评分</label>
+            <input type="text" class="form-input" value="0.50">
+            <div class="form-hint">高风险操作的建议必须达到此证据评分，否则触发人工复核</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">中风险操作最低证据评分</label>
+            <input type="text" class="form-input" value="0.30">
+            <div class="form-hint">中风险操作的建议必须达到此证据评分</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">必须证据类型（高风险操作）</label>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+              <span class="tag" style="color:#065f46;border-color:#a7f3d0">&#x2713; 工具调用结果</span>
+              <span class="tag" style="color:#065f46;border-color:#a7f3d0">&#x2713; 数据引用</span>
+              <span class="tag" style="color:#92400e;border-color:#fde68a">&#x25cb; 规则匹配</span>
+              <span class="tag" style="color:#92400e;border-color:#fde68a">&#x25cb; 交叉验证</span>
+            </div>
+            <div class="form-hint">高风险操作至少需要工具调用结果和数据引用两项证据</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">证据补充超时</label>
+            <input type="text" class="form-input" value="30 分钟">
+            <div class="form-hint">Agent 被要求补充证据后的超时时间，超时后自动升级</div>
+          </div>
+        </div>
+
+        <!-- Baseline Comparison Method -->
+        <div class="config-section">
+          <div class="cs-title">基线对比方法</div>
+          <div class="form-group">
+            <label class="form-label">对比方法</label>
+            <select class="form-select" style="width:100%">
+              <option selected>历史模式 + 工作流模板</option>
+              <option>仅历史模式</option>
+              <option>仅工作流模板</option>
+              <option>自定义基线</option>
+            </select>
+            <div class="form-hint">基线对比使用历史 Agent 行为模式、标准工作流模板或两者结合</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">历史基线窗口</label>
+            <select class="form-select" style="width:100%">
+              <option>7 天</option>
+              <option selected>30 天</option>
+              <option>90 天</option>
+            </select>
+            <div class="form-hint">使用多久的历史数据构建基线模式</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">基线更新频率</label>
+            <select class="form-select" style="width:100%">
+              <option selected>每日</option>
+              <option>每周</option>
+              <option>手动</option>
+            </select>
+            <div class="form-hint">基线模式的自动更新频率</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">偏离阈值 (deviation_score)</label>
+            <input type="text" class="form-input" value="0.35">
+            <div class="form-hint">当前值: 标记=0.35, 复核=0.50, PG-02加成×1.2, PG-03加成×1.3</div>
+          </div>
+        </div>
+
+        <!-- PG-01~04 Sensitivity -->
+        <div class="config-section">
+          <div class="cs-title">Prompt Guard 敏感度设置</div>
+          <div class="form-group">
+            <label class="form-label">PG-01 注入检测灵敏度</label>
+            <select class="form-select" style="width:100%">
+              <option>高 - 任何注入信号触发全量复核</option>
+              <option selected>中 - 高置信注入信号触发复核</option>
+              <option>低 - 仅确定注入触发</option>
+            </select>
+            <div class="form-hint">触发后效果: 所有后续建议进入复核队列, persuasion_score 基线 +0.15</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">PG-02 歧义意图灵敏度</label>
+            <select class="form-select" style="width:100%">
+              <option selected>高 - 歧义意图自动触发后续复核</option>
+              <option>中 - 歧义意图 + 说服力 &gt; 0.6 触发</option>
+              <option>低 - 仅明显歧义触发</option>
+            </select>
+            <div class="form-hint">触发后效果: persuasion += 0.15, evidence -= 0.10, deviation *= 1.2</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">PG-03 上下文操纵灵敏度</label>
+            <select class="form-select" style="width:100%">
+              <option>高 - 任何操纵信号触发</option>
+              <option selected>中 - 高置信操纵触发</option>
+              <option>低 - 仅确定操纵触发</option>
+            </select>
+            <div class="form-hint">触发后效果: evidence_score 基线 -0.15, deviation_score *= 1.3</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">PG-04 有害内容灵敏度</label>
+            <select class="form-select" style="width:100%">
+              <option selected>高 - 有害内容 + 高风险操作直接拦截</option>
+              <option>中 - 有害内容触发复核</option>
+              <option>低 - 仅明确有害内容触发</option>
+            </select>
+            <div class="form-hint">触发后效果: 高风险操作直接拦截, RiskRule HighestSeverity 自动升级</div>
+          </div>
+        </div>
+
+        <!-- Dispatch Guard & Review Settings -->
+        <div class="config-section">
+          <div class="cs-title">Dispatch Guard 集成与复核设置</div>
+          <div class="form-group">
+            <label class="form-label">Dispatch Guard 模式集成</label>
+            <div style="font-size:11px;color:var(--text);line-height:1.7;margin-top:4px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <span style="color:#059669">&#x2713;</span> <code>openclaw-cli-command</code> - CLI 命令模式匹配
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <span style="color:#059669">&#x2713;</span> <code>destructive-path-command</code> - 破坏性路径命令
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                <span style="color:#059669">&#x2713;</span> <code>destructive-intent</code> - 破坏性意图
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="color:#059669">&#x2713;</span> <code>bypass-tool-call</code> - 工具调用绕过
+              </div>
+            </div>
+            <div class="form-hint">所有 4 组 Dispatch Guard 模式均已启用，blocked=true 时建议自动拦截</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">复核超时时间</label>
+            <input type="text" class="form-input" value="4 小时">
+            <div class="form-hint">待复核建议超时后自动升级至高级审核员</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">升级规则</label>
+            <select class="form-select" style="width:100%">
+              <option selected>超时自动升级 + Critical 手动升级</option>
+              <option>仅超时自动升级</option>
+              <option>仅手动升级</option>
+            </select>
+            <div class="form-hint">复核超时或标记为 Critical 时自动升级至高级审核员</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">标记原因追溯深度</label>
+            <select class="form-select" style="width:100%">
+              <option>完整 - 包含所有评分分解和触发链</option>
+              <option selected>标准 - 包含主要触发原因和评分</option>
+              <option>简洁 - 仅包含触发原因</option>
+            </select>
+            <div class="form-hint">控制标记原因的追溯记录详细程度，影响审计日志的存储量</div>
+          </div>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="config-section">
+          <div class="cs-title">通知设置</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">新可疑建议通知</div>
+              <div class="desc">当新建议被标记为可疑时通知复核员</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">Critical 级别即时通知</div>
+              <div class="desc">Critical 级别可疑建议立即推送通知</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">复核超时提醒</div>
+              <div class="desc">复核即将超时时提醒复核员</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">升级通知</div>
+              <div class="desc">建议被升级时通知高级审核员</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">覆盖操作通知</div>
+              <div class="desc">操作者覆盖可疑标记时通知安全团队</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">每日检测摘要</div>
+              <div class="desc">每日发送可疑建议检测摘要报告</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <!-- Exfiltration Guard Integration -->
+        <div class="config-section">
+          <div class="cs-title">Exfiltration Guard 联动配置</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">runtimeRiskFlags 联动检测</div>
+              <div class="desc">当 Exfiltration Guard 的 runtimeRiskFlags 非空时，提升可疑评分</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">sensitive-source-transform-sink-chain</div>
+              <div class="desc">敏感源转换汇链触发时自动升级为要求复核</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">encoded-secret-outbound-chain</div>
+              <div class="desc">编码秘密外传链触发时证据评分需额外验证</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">Loop Guard 重复建议检测</div>
+              <div class="desc">5 分钟内 3 次重复类似建议时触发，persuasion 每次递增 +0.10</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label class="form-label">重复检测窗口</label>
+            <input type="text" class="form-input" value="5 分钟 / 3 次">
+            <div class="form-hint">在指定时间窗口内重复达到指定次数时触发 Loop Guard</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Save Button -->
+      <div style="margin-top:22px;display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn-secondary">重置默认</button>
+        <button class="btn-primary">&#x1f4be; 保存配置</button>
+      </div>
+
+    </div><!-- /tab-config -->
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    const target=document.getElementById('tab-'+tab.dataset.tab);
+    if(target) target.classList.add('active');
+  });
+});
+
+// Mode selector
+document.querySelectorAll('.mode-selector').forEach(selector=>{
+  selector.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      selector.querySelectorAll('.mode-btn').forEach(b=>{
+        b.classList.remove('active-enforce','active-observe','active-off');
+      });
+      if(btn.textContent.includes('强制')) btn.classList.add('active-enforce');
+      else if(btn.textContent.includes('观察')) btn.classList.add('active-observe');
+      else btn.classList.add('active-off');
+    });
+  });
+});
+
+// Sidebar nav
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

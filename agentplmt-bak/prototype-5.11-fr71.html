@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-71 风险运营与策略闭环 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-pass{background:#ecfdf5;color:#059669}.badge-fail{background:#fef2f2;color:#dc2626}.badge-warn{background:#fef3c7;color:#92400e}
+.badge-optimize{background:#ede9fe;color:#6d28d9}.badge-stable{background:#d1fae5;color:#065f46}.badge-review{background:#fef3c7;color:#92400e}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.rule-card{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.rule-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.rule-card .rc-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.rule-card .rc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-left:10px}
+.rule-card .rc-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.rule-card .rc-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.flow-step{display:flex;align-items:center;gap:14px;margin-bottom:18px;position:relative}
+.flow-step-num{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;z-index:2}
+.flow-step-content{flex:1;border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:14px 18px}
+.flow-step-content .fs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:4px}
+.flow-step-content .fs-desc{font-size:12px;color:var(--text);line-height:1.7}
+.flow-step-content .fs-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.flow-connector{width:2px;height:18px;background:#eadfd8;margin-left:19px}
+.diff-container{border-radius:10px;overflow:hidden;border:1px solid #eadfd8;margin:8px 0}
+.diff-line{padding:3px 12px;font-size:12px;font-family:monospace;line-height:1.6}
+.diff-removed{background:#fef2f2;color:#b91c1c;text-decoration:line-through}
+.diff-added{background:#ecfdf5;color:#065f46}
+.fp-bar{height:8px;border-radius:4px;background:#f1e7e1;overflow:hidden;display:flex;margin-top:4px}
+.fp-bar .fp-tp{background:#059669}.fp-bar .fp-fp{background:#f59e0b}.fp-bar .fp-fn{background:#dc2626}
+.metric-trend{display:flex;align-items:center;gap:6px;font-size:12px}
+.metric-trend .trend-up{color:#dc2626;font-weight:600}.metric-trend .trend-down{color:#059669;font-weight:600}.metric-trend .trend-flat{color:#8f8681;font-weight:500}
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:40px}
+.mini-chart .mc-bar{width:8px;border-radius:3px 3px 0 0;transition:height .4s ease}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.11 审计追踪与运营治理</div>
+    <div class="nav-item" data-page="fr65"><span>FR-65 全链路追踪</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr66"><span>FR-66 安全事件日志</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr67"><span>FR-67 日志防篡改</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr68"><span>FR-68 期望态合规</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr69"><span>FR-69 自动隔离与快照</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr70"><span>FR-70 证据保留与回放</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item active" data-page="fr71"><span>FR-71 风险运营与策略闭环</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.11 审计追踪与运营治理</div>
+      <div class="page-title">FR-71 | 风险运营与策略闭环 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">平台运营层</span>
+      <span class="badge badge-sys">ClawManager</span>
+      <span class="badge badge-sys">ClawAegis</span>
+      <span class="badge badge-sys">KSecure</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">策略闭环架构</div>
+      <div class="tab" data-tab="ops">规则运营</div>
+      <div class="tab" data-tab="fp">误报管理</div>
+      <div class="tab" data-tab="change">策略变更</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ===================== TAB 1: 策略闭环架构 ===================== -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:#6d28d9">47</div>
+          <div class="sc-label">活跃规则数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">89.2%</div>
+          <div class="sc-label">平均真阳性率</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">6.8%</div>
+          <div class="sc-label">平均误报率</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">23</div>
+          <div class="sc-label">本月策略变更</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">v3.7</div>
+          <div class="sc-label">当前规则版本</div>
+        </div>
+      </div>
+
+      <!-- Closed-Loop Architecture -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Closed-Loop Optimization</div>
+            <div class="panel-title">策略闭环优化架构</div>
+          </div>
+          <span class="badge badge-pass">&#x21bb; 运行中</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+          策略闭环优化是一个持续迭代的过程，从安全事件的监测与分析出发，经过规则与阈值的调优、A/B验证、版本化发布，最终通过审计追踪确保每一次变更可追溯。闭环的核心目标是降低误报率、提升检测精度，同时保证策略变更的安全可控。
+        </p>
+
+        <!-- Flow Steps -->
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#ef6b4a,#dc2626)">1</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Monitor 监测</div>
+            <div class="fs-desc">实时采集审计事件、告警、误报上报和处置结果。覆盖ClawManager RiskRule触发记录、ClawAegis 12个防御模块的拦截日志、KSecure 38个基线检查脚本合规结果、KubeArmor策略执行反馈。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">审计事件</span>
+              <span class="badge badge-sys">告警记录</span>
+              <span class="badge badge-sys">误报上报</span>
+              <span class="badge badge-sys">处置结果</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#f59e0b,#d97706)">2</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Analyze 分析</div>
+            <div class="fs-desc">对监测数据进行趋势分析和根因定位。识别误报率升高的规则（如RiskRule R-007的误报率从5%升至12%），分析ClawAegis Dispatch Guard的4个模式组命中分布，检查KSecure基线漂移方向，关联KubeArmor策略执行偏差。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">趋势分析</span>
+              <span class="badge badge-sys">根因定位</span>
+              <span class="badge badge-sys">误报归因</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">3</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Optimize 优化</div>
+            <div class="fs-desc">根据分析结果调整规则参数和阈值。包括修改RiskRule的正则Pattern与Severity等级，调整ClawAegis防御模块的enforce/observe/off模式，优化Command Block的16个HIGH_RISK_COMMAND_PATTERNS匹配精度，调优Loop Guard的3次/5分钟阈值，更新KSecure基线脚本期望值。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">规则调整</span>
+              <span class="badge badge-sys">阈值优化</span>
+              <span class="badge badge-sys">模式切换</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">4</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Validate 验证</div>
+            <div class="fs-desc">在影子环境中进行A/B测试，对比新旧规则的TP/FP表现。验证期间原规则继续生效，新规则仅观察模式运行。确认误报率显著下降且真阳性率不降后，方可进入发布流程。典型验证周期为7天，覆盖至少1000条告警样本。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">A/B测试</span>
+              <span class="badge badge-sys">影子环境</span>
+              <span class="badge badge-sys">效果对比</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#059669,#047857)">5</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Deploy 发布</div>
+            <div class="fs-desc">版本化发布优化后的规则。每次发布生成新版本号（当前v3.7），支持灰度发布（先对10%实例生效，逐步扩大到100%）。发布后持续监控72小时，如发现异常可一键回滚至上一版本。RiskRule、KubeArmor策略均支持版本化回滚。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">版本化</span>
+              <span class="badge badge-sys">灰度发布</span>
+              <span class="badge badge-sys">回滚</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#171212,#696363)">6</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Audit 审计</div>
+            <div class="fs-desc">所有策略变更记录完整审计日志，包含变更人、变更时间、变更内容（旧值→新值）、审批人、变更原因。支持按时间、规则、操作人等维度查询。审计日志保留365天，满足合规审计要求。变更记录与RiskRule版本历史、KSecure基线版本、KubeArmor策略版本关联。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">变更追踪</span>
+              <span class="badge badge-sys">审批记录</span>
+              <span class="badge badge-sys">合规留痕</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Loop -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Feedback Loop</div>
+            <div class="panel-title">检测事件到规则优化的反馈回路</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#dc2626"></div>
+            <div class="rc-header">
+              <span class="rc-title">ClawManager RiskRule 反馈</span>
+              <span class="badge badge-high">7条活跃规则</span>
+            </div>
+            <div class="rc-body">
+              RiskRule R-001 ~ R-007 的触发频率、真阳性率、误报率持续采集。当误报率超过10%阈值时，自动触发优化流程。R-007已在本次迭代中将误报率从12%降至3%，正则表达式精度提升。
+              <div style="margin-top:8px">
+                <div class="fp-bar"><div class="fp-tp" style="width:87%"></div><div class="fp-fp" style="width:8%"></div><div class="fp-fn" style="width:5%"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:#8f8681;margin-top:2px"><span>TP 87%</span><span>FP 8%</span><span>FN 5%</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#f59e0b"></div>
+            <div class="rc-header">
+              <span class="rc-title">ClawAegis 防御模块反馈</span>
+              <span class="badge badge-medium">12个模块</span>
+            </div>
+            <div class="rc-body">
+              12个防御模块（Dispatch Guard 4组、Command Block 16模式、Loop Guard等）的enforce/observe/off模式效果持续评估。Command Block中rm -rf /等3条规则误报率偏高，建议从enforce切换为observe收集更多样本后再优化。
+              <div style="margin-top:8px">
+                <div class="fp-bar"><div class="fp-tp" style="width:91%"></div><div class="fp-fp" style="width:6%"></div><div class="fp-fn" style="width:3%"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:#8f8681;margin-top:2px"><span>TP 91%</span><span>FP 6%</span><span>FN 3%</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#3b82f6"></div>
+            <div class="rc-header">
+              <span class="rc-title">KSecure 基线合规反馈</span>
+              <span class="badge badge-low">38个脚本</span>
+            </div>
+            <div class="rc-body">
+              38个基线检查脚本的合规趋势持续跟踪。本月发现5个脚本出现合规漂移，其中SSH-EmptyPW和SHA512-Password已自动修复。合规率从94.7%回升至97.2%。基线版本从v2.1更新至v2.3，新增2个CIS Benchmark检查项。
+              <div style="margin-top:8px">
+                <div class="fp-bar"><div class="fp-tp" style="width:97.2%"></div><div class="fp-fp" style="width:2.8%"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:#8f8681;margin-top:2px"><span>合规 97.2%</span><span>漂移 2.8%</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#6d28d9"></div>
+            <div class="rc-header">
+              <span class="rc-title">KubeArmor 策略反馈</span>
+              <span class="badge badge-optimize">FIM/CIS/STIG</span>
+            </div>
+            <div class="rc-body">
+              KubeArmor的FIM文件完整性监控、CIS/STIG合规策略和预设策略的执行效果持续评估。FIM策略本月触发47次告警，其中12次为预期内变更（部署更新），误报率25.5%。建议将部署窗口期加入白名单。CIS策略合规率稳定在92%。
+              <div style="margin-top:8px">
+                <div class="fp-bar"><div class="fp-tp" style="width:74.5%"></div><div class="fp-fp" style="width:25.5%"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:#8f8681;margin-top:2px"><span>有效 74.5%</span><span>误报 25.5%</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Optimization Cycles -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Recent Cycles</div>
+            <div class="panel-title">近期优化周期</div>
+          </div>
+          <button class="btn-secondary btn-sm">查看全部</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>周期ID</th><th>起始时间</th><th>阶段</th><th>涉及规则</th><th>误报率变化</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CYC-2026-014</td>
+              <td>2026-04-28</td>
+              <td><span class="badge badge-pass">Deploy</span></td>
+              <td>R-007, CB-003, CB-005</td>
+              <td><span class="metric-trend"><span class="trend-down">&#x2193; 12% &#x2192; 3%</span></span></td>
+              <td><span class="badge badge-stable">&#x2713; 完成</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CYC-2026-013</td>
+              <td>2026-04-22</td>
+              <td><span class="badge badge-optimize">Validate</span></td>
+              <td>DG-002, DG-004</td>
+              <td><span class="metric-trend"><span class="trend-down">&#x2193; 8% &#x2192; 5%</span></span></td>
+              <td><span class="badge badge-review">&#x23f3; A/B测试中</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CYC-2026-012</td>
+              <td>2026-04-15</td>
+              <td><span class="badge badge-pass">Audit</span></td>
+              <td>KS-BL-SSH, KS-BL-SHA</td>
+              <td><span class="metric-trend"><span class="trend-flat">&#x2192; 基线漂移 0%</span></span></td>
+              <td><span class="badge badge-stable">&#x2713; 完成</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CYC-2026-011</td>
+              <td>2026-04-08</td>
+              <td><span class="badge badge-warn">Optimize</span></td>
+              <td>FIM-POL-003, FIM-POL-007</td>
+              <td><span class="metric-trend"><span class="trend-up">&#x2191; 20% &#x2192; 25.5%</span></span></td>
+              <td><span class="badge badge-warn">&#x26a0; 误报率上升</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 2: 规则运营 ===================== -->
+    <div class="tab-content" id="tab-ops">
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">1,247</div>
+          <div class="sc-label">本月告警总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">1,112</div>
+          <div class="sc-label">真阳性</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">85</div>
+          <div class="sc-label">误报</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">50</div>
+          <div class="sc-label">漏报</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">6.8%</div>
+          <div class="sc-label">整体误报率</div>
+        </div>
+      </div>
+
+      <!-- ClawManager RiskRule -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager RiskRule</div>
+            <div class="panel-title">RiskRule 规则运营效果</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x2699; 批量调优</button>
+            <button class="btn-primary btn-sm">+ 新建规则</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>RuleID</th><th>名称</th><th>Pattern</th><th>Severity</th><th>Action</th><th>触发次数</th><th>真阳性率</th><th>误报率</th><th>最后调优</th><th>版本</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">R-001</td>
+              <td>危险命令执行</td>
+              <td style="font-family:monospace;font-size:11px;color:#8f8681">rm\s+-rf\s+/</td>
+              <td><span class="badge badge-critical">CRITICAL</span></td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+              <td>312</td>
+              <td style="color:#059669;font-weight:700">96.5%</td>
+              <td style="color:#059669;font-weight:600">3.5%</td>
+              <td>2026-04-20</td>
+              <td style="font-family:monospace">v3.7.1</td>
+              <td><span class="badge badge-stable">稳定</span></td>
+              <td><button class="btn-secondary btn-sm">调优</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">R-002</td>
+              <td>权限提升检测</td>
+              <td style="font-family:monospace;font-size:11px;color:#8f8681">sudo\s+chmod\s+777</td>
+              <td><span class="badge badge-high">HIGH</span></td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+              <td>187</td>
+              <td style="color:#059669;font-weight:700">93.0%</td>
+              <td style="color:#d97706;font-weight:600">7.0%</td>
+              <td>2026-04-18</td>
+              <td style="font-family:monospace">v3.6.2</td>
+              <td><span class="badge badge-review">待优化</span></td>
+              <td><button class="btn-secondary btn-sm">调优</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">R-003</td>
+              <td>网络扫描行为</td>
+              <td style="font-family:monospace;font-size:11px;color:#8f8681">nmap|netcat\s+-l</td>
+              <td><span class="badge badge-high">HIGH</span></td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+              <td>95</td>
+              <td style="color:#059669;font-weight:700">88.4%</td>
+              <td style="color:#d97706;font-weight:600">11.6%</td>
+              <td>2026-03-28</td>
+              <td style="font-family:monospace">v3.5.0</td>
+              <td><span class="badge badge-warn">误报偏高</span></td>
+              <td><button class="btn-secondary btn-sm">调优</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">R-004</td>
+              <td>敏感文件访问</td>
+              <td style="font-family:monospace;font-size:11px;color:#8f8681">/etc/shadow|/etc/passwd</td>
+              <td><span class="badge badge-medium">MEDIUM</span></td>
+              <td><span class="badge badge-observe">OBSERVE</span></td>
+              <td>423</td>
+              <td style="color:#059669;font-weight:700">94.1%</td>
+              <td style="color:#d97706;font-weight:600">5.9%</td>
+              <td>2026-04-25</td>
+              <td style="font-family:monospace">v3.7.0</td>
+              <td><span class="badge badge-stable">稳定</span></td>
+              <td><button class="btn-secondary btn-sm">调优</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">R-005</td>
+              <td>异常进程创建</td>
+              <td style="font-family:monospace;font-size:11px;color:#8f8681">/tmp/\.\w{6,}</td>
+              <td><span class="badge badge-high">HIGH</span></td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+              <td>156</td>
+              <td style="color:#059669;font-weight:700">91.0%</td>
+              <td style="color:#d97706;font-weight:600">9.0%</td>
+              <td>2026-04-12</td>
+              <td style="font-family:monospace">v3.6.4</td>
+              <td><span class="badge badge-review">待优化</span></td>
+              <td><button class="btn-secondary btn-sm">调优</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">R-006</td>
+              <td>容器逃逸尝试</td>
+              <td style="font-family:monospace;font-size:11px;color:#8f8681">cgroup.*release_agent</td>
+              <td><span class="badge badge-critical">CRITICAL</span></td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+              <td>28</td>
+              <td style="color:#059669;font-weight:700">100%</td>
+              <td style="color:#059669;font-weight:600">0%</td>
+              <td>2026-04-01</td>
+              <td style="font-family:monospace">v3.5.2</td>
+              <td><span class="badge badge-stable">稳定</span></td>
+              <td><button class="btn-secondary btn-sm">调优</button></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">R-007</td>
+              <td>循环命令检测</td>
+              <td style="font-family:monospace;font-size:11px;color:#8f8681">while\s+true.+curl</td>
+              <td><span class="badge badge-high">HIGH</span></td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+              <td>46</td>
+              <td style="color:#059669;font-weight:700">97.0%</td>
+              <td style="color:#059669;font-weight:600">3.0%</td>
+              <td>2026-04-28</td>
+              <td style="font-family:monospace">v3.7.2</td>
+              <td><span class="badge badge-pass">已优化</span></td>
+              <td><button class="btn-secondary btn-sm">调优</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ClawAegis Module Performance -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Defense Modules</div>
+            <div class="panel-title">ClawAegis 防御模块运营效果</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>模块</th><th>模式</th><th>触发次数</th><th>真阳性率</th><th>误报率</th><th>最后调优</th><th>版本</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>Dispatch Guard - Group 1</td><td><span class="badge badge-enforce">ENFORCE</span></td><td>89</td><td style="color:#059669;font-weight:700">92.1%</td><td style="color:#059669;font-weight:600">7.9%</td><td>2026-04-15</td><td style="font-family:monospace">v2.4</td><td><span class="badge badge-stable">稳定</span></td></tr>
+            <tr><td>Dispatch Guard - Group 2</td><td><span class="badge badge-observe">OBSERVE</span></td><td>134</td><td style="color:#d97706;font-weight:700">84.3%</td><td style="color:#d97706;font-weight:600">15.7%</td><td>2026-04-22</td><td style="font-family:monospace">v2.5-rc</td><td><span class="badge badge-warn">A/B测试中</span></td></tr>
+            <tr><td>Dispatch Guard - Group 3</td><td><span class="badge badge-enforce">ENFORCE</span></td><td>56</td><td style="color:#059669;font-weight:700">94.6%</td><td style="color:#059669;font-weight:600">5.4%</td><td>2026-04-10</td><td style="font-family:monospace">v2.3</td><td><span class="badge badge-stable">稳定</span></td></tr>
+            <tr><td>Dispatch Guard - Group 4</td><td><span class="badge badge-enforce">ENFORCE</span></td><td>72</td><td style="color:#059669;font-weight:700">90.3%</td><td style="color:#d97706;font-weight:600">9.7%</td><td>2026-04-05</td><td style="font-family:monospace">v2.3</td><td><span class="badge badge-review">待优化</span></td></tr>
+            <tr><td>Command Block - rm -rf /</td><td><span class="badge badge-enforce">ENFORCE</span></td><td>203</td><td style="color:#059669;font-weight:700">98.5%</td><td style="color:#059669;font-weight:600">1.5%</td><td>2026-04-01</td><td style="font-family:monospace">v3.1</td><td><span class="badge badge-stable">稳定</span></td></tr>
+            <tr><td>Command Block - chmod 777</td><td><span class="badge badge-observe">OBSERVE</span></td><td>87</td><td style="color:#d97706;font-weight:700">79.3%</td><td style="color:#dc2626;font-weight:600">20.7%</td><td>2026-04-18</td><td style="font-family:monospace">v3.2-rc</td><td><span class="badge badge-warn">误报偏高</span></td></tr>
+            <tr><td>Command Block - curl | sh</td><td><span class="badge badge-enforce">ENFORCE</span></td><td>145</td><td style="color:#059669;font-weight:700">95.2%</td><td style="color:#059669;font-weight:600">4.8%</td><td>2026-04-12</td><td style="font-family:monospace">v3.1</td><td><span class="badge badge-stable">稳定</span></td></tr>
+            <tr><td>Loop Guard (3x/5min)</td><td><span class="badge badge-enforce">ENFORCE</span></td><td>34</td><td style="color:#059669;font-weight:700">88.2%</td><td style="color:#d97706;font-weight:600">11.8%</td><td>2026-04-20</td><td style="font-family:monospace">v1.8</td><td><span class="badge badge-review">待优化</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- KSecure Baseline -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KSecure Baseline Compliance</div>
+            <div class="panel-title">KSecure 基线合规趋势</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#059669"></div>
+            <div class="rc-header"><span class="rc-title">合规率</span></div>
+            <div class="rc-body">
+              <div style="font-size:28px;font-weight:800;color:#059669">97.2%</div>
+              <div class="metric-trend" style="margin-top:4px"><span class="trend-down">&#x2191; +2.5%</span><span style="color:#8f8681">vs 上月</span></div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#dc2626"></div>
+            <div class="rc-header"><span class="rc-title">漂移项</span></div>
+            <div class="rc-body">
+              <div style="font-size:28px;font-weight:800;color:#dc2626">5</div>
+              <div class="metric-trend" style="margin-top:4px"><span class="trend-down">&#x2193; -3</span><span style="color:#8f8681">已修复</span></div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#6d28d9"></div>
+            <div class="rc-header"><span class="rc-title">基线版本</span></div>
+            <div class="rc-body">
+              <div style="font-size:28px;font-weight:800;color:#6d28d9">v2.3</div>
+              <div style="font-size:11px;color:#8f8681;margin-top:4px">38个检查脚本，2个新增项</div>
+            </div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>基线脚本</th><th>类别</th><th>合规状态</th><th>上次检查</th><th>漂移趋势</th><th>版本</th></tr></thead>
+          <tbody>
+            <tr><td>SSH-EmptyPW</td><td>认证安全</td><td><span class="badge badge-pass">&#x2713; 合规</span></td><td>2026-04-30</td><td><span class="metric-trend"><span class="trend-down">&#x2193; 已修复</span></span></td><td style="font-family:monospace">v2.3</td></tr>
+            <tr><td>SHA512-Password</td><td>密码策略</td><td><span class="badge badge-pass">&#x2713; 合规</span></td><td>2026-04-30</td><td><span class="metric-trend"><span class="trend-down">&#x2193; 已修复</span></span></td><td style="font-family:monospace">v2.3</td></tr>
+            <tr><td>FilePerm-EtcPasswd</td><td>文件权限</td><td><span class="badge badge-pass">&#x2713; 合规</span></td><td>2026-04-30</td><td><span class="metric-trend"><span class="trend-flat">&#x2192; 稳定</span></span></td><td style="font-family:monospace">v2.2</td></tr>
+            <tr><td>Kernel-Modules</td><td>内核安全</td><td><span class="badge badge-warn">&#x26a0; 漂移</span></td><td>2026-04-30</td><td><span class="metric-trend"><span class="trend-up">&#x2191; 新漂移</span></span></td><td style="font-family:monospace">v2.1</td></tr>
+            <tr><td>Firewall-Default</td><td>网络安全</td><td><span class="badge badge-pass">&#x2713; 合规</span></td><td>2026-04-30</td><td><span class="metric-trend"><span class="trend-flat">&#x2192; 稳定</span></span></td><td style="font-family:monospace">v2.2</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Actions -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">规则操作</div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn-primary">&#x2699; 调整阈值</button>
+          <button class="btn-secondary" style="border-color:#dc2626;color:#dc2626">&#x26d4; 禁用规则</button>
+          <button class="btn-secondary">&#x2795; 创建例外</button>
+          <button class="btn-secondary">&#x1f4dd; 请求审核</button>
+          <button class="btn-secondary">&#x21bb; 批量同步</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 3: 误报管理 ===================== -->
+    <div class="tab-content" id="tab-fp">
+
+      <!-- FP Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">1,247</div>
+          <div class="sc-label">告警总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">1,112</div>
+          <div class="sc-label">真阳性 TP</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">85</div>
+          <div class="sc-label">误报 FP</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">6.8%</div>
+          <div class="sc-label">误报率</div>
+        </div>
+      </div>
+
+      <!-- FP Toggle -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">误报追踪设置</div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">误报率追踪</div>
+            <div class="desc">启用后，所有告警将标记为TP/FP，并计算每条规则的误报率趋势</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="fp-track" checked>
+            <label class="toggle-slider" for="fp-track"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">自动误报上报</div>
+            <div class="desc">当同一规则在24小时内被标记为误报超过3次，自动创建误报工单</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="fp-auto" checked>
+            <label class="toggle-slider" for="fp-auto"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">误报率阈值告警</div>
+            <div class="desc">当规则误报率超过10%时，发送告警通知至运营团队</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="fp-alert" checked>
+            <label class="toggle-slider" for="fp-alert"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- FP Records Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">False Positive Records</div>
+            <div class="panel-title">误报记录</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" style="width:200px" placeholder="搜索误报记录...">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+            <button class="btn-primary btn-sm">+ 上报误报</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>FP ID</th><th>规则</th><th>上下文</th><th>上报人</th><th>日期</th><th>分析</th><th>处置</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">FP-0042</td>
+              <td>R-003 网络扫描</td>
+              <td style="font-size:12px">CI/CD管道nmap端口检查，属合法运维操作</td>
+              <td>张伟(运维)</td>
+              <td>2026-04-29</td>
+              <td><span class="badge badge-warn">分析中</span></td>
+              <td><span class="badge badge-review">待处理</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">FP-0041</td>
+              <td>CB-chmod 777</td>
+              <td style="font-size:12px">容器初始化脚本设置/tmp权限，开发环境预期行为</td>
+              <td>李明(开发)</td>
+              <td>2026-04-28</td>
+              <td><span class="badge badge-pass">已确认误报</span></td>
+              <td><span class="badge badge-optimize">建议切换observe</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">FP-0040</td>
+              <td>DG-Group2</td>
+              <td style="font-size:12px">API健康检查触发Dispatch Guard模式匹配，正常流量</td>
+              <td>系统自动</td>
+              <td>2026-04-27</td>
+              <td><span class="badge badge-pass">已确认误报</span></td>
+              <td><span class="badge badge-stable">已加入白名单</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">FP-0039</td>
+              <td>FIM-POL-003</td>
+              <td style="font-size:12px">部署更新触发FIM告警，预期内文件变更</td>
+              <td>王芳(SRE)</td>
+              <td>2026-04-26</td>
+              <td><span class="badge badge-pass">已确认误报</span></td>
+              <td><span class="badge badge-review">建议部署窗口白名单</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">FP-0038</td>
+              <td>R-005 异常进程</td>
+              <td style="font-size:12px">/tmp/build-cache是构建缓存目录，非恶意进程</td>
+              <td>赵军(开发)</td>
+              <td>2026-04-25</td>
+              <td><span class="badge badge-warn">分析中</span></td>
+              <td><span class="badge badge-review">待处理</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">FP-0037</td>
+              <td>Loop Guard</td>
+              <td style="font-size:12px">监控组件健康检查5次/5min，触发循环阈值</td>
+              <td>系统自动</td>
+              <td>2026-04-24</td>
+              <td><span class="badge badge-pass">已确认误报</span></td>
+              <td><span class="badge badge-stable">阈值已调整4x/5min</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Common FP Pattern Cards -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Common FP Patterns</div>
+            <div class="panel-title">常见误报模式与修复建议</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#f59e0b"></div>
+            <div class="rc-header">
+              <span class="rc-title">CI/CD管道误触发</span>
+              <span class="badge badge-warn">高频</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>影响规则:</strong> R-003, CB-chmod, DG-Group2</p>
+              <p><strong>根因:</strong> CI/CD管道中的自动化操作（nmap端口检查、chmod权限设置、健康检查分发）被安全规则误判为恶意行为。</p>
+              <p><strong>修复建议:</strong> 1) 为CI/CD服务账号创建专属白名单；2) 标记CI/CD来源的告警自动降级；3) 调整正则Pattern排除已知CI/CD命令模式。</p>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#f59e0b"></div>
+            <div class="rc-header">
+              <span class="rc-title">部署更新FIM误报</span>
+              <span class="badge badge-warn">中频</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>影响规则:</strong> FIM-POL-003, FIM-POL-007</p>
+              <p><strong>根因:</strong> 应用部署更新时修改二进制文件和配置文件，触发KubeArmor FIM策略告警，实际为预期内变更。</p>
+              <p><strong>修复建议:</strong> 1) 配置部署窗口白名单（如每日02:00-04:00）；2) 部署前发送FIM静默信号；3) 关联部署工单自动标记为预期变更。</p>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#3b82f6"></div>
+            <div class="rc-header">
+              <span class="rc-title">健康检查循环误报</span>
+              <span class="badge badge-low">低频</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>影响规则:</strong> Loop Guard (3x/5min)</p>
+              <p><strong>根因:</strong> 监控组件每分钟执行健康检查，5分钟内触发超过3次循环阈值。实际为正常心跳机制。</p>
+              <p><strong>修复建议:</strong> 1) 将Loop Guard阈值从3次/5min调整为4次/5min；2) 对健康检查类Agent添加豁免标记；3) 区分主动循环和被动响应模式。</p>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#3b82f6"></div>
+            <div class="rc-header">
+              <span class="rc-title">开发环境宽松权限</span>
+              <span class="badge badge-low">低频</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>影响规则:</strong> CB-chmod 777, R-002</p>
+              <p><strong>根因:</strong> 开发环境容器初始化脚本使用chmod 777设置临时目录权限，在生产环境中不应出现但在dev环境属正常行为。</p>
+              <p><strong>修复建议:</strong> 1) 区分dev/prod环境的规则策略；2) dev环境Command Block切换为observe模式；3) 添加环境标签实现策略差异化。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 4: 策略变更 ===================== -->
+    <div class="tab-content" id="tab-change">
+
+      <!-- Change Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">23</div>
+          <div class="sc-label">本月变更</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">18</div>
+          <div class="sc-label">已审批</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">3</div>
+          <div class="sc-label">待审批</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">2</div>
+          <div class="sc-label">已回滚</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#6d28d9">v3.7</div>
+          <div class="sc-label">当前版本</div>
+        </div>
+      </div>
+
+      <!-- Change Log -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Policy Change Log</div>
+            <div class="panel-title">策略变更记录</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" style="width:200px" placeholder="搜索变更...">
+            <button class="btn-primary btn-sm">+ 提交变更</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>变更ID</th><th>规则</th><th>旧值</th><th>新值</th><th>原因</th><th>审批人</th><th>日期</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CHG-0342</td>
+              <td>R-007 循环命令</td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-removed">Pattern: while\s+true.+curl</div>
+                  <div class="diff-line diff-removed">Severity: CRITICAL</div>
+                </div>
+              </td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-added">Pattern: while\s+true.+(curl|wget).+(?!health)</div>
+                  <div class="diff-line diff-added">Severity: HIGH</div>
+                </div>
+              </td>
+              <td style="font-size:12px">误报率12%→3%，排除健康检查模式，降级Severity</td>
+              <td>陈磊(安全)</td>
+              <td>2026-04-28</td>
+              <td><span class="badge badge-pass">已生效</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CHG-0341</td>
+              <td>DG-Group2 模式</td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-removed">Mode: ENFORCE</div>
+                </div>
+              </td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-added">Mode: OBSERVE</div>
+                </div>
+              </td>
+              <td style="font-size:12px">误报率15.7%偏高，切换至observe收集样本</td>
+              <td>张伟(运维)</td>
+              <td>2026-04-22</td>
+              <td><span class="badge badge-optimize">A/B测试中</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CHG-0340</td>
+              <td>Loop Guard 阈值</td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-removed">Threshold: 3 repeats / 5min</div>
+                </div>
+              </td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-added">Threshold: 4 repeats / 5min</div>
+                </div>
+              </td>
+              <td style="font-size:12px">健康检查组件误报，调整阈值减少误触发</td>
+              <td>陈磊(安全)</td>
+              <td>2026-04-20</td>
+              <td><span class="badge badge-pass">已生效</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CHG-0339</td>
+              <td>KSecure KS-BL-SHA</td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-removed">Expected: md5</div>
+                </div>
+              </td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-added">Expected: sha512</div>
+                </div>
+              </td>
+              <td style="font-size:12px">CIS Benchmark要求密码哈希使用SHA-512</td>
+              <td>系统自动(G_MODE=s)</td>
+              <td>2026-04-18</td>
+              <td><span class="badge badge-pass">已生效</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">CHG-0338</td>
+              <td>CB-chmod 777</td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-removed">Mode: ENFORCE</div>
+                </div>
+              </td>
+              <td>
+                <div class="diff-container">
+                  <div class="diff-line diff-added">Mode: OBSERVE (dev env only)</div>
+                </div>
+              </td>
+              <td style="font-size:12px">开发环境初始化脚本需设置宽松权限，误报率20.7%</td>
+              <td>&mdash;</td>
+              <td>2026-04-18</td>
+              <td><span class="badge badge-warn">待审批</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Approval Workflow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Approval Workflow</div>
+            <div class="panel-title">变更审批流程</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#8f8681,#696363);width:32px;height:32px;font-size:12px">1</div>
+          <span style="font-size:12px;font-weight:600">提交变更</span>
+          <span style="color:#eadfd8">&#x2192;</span>
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#f59e0b,#d97706);width:32px;height:32px;font-size:12px">2</div>
+          <span style="font-size:12px;font-weight:600">自动影响预览</span>
+          <span style="color:#eadfd8">&#x19;</span>
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);width:32px;height:32px;font-size:12px">3</div>
+          <span style="font-size:12px;font-weight:600">安全团队审批</span>
+          <span style="color:#eadfd8">&#x2192;</span>
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);width:32px;height:32px;font-size:12px">4</div>
+          <span style="font-size:12px;font-weight:600">A/B测试(7天)</span>
+          <span style="color:#eadfd8">&#x2192;</span>
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#059669,#047857);width:32px;height:32px;font-size:12px">5</div>
+          <span style="font-size:12px;font-weight:600">灰度发布</span>
+          <span style="color:#eadfd8">&#x2192;</span>
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#059669,#047857);width:32px;height:32px;font-size:12px">6</div>
+          <span style="font-size:12px;font-weight:600">全量生效</span>
+        </div>
+      </div>
+
+      <!-- Impact Preview -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Impact Preview</div>
+            <div class="panel-title">变更影响预览 (CHG-0338)</div>
+          </div>
+          <span class="badge badge-warn">待审批</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#059669"></div>
+            <div class="rc-header"><span class="rc-title">预计TP率变化</span></div>
+            <div class="rc-body">
+              <div style="font-size:24px;font-weight:800;color:#059669">79.3% &#x2192; 85.0%</div>
+              <div style="font-size:11px;color:#8f8681;margin-top:4px">切换observe后，dev环境不再阻断合法操作</div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#d97706"></div>
+            <div class="rc-header"><span class="rc-title">预计FP率变化</span></div>
+            <div class="rc-body">
+              <div style="font-size:24px;font-weight:800;color:#059669">20.7% &#x2192; 8.2%</div>
+              <div style="font-size:11px;color:#8f8681;margin-top:4px">dev环境误报消除，prod环境保持enforce</div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#dc2626"></div>
+            <div class="rc-header"><span class="rc-title">风险评估</span></div>
+            <div class="rc-body">
+              <div style="font-size:24px;font-weight:800;color:#d97706">中风险</div>
+              <div style="font-size:11px;color:#8f8681;margin-top:4px">dev环境observe可能漏过真实攻击，需监控7天</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 5: 配置 ===================== -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- FP Tracking Settings -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4ca; 误报追踪配置</div>
+          <div class="form-group">
+            <label class="form-label">误报率告警阈值</label>
+            <input class="form-input" type="number" value="10" min="1" max="50">
+            <div class="form-hint">当规则误报率超过此百分比时触发告警（当前: 10%）</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">自动误报上报阈值</label>
+            <input class="form-input" type="number" value="3" min="1" max="20">
+            <div class="form-hint">24小时内同一规则被标记为误报的次数（当前: 3次）</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">误报分类标签</div>
+              <div class="desc">为误报添加CI/CD、部署更新、开发环境等分类标签</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-fp-label" checked>
+              <label class="toggle-slider" for="cfg-fp-label"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule Versioning -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4be; 规则版本管理</div>
+          <div class="form-group">
+            <label class="form-label">版本号格式</label>
+            <select class="form-select" style="width:100%">
+              <option selected>Semantic (Major.Minor.Patch)</option>
+              <option>Calendar (YYYY.MM.DD)</option>
+              <option>Sequential (v1, v2, v3...)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">版本保留数量</label>
+            <input class="form-input" type="number" value="20" min="5" max="100">
+            <div class="form-hint">保留最近N个版本以支持回滚（当前: 20）</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">变更自动版本化</div>
+              <div class="desc">每次规则变更自动生成新版本号</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-auto-ver" checked>
+              <label class="toggle-slider" for="cfg-auto-ver"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- A/B Testing -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f9ea; A/B测试参数</div>
+          <div class="form-group">
+            <label class="form-label">最小验证周期</label>
+            <input class="form-input" type="number" value="7" min="1" max="30">
+            <div class="form-hint">A/B测试最少运行天数（当前: 7天）</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">最小告警样本数</label>
+            <input class="form-input" type="number" value="1000" min="100" max="10000">
+            <div class="form-hint">验证期间需要的最少告警样本（当前: 1000）</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">灰度发布比例</label>
+            <select class="form-select" style="width:100%">
+              <option>10% &#x2192; 30% &#x2192; 60% &#x2192; 100%</option>
+              <option selected>10% &#x2192; 50% &#x2192; 100%</option>
+              <option>25% &#x2192; 50% &#x2192; 100%</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">灰度阶段间隔</label>
+            <input class="form-input" type="number" value="24" min="4" max="168">
+            <div class="form-hint">灰度发布各阶段间隔小时数（当前: 24h）</div>
+          </div>
+        </div>
+
+        <!-- Change Approval -->
+        <div class="config-section">
+          <div class="cs-title">&#x2705; 变更审批工作流</div>
+          <div class="form-group">
+            <label class="form-label">审批人要求</label>
+            <select class="form-select" style="width:100%">
+              <option>单人审批</option>
+              <option selected>双人审批（安全+运维）</option>
+              <option>三级审批（安全+运维+架构）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">自动审批条件</label>
+            <select class="form-select" style="width:100%">
+              <option selected>仅阈值微调(&le;5%)可自动审批</option>
+              <option>所有变更需人工审批</option>
+              <option>所有变更自动审批</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">变更通知</div>
+              <div class="desc">策略变更生效后通知安全团队</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-notify" checked>
+              <label class="toggle-slider" for="cfg-notify"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-Tuning Bounds -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f527; 自动调优边界</div>
+          <div class="form-group">
+            <label class="form-label">RiskRule Severity最小值</label>
+            <select class="form-select" style="width:100%">
+              <option>LOW</option>
+              <option>MEDIUM</option>
+              <option selected>HIGH</option>
+              <option>CRITICAL</option>
+            </select>
+            <div class="form-hint">自动调优不会将规则Severity降至此级别以下</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Loop Guard阈值范围</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="form-input" type="number" value="2" min="1" max="10" style="width:80px">
+              <span style="color:var(--text)">~</span>
+              <input class="form-input" type="number" value="8" min="2" max="20" style="width:80px">
+              <span style="font-size:12px;color:#8f8681">次 / 5min</span>
+            </div>
+            <div class="form-hint">自动调优在此范围内调整循环检测阈值</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">误报率目标值</label>
+            <input class="form-input" type="number" value="5" min="0" max="30">
+            <div class="form-hint">自动调优的目标误报率（当前: 5%）</div>
+          </div>
+        </div>
+
+        <!-- Rollback & Retention -->
+        <div class="config-section">
+          <div class="cs-title">&#x21a9; 回滚与保留策略</div>
+          <div class="form-group">
+            <label class="form-label">自动回滚条件</label>
+            <select class="form-select" style="width:100%">
+              <option>仅手动回滚</option>
+              <option selected>误报率上升超5%自动回滚</option>
+              <option>TP率下降超10%自动回滚</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">审计日志保留</label>
+            <select class="form-select" style="width:100%">
+              <option>90天</option>
+              <option>180天</option>
+              <option selected>365天</option>
+              <option>永久保留</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">策略变更审计</div>
+              <div class="desc">所有策略变更记录包含完整审计链</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-audit-chain" checked>
+              <label class="toggle-slider" for="cfg-audit-chain"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">KSecure基线版本化</div>
+              <div class="desc">基线脚本变更自动生成新版本</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-ks-ver" checked>
+              <label class="toggle-slider" for="cfg-ks-ver"></label>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">KubeArmor策略版本化</div>
+              <div class="desc">KubeArmor策略变更自动生成新版本</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-ka-ver" checked>
+              <label class="toggle-slider" for="cfg-ka-ver"></label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Save Actions -->
+      <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end">
+        <button class="btn-secondary">&#x21bb; 重置默认</button>
+        <button class="btn-primary">&#x1f4be; 保存配置</button>
+      </div>
+    </div>
+
+  </div><!-- content-area -->
+</div><!-- main-content -->
+
+</div><!-- app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

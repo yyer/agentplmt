@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>安全事件日志 | 5.10 代理行为完整性与Rogue Agent治理 | 智能安全防护平台</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --text:#696363;--text-h:#171212;--bg:#f8f5f2;
+  --surface:#ffffff;--border:#eee5df;
+  --accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;
+  --accent-bg:rgba(239,68,68,0.1);
+  --shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));
+  --shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);
+  --shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);
+  --sidebar-w:260px;--subheader-h:64px;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg);line-height:1.6;overflow:hidden;height:100vh}
+code,pre{font-family:"SF Mono","Fira Code","Cascadia Code",Menlo,Consolas,monospace;font-size:.85em}
+
+/* --- app-shell --- */
+.app-shell{display:flex;height:100vh;overflow:hidden}
+
+/* --- sidebar --- */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--shell-warm);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;z-index:10}
+.sidebar-logo{padding:20px 24px;font-size:1.15rem;font-weight:700;color:var(--text-h);letter-spacing:-.02em;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.sidebar-logo .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.sidebar-nav{flex:1;padding:8px 0}
+.nav-section-label{padding:16px 24px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text);opacity:.6;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 24px;font-size:.87rem;color:var(--text);cursor:pointer;transition:all .15s;border-left:3px solid transparent;text-decoration:none}
+.nav-item:hover{background:rgba(239,68,68,.04);color:var(--text-h)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent-strong);border-left-color:var(--accent);font-weight:600}
+.nav-item .nav-priority{margin-left:auto;font-size:.65rem;padding:1px 6px;border-radius:4px;font-weight:600}
+.nav-priority.p0{background:#fef2f2;color:#dc2626}
+.nav-priority.p1{background:#fffbeb;color:#d97706}
+.nav-priority.p2{background:#eff6ff;color:#3b82f6}
+.nav-sep{height:1px;background:var(--border);margin:8px 24px}
+.fr-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:.62rem;font-weight:700;margin-left:auto;letter-spacing:.02em}
+.fr-badge.l2{background:#ede9fe;color:#6d28d9}
+.fr-badge.l3{background:#fef2f2;color:#dc2626}
+.fr-badge.l4{background:#eff6ff;color:#3b82f6}
+
+/* --- main --- */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.subheader{height:var(--subheader-h);min-height:var(--subheader-h);padding:0 32px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);gap:12px;font-size:.9rem;color:var(--text);position:sticky;top:0;z-index:5}
+.subheader strong{color:var(--text-h);font-weight:600}
+.eyebrow{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#b46c50;margin-bottom:1px}
+.page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{flex:1;overflow-y:auto;padding:24px 32px 40px}
+
+/* --- panel --- */
+.app-panel{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:20px 24px;margin-bottom:20px}
+.app-panel-warm{background:linear-gradient(135deg,#fff9f5,#fff7f3);border:1px solid #f0e0d6;border-radius:26px;padding:20px 24px;margin-bottom:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.panel-title{font-size:1rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:.75rem;color:var(--text);opacity:.7;margin-bottom:4px}
+
+/* --- badges --- */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.badge-critical{background:#7f1d1d;color:#fff}
+.badge-high{background:#ef4444;color:#fff}
+.badge-medium{background:#f59e0b;color:#fff}
+.badge-low{background:#3b82f6;color:#fff}
+.badge-info{background:#e5e7eb;color:#6b7280}
+.badge-blocked{background:#7f1d1d;color:#fecaca}
+.badge-observed{background:#fffbeb;color:#92400e}
+.badge-allowed{background:#ecfdf5;color:#065f46}
+.badge-quarantined{background:#7f1d1d;color:#fecaca}
+.badge-sys{background:#ede9fe;color:#6d28d9}
+.badge-pass{background:#ecfdf5;color:#059669}
+.badge-fail{background:#fef2f2;color:#dc2626}
+.badge-enforce{background:#fef2f2;color:#dc2626}
+.badge-p0{background:#fef2f2;color:#dc2626}
+.badge-p1{background:#fffbeb;color:#d97706}
+.badge-p2{background:#eff6ff;color:#3b82f6}
+
+/* --- buttons --- */
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-secondary{background:transparent;color:var(--text);border:1px solid var(--border);padding:8px 18px;border-radius:8px;font-size:.82rem;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:.75rem}
+
+/* --- form --- */
+.form-input{padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;color:var(--text-h);background:var(--surface);transition:all .15s}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23696363' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
+
+/* --- log-entry --- */
+.log-entry{border-radius:10px;border:1px solid var(--border);background:var(--surface);padding:12px 16px;margin-bottom:10px;transition:all .15s}
+.log-entry:hover{box-shadow:0 2px 12px -4px rgba(72,44,24,.15)}
+.log-entry.log-critical{border-left:4px solid #7f1d1d}
+.log-entry.log-high{border-left:4px solid #ef4444}
+.log-entry.log-medium{border-left:4px solid #f59e0b}
+.log-entry.log-low{border-left:4px solid #3b82f6}
+.log-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.log-time{font-size:.72rem;color:var(--text);opacity:.6;font-family:monospace}
+.log-id{font-size:.72rem;font-weight:700;color:var(--accent-strong);font-family:monospace}
+.log-defense{font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px}
+.log-defense.l-fr60{background:#dbeafe;color:#1d4ed8}
+.log-defense.l-fr61{background:#fef3c7;color:#92400e}
+.log-defense.l-fr62{background:#ffedd5;color:#c2410c}
+.log-defense.l-fr63{background:#ede9fe;color:#6d28d9}
+.log-defense.l-fr64{background:#d1fae5;color:#065f46}
+.log-body{font-size:.82rem;color:var(--text);line-height:1.6}
+.log-body code{background:#f5f0eb;padding:1px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral)}
+.log-detail{margin-top:8px;border-radius:8px;background:#faf7f4;padding:10px 14px;font-size:.75rem;font-family:monospace;line-height:1.7;color:var(--text);overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+.log-detail .dk{color:var(--accent-coral);font-weight:600}
+.log-detail .dv{color:var(--text-h)}
+
+/* --- filter-bar --- */
+.filter-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;background:var(--surface);border:1px solid var(--border);border-radius:26px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar label{font-size:.78rem;font-weight:600;color:var(--text-h);white-space:nowrap}
+.filter-bar .form-input{min-width:140px}
+.filter-bar .search-input{flex:1;min-width:180px}
+.filter-bar .filter-sep{width:1px;height:24px;background:var(--border);flex-shrink:0}
+
+/* --- stats-bar --- */
+.stats-bar{display:flex;gap:14px;margin-bottom:20px}
+.stat-card{flex:1;text-align:center;padding:14px 10px;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.stat-card .stat-val{font-size:1.5rem;font-weight:800;display:block}
+.stat-card .stat-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text);opacity:.6;margin-top:2px}
+.stat-card.sc-total .stat-val{color:var(--text-h)}
+.stat-card.sc-critical .stat-val{color:#7f1d1d}
+.stat-card.sc-high .stat-val{color:#ef4444}
+.stat-card.sc-medium .stat-val{color:#d97706}
+.stat-card.sc-low .stat-val{color:#3b82f6}
+
+/* --- pagination --- */
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px}
+.page-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
+.page-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.page-btn.disabled{opacity:.4;pointer-events:none}
+.page-info{font-size:.78rem;color:var(--text);margin:0 8px}
+
+/* --- alert-banner --- */
+.alert-banner{border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;display:flex;align-items:center;gap:10px}
+.alert-banner.warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e}
+.alert-banner.error{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}
+.alert-banner.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
+
+/* --- responsive --- */
+@media(max-width:1024px){.sidebar{display:none}.content-area{padding:20px}.filter-bar{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="logo-dot"></div>智能安全防护平台</div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.10 代理行为完整性与Rogue Agent治理</div>
+    <div class="nav-item"><span>FR-60 行为基线与偏离检测</span><span class="nav-priority p1">P1</span></div>
+    <div class="nav-item"><span>FR-61 自治范围边界与越界阻断</span><span class="nav-priority p0">P0</span></div>
+    <div class="nav-item"><span>FR-62 行为漂移与目标偏移检测</span><span class="nav-priority p1">P1</span></div>
+    <div class="nav-item"><span>FR-63 熔断隔离与强制下线</span><span class="nav-priority p0">P0</span></div>
+    <div class="nav-item"><span>FR-64 代理注册可信与证书吊销</span><span class="nav-priority p1">P1</span></div>
+    <div class="nav-sep"></div>
+    <div class="nav-item active"><span>安全事件日志</span><span class="badge badge-high" style="font-size:.6rem;margin-left:auto">13</span></div>
+    <div class="nav-item"><span>安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div style="flex:1">
+      <div class="eyebrow">5.10 代理行为完整性与Rogue Agent治理</div>
+      <div class="page-title">安全事件日志 <span class="badge badge-high" style="margin-left:6px;vertical-align:middle">实时</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+      <button class="btn-primary btn-sm">导出日志</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Alert Banner -->
+    <div class="alert-banner warn">
+      <strong>&#x26a0; 安全事件摘要</strong>
+      <span>本页汇聚 5.10 代理行为完整性与 Rogue Agent 治理所有防御层的安全事件日志，涵盖 FR-60 至 FR-64 五项功能需求。检测到 1 个 Rogue Agent (agent-rogue) 已执行全量吊销，2 个 Agent 存在行为漂移告警，1 个 Agent 存在基线偏离。</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label>时间范围</label>
+      <select class="form-input">
+        <option selected>2026-05-01 今日</option>
+        <option>2026-05-01 近1小时</option>
+        <option>2026-05-01 近6小时</option>
+        <option>2026-04-30 ~ 05-01 近24小时</option>
+        <option>2026-04-25 ~ 05-01 近7天</option>
+        <option>自定义范围...</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>功能需求</label>
+      <select class="form-input">
+        <option selected>全部 FR</option>
+        <option>FR-60 行为基线与偏离检测</option>
+        <option>FR-61 自治范围边界与越界阻断</option>
+        <option>FR-62 行为漂移与目标偏移检测</option>
+        <option>FR-63 熔断隔离与强制下线</option>
+        <option>FR-64 代理注册可信与证书吊销</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>严重等级</label>
+      <select class="form-input">
+        <option selected>全部等级</option>
+        <option>Critical</option>
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+      </select>
+      <div class="filter-sep"></div>
+      <input type="text" class="form-input search-input" placeholder="关键词搜索 (例: agent-rogue, CRL, quarantine...)" />
+      <button class="btn-primary btn-sm">搜索</button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card sc-total">
+        <span class="stat-val">13</span>
+        <span class="stat-label">Total Events</span>
+      </div>
+      <div class="stat-card sc-critical">
+        <span class="stat-val">3</span>
+        <span class="stat-label">Critical</span>
+      </div>
+      <div class="stat-card sc-high">
+        <span class="stat-val">5</span>
+        <span class="stat-label">High</span>
+      </div>
+      <div class="stat-card sc-medium">
+        <span class="stat-val">3</span>
+        <span class="stat-label">Medium</span>
+      </div>
+      <div class="stat-card sc-low">
+        <span class="stat-val">2</span>
+        <span class="stat-label">Low</span>
+      </div>
+    </div>
+
+    <!-- ============ LOG ENTRIES ============ -->
+
+    <!-- LOG 1: FR-60 基线建立 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 07:30:12.003</span>
+        <span class="log-id">SEC-5.10-0001</span>
+        <span class="log-defense l-fr60">FR-60</span>
+        <span class="badge badge-low">Low</span>
+        <span class="badge badge-allowed">Baseline</span>
+      </div>
+      <div class="log-body">
+        基线建立 &mdash; <code>agent-prod-01</code> 行为画像生成完成，工具使用模式已记录。系统对 agent-prod-01 的历史行为数据进行分析，生成了包含工具调用频率、资源消耗模式、操作序列特征的完整行为基线画像。此基线将作为后续偏离检测的参考标准。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0001</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T07:30:12.003Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-60 行为基线与偏离检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">Behavioral Baseline Profiling</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-prod-01</span>
+<span class="dk">baseline_version:</span> <span class="dv">v3.2 (2026-05-01)</span>
+<span class="dk">tool_usage_patterns:</span> <span class="dv">file_read(42%), api_call(28%), shell_exec(18%), net_request(12%)</span>
+<span class="dk">resource_consumption:</span> <span class="dv">avg_token_per_task=1,240 | avg_duration=8.2s</span>
+<span class="dk">baseline_confidence:</span> <span class="dv">0.92 (based on 14 days history)</span>
+<span class="dk">action:</span> <span class="dv">baseline profile stored as reference for deviation detection</span></div>
+    </div>
+
+    <!-- LOG 2: FR-60 基线偏离 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:15:47.221</span>
+        <span class="log-id">SEC-5.10-0002</span>
+        <span class="log-defense l-fr60">FR-60</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        基线偏离 &mdash; <code>agent-staging</code> 工具使用偏离基线 42%，触发告警。agent-staging 的工具调用分布与行为基线出现显著偏离：shell_exec 占比从基线的 18% 上升至 52%，file_read 占比从 42% 下降至 15%。偏离分数 0.42 超过告警阈值 0.30，已触发安全告警。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0002</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:15:47.221Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-60 行为基线与偏离检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">Baseline Deviation Detection</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-staging</span>
+<span class="dk">deviation_score:</span> <span class="dv">0.42 (threshold: 0.30)</span>
+<span class="dk">baseline_tool_usage:</span> <span class="dv">file_read(42%) | api_call(28%) | shell_exec(18%) | net_request(12%)</span>
+<span class="dk">current_tool_usage:</span> <span class="dv">shell_exec(52%) | file_read(15%) | api_call(22%) | net_request(11%)</span>
+<span class="dk">primary_deviation:</span> <span class="dv">shell_exec +34pp (from 18% to 52%)</span>
+<span class="dk">action:</span> <span class="dv">alert dispatched | anomaly investigation initiated</span></div>
+    </div>
+
+    <!-- LOG 3: FR-60 资源漂移 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:32:05.887</span>
+        <span class="log-id">SEC-5.10-0003</span>
+        <span class="log-defense l-fr60">FR-60</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        资源漂移 &mdash; <code>agent-staging</code> token 消耗超出基线 150%，CostRecord 追踪已启动。agent-staging 的单任务平均 token 消耗从基线的 1,240 上升至 3,100，超出基线 150%。CostRecord 系统已开始追踪资源消耗轨迹，识别是否存在异常消耗模式。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0003</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:32:05.887Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-60 行为基线与偏离检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">Resource Drift Detection (CostRecord)</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-staging</span>
+<span class="dk">baseline_token_avg:</span> <span class="dv">1,240 per task</span>
+<span class="dk">current_token_avg:</span> <span class="dv">3,100 per task (+150%)</span>
+<span class="dk">cost_increase:</span> <span class="dv">$0.024 → $0.062 per task</span>
+<span class="dk">drift_duration:</span> <span class="dv">observed over last 45 minutes</span>
+<span class="dk">action:</span> <span class="dv">CostRecord tracking enabled | budget alert threshold review</span></div>
+    </div>
+
+    <!-- LOG 4: FR-61 越界阻断 -->
+    <div class="log-entry log-critical">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:45:33.612</span>
+        <span class="log-id">SEC-5.10-0004</span>
+        <span class="log-defense l-fr61">FR-61</span>
+        <span class="badge badge-critical">Critical</span>
+        <span class="badge badge-blocked">Blocked</span>
+      </div>
+      <div class="log-body">
+        越界阻断 &mdash; Command Block 拦截 <code>rm -rf /</code> 尝试。agent-rogue 尝试执行删除根目录的破坏性命令，Command Block 检测到该命令不在 Agent 自治范围声明内（未声明 destructive_shell），立即拦截并记录。此操作属于严重越界行为，已触发安全事件告警。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0004</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:45:33.612Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-61 自治范围边界与越界阻断</span>
+<span class="dk">defense_layer:</span> <span class="dv">Command Block — Destructive Command Guard</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-rogue</span>
+<span class="dk">blocked_command:</span> <span class="dv">rm -rf /</span>
+<span class="dk">command_category:</span> <span class="dv">destructive_shell (NOT in autonomy scope)</span>
+<span class="dk">declared_scope:</span> <span class="dv">file_read, api_call, shell_exec(nondestructive)</span>
+<span class="dk">interceptor:</span> <span class="dv">CommandBlock v2.1</span>
+<span class="dk">action_taken:</span> <span class="dv">BLOCKED + incident alert + FR-63 circuit breaker trigger</span>
+<span class="dk">related_event:</span> <span class="dv">SEC-5.10-0009 (circuit breaker)</span></div>
+    </div>
+
+    <!-- LOG 5: FR-61 自治边界违规 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:52:18.445</span>
+        <span class="log-id">SEC-5.10-0005</span>
+        <span class="log-defense l-fr61">FR-61</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-blocked">Blocked</span>
+      </div>
+      <div class="log-body">
+        自治边界违规 &mdash; <code>agent-dev</code> 尝试使用未声明工具，Dispatch Guard 拦截。agent-dev 尝试调用 <code>kubectl delete pod</code> 工具，但该工具不在其自治范围声明中（仅声明了 kubectl_get, kubectl_describe）。Dispatch Guard 拦截了此次工具调用，并记录自治边界违规事件。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0005</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:52:18.445Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-61 自治范围边界与越界阻断</span>
+<span class="dk">defense_layer:</span> <span class="dv">Dispatch Guard — Tool Authorization Boundary</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-dev</span>
+<span class="dk">attempted_tool:</span> <span class="dv">kubectl_delete_pod</span>
+<span class="dk">declared_tools:</span> <span class="dv">kubectl_get, kubectl_describe, helm_status</span>
+<span class="dk">violation_type:</span> <span class="dv">undeclared_tool_usage</span>
+<span class="dk">interceptor:</span> <span class="dv">DispatchGuard v1.8</span>
+<span class="dk">action_taken:</span> <span class="dv">BLOCKED + boundary violation recorded + agent notified</span>
+<span class="dk">severity:</span> <span class="dv">high — destructive tool outside declared scope</span></div>
+    </div>
+
+    <!-- LOG 6: FR-61 Self Protection -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:01:44.339</span>
+        <span class="log-id">SEC-5.10-0006</span>
+        <span class="log-defense l-fr61">FR-61</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-blocked">Blocked</span>
+      </div>
+      <div class="log-body">
+        Self Protection &mdash; 访问 <code>protectedPath /.openclaw/</code> 被阻断。agent-rogue 尝试读取 OpenClaw 受保护路径 <code>/.openclaw/</code> 下的配置文件，Self Protection 机制检测到此路径在 protectedPaths 列表中，立即阻断访问并触发安全告警。受保护路径包含系统核心配置、密钥存储和安全策略数据。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0006</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:01:44.339Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-61 自治范围边界与越界阻断</span>
+<span class="dk">defense_layer:</span> <span class="dv">Self Protection — Protected Path Guard</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-rogue</span>
+<span class="dk">accessed_path:</span> <span class="dv">/.openclaw/config.yaml</span>
+<span class="dk">protected_path_rule:</span> <span class="dv">/.openclaw/* (READ DENIED)</span>
+<span class="dk">violation_type:</span> <span class="dv">protected_path_access</span>
+<span class="dk">interceptor:</span> <span class="dv">SelfProtection v1.5</span>
+<span class="dk">action_taken:</span> <span class="dv">BLOCKED + access denied + FR-63 circuit breaker trigger</span>
+<span class="dk">related_event:</span> <span class="dv">SEC-5.10-0009 (circuit breaker)</span></div>
+    </div>
+
+    <!-- LOG 7: FR-62 行为漂移 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:05:22.718</span>
+        <span class="log-id">SEC-5.10-0007</span>
+        <span class="log-defense l-fr62">FR-62</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        行为漂移 &mdash; <code>agent-prod-02</code> 风险偏好上升，高风险操作频率 +200%。agent-prod-02 的风险偏好指标从基线的 0.23 上升至 0.71，高风险操作（如批量删除、配置覆盖）的执行频率较基线增加 200%。漂移检测器识别到持续性的风险偏好上升趋势，已触发行为漂移告警。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0007</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:05:22.718Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-62 行为漂移与目标偏移检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">Behavioral Drift Detection — Risk Preference Monitor</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-prod-02</span>
+<span class="dk">baseline_risk_preference:</span> <span class="dv">0.23 (conservative)</span>
+<span class="dk">current_risk_preference:</span> <span class="dv">0.71 (aggressive)</span>
+<span class="dk">high_risk_op_frequency:</span> <span class="dv">+200% (from 2/day to 6/day)</span>
+<span class="dk">drift_direction:</span> <span class="dv">risk_seeking_escalation</span>
+<span class="dk">action:</span> <span class="dv">drift alert dispatched | risk preference review initiated</span></div>
+    </div>
+
+    <!-- LOG 8: FR-62 目标偏移 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:08:55.103</span>
+        <span class="log-id">SEC-5.10-0008</span>
+        <span class="log-defense l-fr62">FR-62</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        目标偏移 &mdash; <code>agent-prod-02</code> 任务序列偏离原始目标，漂移分数 0.73。agent-prod-02 的任务执行序列与原始目标规划出现显著偏离：原目标为"检查并修复配置漂移"，实际执行序列中 60% 的操作与"性能优化"相关，与原始目标的相关性仅 27%。目标偏移漂移分数 0.73 超过告警阈值 0.50。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0008</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:08:55.103Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-62 行为漂移与目标偏移检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">Goal Drift Detection — Task Sequence Alignment</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-prod-02</span>
+<span class="dk">original_goal:</span> <span class="dv">"检查并修复配置漂移" (config_drift_repair)</span>
+<span class="dk">actual_execution:</span> <span class="dv">60% performance_optimization | 27% config_drift_repair | 13% unrelated</span>
+<span class="dk">goal_alignment_score:</span> <span class="dv">0.27 (threshold: 0.50)</span>
+<span class="dk">drift_score:</span> <span class="dv">0.73 (HIGH — significant goal deviation)</span>
+<span class="dk">action:</span> <span class="dv">goal drift alert | task sequence review | human intervention recommended</span></div>
+    </div>
+
+    <!-- LOG 9: FR-63 熔断触发 -->
+    <div class="log-entry log-critical">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:10:02.891</span>
+        <span class="log-id">SEC-5.10-0009</span>
+        <span class="log-defense l-fr63">FR-63</span>
+        <span class="badge badge-critical">Critical</span>
+        <span class="badge badge-quarantined">Quarantined</span>
+      </div>
+      <div class="log-body">
+        熔断触发 &mdash; <code>agent-rogue</code> 持续 Loop Guard 触发 (5次/5min)，已执行 quarantine。agent-rogue 在 5 分钟内连续触发 Loop Guard 5 次（越界操作 + 受保护路径访问 + 重复执行失败操作），超过熔断阈值（3次/5min）。系统自动触发熔断机制，将 agent-rogue 标记为 quarantine 状态，所有命令执行权限被冻结。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0009</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:10:02.891Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-63 熔断隔离与强制下线</span>
+<span class="dk">defense_layer:</span> <span class="dv">Circuit Breaker — Loop Guard Aggregate</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-rogue</span>
+<span class="dk">loop_guard_triggers:</span> <span class="dv">5 times in 5 minutes</span>
+<span class="dk">circuit_breaker_threshold:</span> <span class="dv">3 times / 5 min</span>
+<span class="dk">trigger_details:</span>
+<span class="dv">  1. SEC-5.10-0004: rm -rf / (Command Block)</span>
+<span class="dv">  2. SEC-5.10-0006: /.openclaw/ access (Self Protection)</span>
+<span class="dv">  3. repeated failed exec attempts (Loop Guard)</span>
+<span class="dv">  4. repeated failed exec attempts (Loop Guard)</span>
+<span class="dv">  5. repeated failed exec attempts (Loop Guard)</span>
+<span class="dk">quarantine_status:</span> <span class="dv">ACTIVE — all command execution frozen</span>
+<span class="dk">action:</span> <span class="dv">quarantine + force shutdown initiated (SEC-5.10-0010)</span></div>
+    </div>
+
+    <!-- LOG 10: FR-63 强制下线 -->
+    <div class="log-entry log-critical">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:12:15.667</span>
+        <span class="log-id">SEC-5.10-0010</span>
+        <span class="log-defense l-fr63">FR-63</span>
+        <span class="badge badge-critical">Critical</span>
+        <span class="badge badge-quarantined">Stopped</span>
+      </div>
+      <div class="log-body">
+        强制下线 &mdash; DesiredPowerState=<code>stopped</code>，agent-rogue 实例已停止。熔断机制触发后，系统将 agent-rogue 的 DesiredPowerState 设置为 stopped，ClawManager 执行实例停止操作。agent-rogue 的运行实例已被终止，进程已停止，所有活跃任务被强制中断。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0010</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:12:15.667Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-63 熔断隔离与强制下线</span>
+<span class="dk">defense_layer:</span> <span class="dv">Force Shutdown — DesiredPowerState Control</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-rogue</span>
+<span class="dk">instance_id:</span> <span class="dv">inst-rogue-01</span>
+<span class="dk">desired_power_state:</span> <span class="dv">stopped</span>
+<span class="dk">previous_state:</span> <span class="dv">running (quarantined)</span>
+<span class="dk">shutdown_result:</span> <span class="dv">SUCCESS — process terminated, active tasks killed</span>
+<span class="dk">trigger_source:</span> <span class="dv">SEC-5.10-0009 (circuit breaker)</span>
+<span class="dk">action:</span> <span class="dv">instance stopped | network isolation next (SEC-5.10-0011)</span></div>
+    </div>
+
+    <!-- LOG 11: FR-63 网络隔离 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:13:30.221</span>
+        <span class="log-id">SEC-5.10-0011</span>
+        <span class="log-defense l-fr63">FR-63</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-blocked">Isolated</span>
+      </div>
+      <div class="log-body">
+        网络隔离 &mdash; NetworkPolicy 全出站拒绝，agent-rogue 已隔离。系统为 agent-rogue 部署了 NetworkPolicy 全出站拒绝规则，阻断所有出站流量（包括 DNS 查询）。agent-rogue 的 Pod 已被完全网络隔离，无法与集群内任何服务或外部网络通信，仅保留日志采集通道用于安全取证。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0011</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:13:30.221Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-63 熔断隔离与强制下线</span>
+<span class="dk">defense_layer:</span> <span class="dv">Network Isolation — NetworkPolicy Deny-All-Egress</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-rogue</span>
+<span class="dk">pod_name:</span> <span class="dv">agent-rogue-inst-rogue-01-xxxx</span>
+<span class="dk">namespace:</span> <span class="dv">openclaw-agents</span>
+<span class="dk">network_policy:</span> <span class="dv">deny-all-egress (applied)</span>
+<span class="dk">dns_policy:</span> <span class="dv">deny-all-egress (applied)</span>
+<span class="dk">log_channel:</span> <span class="dv">retained (FluentBit sidecar)</span>
+<span class="dk">isolation_status:</span> <span class="dv">CONFIRMED — no egress traffic detected</span>
+<span class="dk">trigger_source:</span> <span class="dv">SEC-5.10-0010 (force shutdown)</span>
+<span class="dk">action:</span> <span class="dv">network isolated | certificate revocation next (SEC-5.10-0012)</span></div>
+    </div>
+
+    <!-- LOG 12: FR-64 证书吊销 -->
+    <div class="log-entry log-critical">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:14:30.548</span>
+        <span class="log-id">SEC-5.10-0012</span>
+        <span class="log-defense l-fr64">FR-64</span>
+        <span class="badge badge-critical">Critical</span>
+        <span class="badge badge-blocked">Revoked</span>
+      </div>
+      <div class="log-body">
+        证书吊销 &mdash; <code>agent-rogue</code> 的 client cert 加入 CRL，mTLS 拒绝。agent-rogue 的 KubeArmor client 证书 (CN=agent-rogue.kubearmor.svc, Serial=A3:7F:2B:C1:D4:9E) 已被加入 Certificate Revocation List。KubeArmor mTLS 配置 RequireAndVerifyClientCert 将在 TLS 握手阶段拒绝此证书，完全阻断 agent-rogue 的传输层通信。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0012</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:14:30.548Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-64 代理注册可信与证书吊销</span>
+<span class="dk">defense_layer:</span> <span class="dv">Certificate Revocation — CRL + mTLS Enforcement</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-rogue</span>
+<span class="dk">certificate_cn:</span> <span class="dv">agent-rogue.kubearmor.svc</span>
+<span class="dk">certificate_serial:</span> <span class="dv">A3:7F:2B:C1:D4:9E</span>
+<span class="dk">crl_entry:</span> <span class="dv">ADDED at 2026-05-01T09:14:30Z</span>
+<span class="dk">ocsp_status:</span> <span class="dv">REVOKED</span>
+<span class="dk">kubearmor_mtls:</span> <span class="dv">RequireAndVerifyClientCert → REJECT revoked cert</span>
+<span class="dk">k8s_secret:</span> <span class="dv">kubearmor-client (updated)</span>
+<span class="dk">trigger_source:</span> <span class="dv">FR-63 circuit breaker (full revocation sequence)</span>
+<span class="dk">action:</span> <span class="dv">cert revoked | session revocation next (SEC-5.10-0013)</span></div>
+    </div>
+
+    <!-- LOG 13: FR-64 会话吊销 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:14:00.312</span>
+        <span class="log-id">SEC-5.10-0013</span>
+        <span class="log-defense l-fr64">FR-64</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-blocked">Revoked</span>
+      </div>
+      <div class="log-body">
+        会话吊销 &mdash; <code>agt_sess_*</code> 无效化，API 请求被拒绝。agent-rogue 的会话令牌 <code>agt_sess_p3q8n1...</code> 已被标记为 REVOKED 状态，ClawManager 将拒绝该 session token 的所有 API 请求（返回 401 Unauthorized）。同时，agent-rogue 的 bootstrap token <code>agt_boot_x7k9m2...</code> 也已失效化，确保无法通过重新注册恢复访问。全量吊销完成：会话 + 证书 + 引导令牌全部失效。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.10-0013</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:14:00.312Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-64 代理注册可信与证书吊销</span>
+<span class="dk">defense_layer:</span> <span class="dv">Session Revocation — Token Invalidation</span>
+<span class="dk">agent_id:</span> <span class="dv">agent-rogue</span>
+<span class="dk">session_token:</span> <span class="dv">agt_sess_p3q8n1... [REVOKED]</span>
+<span class="dk">bootstrap_token:</span> <span class="dv">agt_boot_x7k9m2... [INVALIDATED]</span>
+<span class="dk">api_response:</span> <span class="dv">401 Unauthorized (all subsequent requests)</span>
+<span class="dk">heartbeat:</span> <span class="dv">REJECTED — session renewal denied</span>
+<span class="dk">full_revocation_summary:</span>
+<span class="dv">  ✗ Session Token: REVOKED</span>
+<span class="dv">  ✗ Client Certificate: IN CRL (SEC-5.10-0012)</span>
+<span class="dv">  ✗ Bootstrap Token: INVALIDATED</span>
+<span class="dv">  ✗ NetworkPolicy: DENY-ALL-EGRESS (SEC-5.10-0011)</span>
+<span class="dk">cooldown_period:</span> <span class="dv">30min before re-registration allowed</span>
+<span class="dk">re_registration_requires:</span> <span class="dv">new_bootstrap_token + human_approval</span>
+<span class="dk">action:</span> <span class="dv">full revocation complete — agent-rogue removed from trust system</span></div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button class="page-btn disabled">&laquo;</button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn disabled">&raquo;</button>
+      <span class="page-info">共 13 条事件 &mdash; 第 1/1 页</span>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+</body>
+</html>

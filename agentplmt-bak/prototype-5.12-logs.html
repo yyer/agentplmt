@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>安全事件日志 | 5.12 底座安全增强与高安全扩展 | 智能安全防护平台</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --text:#696363;--text-h:#171212;--bg:#f8f5f2;
+  --surface:#ffffff;--border:#eee5df;
+  --accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;
+  --accent-bg:rgba(239,68,68,0.1);
+  --shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));
+  --shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);
+  --shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);
+  --sidebar-w:260px;--subheader-h:64px;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:var(--text);background:var(--bg);line-height:1.6;overflow:hidden;height:100vh}
+code,pre{font-family:"SF Mono","Fira Code","Cascadia Code",Menlo,Consolas,monospace;font-size:.85em}
+
+/* --- app-shell --- */
+.app-shell{display:flex;height:100vh;overflow:hidden}
+
+/* --- sidebar --- */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--shell-warm);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;z-index:10}
+.sidebar-logo{padding:20px 24px;font-size:1.15rem;font-weight:700;color:var(--text-h);letter-spacing:-.02em;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.sidebar-logo .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.sidebar-nav{flex:1;padding:8px 0}
+.nav-section-label{padding:16px 24px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text);opacity:.6;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 24px;font-size:.87rem;color:var(--text);cursor:pointer;transition:all .15s;border-left:3px solid transparent;text-decoration:none}
+.nav-item:hover{background:rgba(239,68,68,.04);color:var(--text-h)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent-strong);border-left-color:var(--accent);font-weight:600}
+.nav-item .nav-priority{margin-left:auto;font-size:.65rem;padding:1px 6px;border-radius:4px;font-weight:600}
+.nav-priority.p0{background:#fef2f2;color:#dc2626}
+.nav-priority.p1{background:#fffbeb;color:#d97706}
+.nav-priority.p2{background:#eff6ff;color:#3b82f6}
+.fr-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:4px;font-size:.62rem;font-weight:700;margin-left:auto;letter-spacing:.02em}
+.fr-badge.l2{background:#ede9fe;color:#6d28d9}
+.fr-badge.l3{background:#fef2f2;color:#dc2626}
+.fr-badge.l4{background:#eff6ff;color:#3b82f6}
+
+/* --- main --- */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.subheader{height:var(--subheader-h);min-height:var(--subheader-h);padding:0 32px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);gap:12px;font-size:.9rem;color:var(--text);position:sticky;top:0;z-index:5}
+.subheader strong{color:var(--text-h);font-weight:600}
+.eyebrow{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#b46c50;margin-bottom:1px}
+.page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{flex:1;overflow-y:auto;padding:24px 32px 40px}
+
+/* --- panel --- */
+.app-panel{background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:20px 24px;margin-bottom:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.panel-title{font-size:1rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:.75rem;color:var(--text);opacity:.7;margin-bottom:4px}
+
+/* --- badges --- */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.badge-critical{background:#7f1d1d;color:#fff}
+.badge-high{background:#ef4444;color:#fff}
+.badge-medium{background:#f59e0b;color:#fff}
+.badge-low{background:#3b82f6;color:#fff}
+.badge-info{background:#e5e7eb;color:#6b7280}
+.badge-sys{background:#ede9fe;color:#6d28d9}
+.badge-pass{background:#ecfdf5;color:#059669}
+.badge-fail{background:#fef2f2;color:#dc2626}
+.badge-warn{background:#fef3c7;color:#92400e}
+
+/* --- buttons --- */
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-secondary{background:transparent;color:var(--text);border:1px solid var(--border);padding:8px 18px;border-radius:8px;font-size:.82rem;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:.75rem}
+
+/* --- form --- */
+.form-input{padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:.82rem;color:var(--text-h);background:var(--surface);transition:all .15s}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23696363' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
+
+/* --- log-entry --- */
+.log-entry{border-radius:10px;border:1px solid var(--border);background:var(--surface);padding:12px 16px;margin-bottom:10px;transition:all .15s}
+.log-entry:hover{box-shadow:0 2px 12px -4px rgba(72,44,24,.15)}
+.log-entry.log-critical{border-left:4px solid #7f1d1d}
+.log-entry.log-high{border-left:4px solid #ef4444}
+.log-entry.log-medium{border-left:4px solid #f59e0b}
+.log-entry.log-low{border-left:4px solid #3b82f6}
+.log-entry.log-info{border-left:4px solid #6b7280}
+.log-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.log-time{font-size:.72rem;color:var(--text);opacity:.6;font-family:monospace}
+.log-id{font-size:.72rem;font-weight:700;color:var(--accent-strong);font-family:monospace}
+.log-defense{font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px}
+.log-defense.l-fr72{background:#dbeafe;color:#1d4ed8}
+.log-defense.l-fr73{background:#ede9fe;color:#6d28d9}
+.log-defense.l-fr74{background:#d1fae5;color:#065f46}
+.log-defense.l-fr75{background:#fef3c7;color:#92400e}
+.log-defense.l-fr76{background:#fce7f3;color:#be185d}
+.log-body{font-size:.82rem;color:var(--text);line-height:1.6}
+.log-body code{background:#f5f0eb;padding:1px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral)}
+.log-detail{margin-top:8px;border-radius:8px;background:#faf7f4;padding:10px 14px;font-size:.75rem;font-family:monospace;line-height:1.7;color:var(--text);overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+.log-detail .dk{color:var(--accent-coral);font-weight:600}
+.log-detail .dv{color:var(--text-h)}
+
+/* --- filter-bar --- */
+.filter-bar{display:flex;align-items:center;gap:10px;padding:14px 20px;background:var(--surface);border:1px solid var(--border);border-radius:26px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar label{font-size:.78rem;font-weight:600;color:var(--text-h);white-space:nowrap}
+.filter-bar .form-input{min-width:140px}
+.filter-bar .search-input{flex:1;min-width:180px}
+.filter-bar .filter-sep{width:1px;height:24px;background:var(--border);flex-shrink:0}
+
+/* --- stats-bar --- */
+.stats-bar{display:flex;gap:14px;margin-bottom:20px}
+.stat-card{flex:1;text-align:center;padding:14px 10px;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.stat-card .stat-val{font-size:1.5rem;font-weight:800;display:block}
+.stat-card .stat-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text);opacity:.6;margin-top:2px}
+.stat-card.sc-total .stat-val{color:var(--text-h)}
+.stat-card.sc-critical .stat-val{color:#7f1d1d}
+.stat-card.sc-high .stat-val{color:#ef4444}
+.stat-card.sc-medium .stat-val{color:#d97706}
+.stat-card.sc-low .stat-val{color:#3b82f6}
+
+/* --- pagination --- */
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:20px}
+.page-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
+.page-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.page-btn.disabled{opacity:.4;pointer-events:none}
+.page-info{font-size:.78rem;color:var(--text);margin:0 8px}
+
+/* --- alert-banner --- */
+.alert-banner{border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.82rem;display:flex;align-items:center;gap:10px}
+.alert-banner.warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e}
+.alert-banner.error{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}
+.alert-banner.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8}
+.alert-banner.success{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+
+/* --- responsive --- */
+@media(max-width:1024px){.sidebar{display:none}.content-area{padding:20px}.filter-bar{flex-direction:column;align-items:stretch}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><span class="logo-dot"></span> 智能安全防护平台</div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.12 底座安全增强与高安全扩展</div>
+    <a class="nav-item" href="prototype-5.12-fr76.html">FR-72 密码学与密钥管理 <span class="fr-badge l2">P1</span></a>
+    <a class="nav-item" href="prototype-5.12-fr76.html">FR-73 TEE与隔离执行 <span class="fr-badge l2">P1</span></a>
+    <a class="nav-item" href="prototype-5.12-fr76.html">FR-74 可信节点与调度 <span class="fr-badge l2">P1</span></a>
+    <a class="nav-item" href="prototype-5.12-fr76.html">FR-75 管理面安全加固 <span class="fr-badge l3">P0</span></a>
+    <a class="nav-item" href="prototype-5.12-fr76.html">FR-76 高安全行业模板 <span class="fr-badge l4">P2</span></a>
+    <div class="nav-section-label">运维</div>
+    <a class="nav-item active" href="prototype-5.12-logs.html">&#x1f4cb; 安全事件日志</a>
+    <a class="nav-item" href="prototype-5.12-audit.html">&#x1f50d; 安全审计报告</a>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div>
+      <div class="eyebrow">5.12 底座安全增强与高安全扩展</div>
+      <div class="page-title">安全事件日志 | FR-72 ~ FR-76</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">2026-05-01</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card sc-total"><span class="stat-val">11</span><span class="stat-label">日志总数</span></div>
+      <div class="stat-card sc-critical"><span class="stat-val">0</span><span class="stat-label">Critical</span></div>
+      <div class="stat-card sc-high"><span class="stat-val">3</span><span class="stat-label">High</span></div>
+      <div class="stat-card sc-medium"><span class="stat-val">5</span><span class="stat-label">Medium</span></div>
+      <div class="stat-card sc-low"><span class="stat-val">3</span><span class="stat-label">Low</span></div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div class="alert-banner warn">
+      &#x26a0;&#xfe0f; <strong>注意:</strong> SEC-5.12-0011 (FR-76) 检测到政务实例偏离模板baseline，SSH配置PermitEmptyPasswords不一致，请尽快修复。
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-bar">
+      <label>时间</label>
+      <input class="form-input" type="date" value="2026-05-01">
+      <div class="filter-sep"></div>
+      <label>层级</label>
+      <select class="form-input">
+        <option>全部 FR</option>
+        <option>FR-72</option><option>FR-73</option><option>FR-74</option>
+        <option>FR-75</option><option>FR-76</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>严重度</label>
+      <select class="form-input">
+        <option>全部</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+      </select>
+      <div class="filter-sep"></div>
+      <input class="form-input search-input" placeholder="搜索日志内容...">
+    </div>
+
+    <!-- ============ LOG ENTRIES ============ -->
+
+    <!-- 1. FR-72: SM2签名验证 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:15:33</span>
+        <span class="log-id">SEC-5.12-0001</span>
+        <span class="log-defense l-fr72">FR-72</span>
+        <span class="badge badge-low">LOW</span>
+      </div>
+      <div class="log-body">
+        <strong>SM2签名验证通过</strong> &mdash; Agent会话token使用SM2签名验证通过。会话 <code>session-gov-agent-01</code> 的认证token经SM2算法签名验证，签名者证书 <code>CERT-SM2-2026-Q2</code> 有效。
+      </div>
+      <div class="log-detail"><span class="dk">session_id:</span> <span class="dv">session-gov-agent-01</span>
+<span class="dk">verification_type:</span> <span class="dv">SM2 digital signature verification</span>
+<span class="dk">certificate_id:</span> <span class="dv">CERT-SM2-2026-Q2</span>
+<span class="dk">certificate_subject:</span> <span class="dv">CN=gov-agent-01,OU=Security,O=GovCloud</span>
+<span class="dk">signature_algorithm:</span> <span class="dv">SM2withSM3</span>
+<span class="dk">token_issuer:</span> <span class="dv">ClawManager-Auth-Service</span>
+<span class="dk">verification_result:</span> <span class="dv">VALID</span>
+<span class="dk">token_expiry:</span> <span class="dv">2026-05-01T20:00:00Z</span>
+<span class="dk">compliance:</span> <span class="dv">GM/T 0009-2012 (国密数字签名算法)</span></div>
+    </div>
+
+    <!-- 2. FR-72: 密钥轮换 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:00:00</span>
+        <span class="log-id">SEC-5.12-0002</span>
+        <span class="log-defense l-fr72">FR-72</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>CA证书轮换完成</strong> &mdash; KubeArmor CA证书轮换完成，新证书 <code>RSA-4096</code> 已生效。旧证书将在7天宽限期后自动失效。轮换过程中服务无中断。
+      </div>
+      <div class="log-detail"><span class="dk">rotation_type:</span> <span class="dv">CA Certificate Rotation</span>
+<span class="dk">system:</span> <span class="dv">KubeArmor TLS</span>
+<span class="dk">old_cert_id:</span> <span class="dv">KA-CA-2026-Q1</span>
+<span class="dk">old_key_algorithm:</span> <span class="dv">RSA-2048</span>
+<span class="dk">new_cert_id:</span> <span class="dv">KA-CA-2026-Q2</span>
+<span class="dk">new_key_algorithm:</span> <span class="dv">RSA-4096</span>
+<span class="dk">new_cert_expiry:</span> <span class="dv">2026-07-01T00:00:00Z</span>
+<span class="dk">grace_period:</span> <span class="dv">7 days (both certs valid until 2026-05-08)</span>
+<span class="dk">rotation_status:</span> <span class="dv">SUCCESS - no service interruption</span>
+<span class="dk">affected_components:</span> <span class="dv">kubearmor-relay, kubearmor-agent, kubearmor-controller</span>
+<span class="dk">approved_by:</span> <span class="dv">陈磊(安全团队)</span></div>
+    </div>
+
+    <!-- 3. FR-72: 加密操作审计 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 10:22:47</span>
+        <span class="log-id">SEC-5.12-0003</span>
+        <span class="log-defense l-fr72">FR-72</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>SM4加密凭据存储</strong> &mdash; 使用SM4算法加密存储凭据完成，KeyID=<code>sm4-cred-001</code>。加密操作已记录审计日志，满足密码管理合规要求。
+      </div>
+      <div class="log-detail"><span class="dk">operation_type:</span> <span class="dv">ENCRYPT - credential storage</span>
+<span class="dk">encryption_algorithm:</span> <span class="dv">SM4-CBC (国密对称加密)</span>
+<span class="dk">key_id:</span> <span class="dv">sm4-cred-001</span>
+<span class="dk">key_protection:</span> <span class="dv">HSM-backed (Hardware Security Module)</span>
+<span class="dk">data_classification:</span> <span class="dv">CONFIDENTIAL - 凭据数据</span>
+<span class="dk">operator:</span> <span class="dv">system-auto (credential rotation)</span>
+<span class="dk">source_instance:</span> <span class="dv">instance-fin-01</span>
+<span class="dk">audit_trail:</span> <span class="dv">OP-20260501-0047</span>
+<span class="dk">compliance:</span> <span class="dv">GM/T 0002-2012 (SM4分组密码算法)</span>
+<span class="dk">key_rotation_due:</span> <span class="dv">2026-07-30 (90-day cycle)</span></div>
+    </div>
+
+    <!-- 4. FR-73: TEE验证 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 11:05:12</span>
+        <span class="log-id">SEC-5.12-0004</span>
+        <span class="log-defense l-fr73">FR-73</span>
+        <span class="badge badge-high">HIGH</span>
+      </div>
+      <div class="log-body">
+        <strong>SGX attestation quote验证通过</strong> &mdash; 实例 <code>instance-sgx-01</code> 的SGX attestation quote验证通过，enclave完整性和可信性确认。TEE环境可承载高敏数据处理。
+      </div>
+      <div class="log-detail"><span class="dk">instance_id:</span> <span class="dv">instance-sgx-01</span>
+<span class="dk">attestation_type:</span> <span class="dv">Intel SGX DCAP (Data Center Attestation Primitives)</span>
+<span class="dk">quote_status:</span> <span class="dv">OK</span>
+<span class="dk">enclave_measurement:</span> <span class="dv">MRENCLAVE=a3f8c7...e2b4 (SHA256)</span>
+<span class="dk">signer_measurement:</span> <span class="dv">MRSIGNER=7b2d9f...c8e1 (SHA256)</span>
+<span class="dk">isv_prod_id:</span> <span class="dv">1</span>
+<span class="dk">isv_svn:</span> <span class="dv">3</span>
+<span class="dk"> tcb_status:</span> <span class="dv">UpToDate</span>
+<span class="dk">collateral_expiry:</span> <span class="dv">2026-05-08T00:00:00Z</span>
+<span class="dk">verification_service:</span> <span class="dv">SGX-DCAP-Quote-Verifier</span>
+<span class="dk">next_attestation:</span> <span class="dv">2026-05-01T12:05:12Z (1h interval)</span></div>
+    </div>
+
+    <!-- 5. FR-73: 运行时隔离 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 11:30:00</span>
+        <span class="log-id">SEC-5.12-0005</span>
+        <span class="log-defense l-fr73">FR-73</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>DefaultPosture=block已应用</strong> &mdash; KubeArmor <code>DefaultPosture=block</code> 已应用于高敏实例。文件、网络、capabilities、设备访问默认全部拒绝，仅允许白名单规则。
+      </div>
+      <div class="log-detail"><span class="dk">policy_type:</span> <span class="dv">KubeArmor DefaultPosture</span>
+<span class="dk">target_namespace:</span> <span class="dv">high-security</span>
+<span class="dk">posture_config:</span>
+  <span class="dv">file:         block (default deny all file access)</span>
+  <span class="dv">network:      block (default deny all network access)</span>
+  <span class="dv">capabilities: block (default deny all capabilities)</span>
+  <span class="dv">device:       block (default deny all device access)</span>
+<span class="dk">whitelist_policies:</span> <span class="dv">KSP-high-sec-allow-v1 (12 rules)</span>
+<span class="dk">affected_instances:</span> <span class="dv">instance-gov-01, instance-gov-02, instance-fin-01, instance-fin-02</span>
+<span class="dk">applied_at:</span> <span class="dv">2026-05-01T11:30:00Z</span>
+<span class="dk">enforcement_mode:</span> <span class="dv">ENFORCE (not audit)</span>
+<span class="dk">compliance:</span> <span class="dv">等保2.0三级 - 运行时隔离要求</span></div>
+    </div>
+
+    <!-- 6. FR-74: 节点信任 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 12:14:28</span>
+        <span class="log-id">SEC-5.12-0006</span>
+        <span class="log-defense l-fr74">FR-74</span>
+        <span class="badge badge-low">LOW</span>
+      </div>
+      <div class="log-body">
+        <strong>节点基线验证通过</strong> &mdash; 节点 <code>node-trusted-01</code> 通过KSecure基线验证，trust score=94。节点标记为高安全等级，可承载高敏实例调度。
+      </div>
+      <div class="log-detail"><span class="dk">node_id:</span> <span class="dv">node-trusted-01</span>
+<span class="dk">verification_type:</span> <span class="dv">KSecure Baseline Integrity Check</span>
+<span class="dk">trust_score:</span> <span class="dv">94/100</span>
+<span class="dk">baseline_version:</span> <span class="dv">v2.3 (38 scripts)</span>
+<span class="dk">scripts_passed:</span> <span class="dv">36/38</span>
+<span class="dk">scripts_failed:</span> <span class="dv">0</span>
+<span class="dk">scripts_warned:</span> <span class="dv">2 (Kernel-Modules, Firewall-Default-Advanced)</span>
+<span class="dk">node_label:</span> <span class="dv">security-level=high, trusted=true</span>
+<span class="dk">g_mode_at_check:</span> <span class="dv">c (check mode)</span>
+<span class="dk">eligible_for:</span> <span class="dv">High-sensitivity instance scheduling</span>
+<span class="dk">last_boot_attestation:</span> <span class="dv">2026-05-01T06:00:00Z (TPM quote verified)</span>
+<span class="dk">next_verification:</span> <span class="dv">2026-05-01T18:14:28Z (6h interval)</span></div>
+    </div>
+
+    <!-- 7. FR-74: 调度合规 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 12:16:05</span>
+        <span class="log-id">SEC-5.12-0007</span>
+        <span class="log-defense l-fr74">FR-74</span>
+        <span class="badge badge-high">HIGH</span>
+      </div>
+      <div class="log-body">
+        <strong>高敏实例调度到专用节点</strong> &mdash; 金融高敏实例 <code>finance-01</code> 调度到高安全节点 <code>node-trusted-01</code>。调度策略确保高敏实例仅运行在通过信任验证的专用节点上。
+      </div>
+      <div class="log-detail"><span class="dk">instance_id:</span> <span class="dv">finance-01</span>
+<span class="dk">instance_classification:</span> <span class="dv">high-sensitivity (金融数据)</span>
+<span class="dk">scheduled_to_node:</span> <span class="dv">node-trusted-01</span>
+<span class="dk">node_trust_score:</span> <span class="dv">94</span>
+<span class="dk">node_security_label:</span> <span class="dv">security-level=high</span>
+<span class="dk">scheduling_policy:</span> <span class="dv">HighSensitivityNodeAffinity (required)</span>
+<span class="dk">anti_affinity:</span> <span class="dv">Prefer not to schedule on nodes with score &lt; 80</span>
+<span class="dk">scheduling_result:</span> <span class="dv">SUCCESS</span>
+<span class="dk">previous_node:</span> <span class="dv">node-standard-03 (trust_score=72, below threshold)</span>
+<span class="dk">migration_reason:</span> <span class="dv">Node trust score below high-security threshold (80)</span>
+<span class="dk">data_sensitivity:</span> <span class="dv">CONFIDENTIAL - 金融交易数据</span></div>
+    </div>
+
+    <!-- 8. FR-75: 双人审批 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 14:22:38</span>
+        <span class="log-id">SEC-5.12-0008</span>
+        <span class="log-defense l-fr75">FR-75</span>
+        <span class="badge badge-high">HIGH</span>
+      </div>
+      <div class="log-body">
+        <strong>双人审批触发</strong> &mdash; <code>delete instance</code> 操作需2名admin批准。操作人 <code>admin-zhangwei</code> 发起删除请求，当前已有1/2审批通过，等待第二位admin确认。
+      </div>
+      <div class="log-detail"><span class="dk">operation_type:</span> <span class="dv">InstanceCommand / delete_openclaw</span>
+<span class="dk">target_instance:</span> <span class="dv">instance-fin-01</span>
+<span class="dk">initiator:</span> <span class="dv">admin-zhangwei</span>
+<span class="dk">approval_required:</span> <span class="dv">2/2 admins (双人审批)</span>
+<span class="dk">approval_progress:</span>
+  <span class="dv">[1] admin-chenlei - APPROVED at 2026-05-01T14:23:15Z</span>
+  <span class="dv">[2] PENDING - awaiting second admin approval</span>
+<span class="dk">approval_timeout:</span> <span class="dv">8 hours (auto-reject if not approved by 22:22)</span>
+<span class="dk">reason_provided:</span> <span class="dv">"实例资源回收，业务已迁移至finance-02"</span>
+<span class="dk">risk_assessment:</span> <span class="dv">HIGH - deletion of financial instance with audit data</span>
+<span class="dk">audit_retention_check:</span> <span class="dv">PASSED - all audit logs archived (7-year retention)</span>
+<span class="dk">template_policy:</span> <span class="dv">金融模板 - 双人审批(AC-76.2)</span></div>
+    </div>
+
+    <!-- 9. FR-75: RBAC违规 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 15:08:44</span>
+        <span class="log-id">SEC-5.12-0009</span>
+        <span class="log-defense l-fr75">FR-75</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>RBAC权限违规拒绝</strong> &mdash; <code>operator</code> 角色尝试修改RiskRule被拒绝。operator角色无RiskRule修改权限，操作已记录审计日志。
+      </div>
+      <div class="log-detail"><span class="dk">violation_type:</span> <span class="dv">RBAC Permission Denied</span>
+<span class="dk">requestor:</span> <span class="dv">operator-liuming</span>
+<span class="dk">requestor_role:</span> <span class="dv">operator</span>
+<span class="dk">attempted_action:</span> <span class="dv">RiskRule.update (R-003 Pattern modification)</span>
+<span class="dk">required_role:</span> <span class="dv">admin OR security</span>
+<span class="dk">denial_reason:</span> <span class="dv">Insufficient permissions - operator role cannot modify security policies</span>
+<span class="dk">target_rule:</span> <span class="dv">R-003 (网络扫描行为检测)</span>
+<span class="dk">attempted_change:</span> <span class="dv">Pattern nmap|netcat\s+-l → nmap|netcat\s+-[lp]</span>
+<span class="dk">source_ip:</span> <span class="dv">10.0.3.47</span>
+<span class="dk">audit_logged:</span> <span class="dv">TRUE - RBAC-VIOLATION-20260501-003</span>
+<span class="dk">template_compliance:</span> <span class="dv">金融模板RBAC矩阵 - RiskRule修改需admin+security会签</span>
+<span class="dk">recommended_action:</span> <span class="dv">If legitimate, submit change request through approval workflow</span></div>
+    </div>
+
+    <!-- 10. FR-76: 模板部署 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 14:30:00</span>
+        <span class="log-id">SEC-5.12-0010</span>
+        <span class="log-defense l-fr76">FR-76</span>
+        <span class="badge badge-low">LOW</span>
+      </div>
+      <div class="log-body">
+        <strong>金融行业模板部署完成</strong> &mdash; 金融行业模板已部署到3个实例 <code>instance-fin-01/02/03</code>。模板包含安全策略+权限画像+合规基线+审计规则+响应Playbook。
+      </div>
+      <div class="log-detail"><span class="dk">template_id:</span> <span class="dv">TPL-FIN-v1.2</span>
+<span class="dk">template_name:</span> <span class="dv">金融行业安全模板</span>
+<span class="dk">template_version:</span> <span class="dv">v1.2</span>
+<span class="dk">deployed_instances:</span>
+  <span class="dv">1) instance-fin-01 - ENFORCE, G_MODE=s, 双人审批</span>
+  <span class="dv">2) instance-fin-02 - ENFORCE, G_MODE=s, 双人审批</span>
+  <span class="dv">3) instance-fin-03 - ENFORCE, G_MODE=s, RSA/AES (非国密)</span>
+<span class="dk">template_components:</span>
+  <span class="dv">- Security Policies: ClawAegis 12 modules enforce + KubeArmor DefaultPosture=block</span>
+  <span class="dv">- Permission Profile: RBAC matrix (admin/operator/auditor/viewer) + 双人审批</span>
+  <span class="dv">- Compliance Baseline: 32 KSecure scripts (银保监合规)</span>
+  <span class="dv">- Audit Rules: 交易级审计, 7年保留, RSA-SHA256签名</span>
+  <span class="dv">- Response Playbooks: 异常交易/风控触发/密钥泄露</span>
+<span class="dk">deployed_by:</span> <span class="dv">admin-chenlei</span>
+<span class="dk">approved_by:</span> <span class="dv">admin-zhangwei + security-team</span>
+<span class="dk">post_deploy_validation:</span> <span class="dv">PASSED - all 3 instances compliant (score 95/91/88)</span></div>
+    </div>
+
+    <!-- 11. FR-76: 合规偏差 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 11:22:18</span>
+        <span class="log-id">SEC-5.12-0011</span>
+        <span class="log-defense l-fr76">FR-76</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>模板合规偏差检测</strong> &mdash; 政务实例 <code>instance-gov-02</code> 偏离模板baseline，SSH配置 <code>PermitEmptyPasswords</code> 不一致。模板要求no但实际为yes，违反等保2.0三级要求。
+      </div>
+      <div class="log-detail"><span class="dk">deviation_type:</span> <span class="dv">Template Baseline Deviation</span>
+<span class="dk">instance_id:</span> <span class="dv">instance-gov-02</span>
+<span class="dk">template_id:</span> <span class="dv">TPL-GOV-v1.2</span>
+<span class="dk">template_name:</span> <span class="dv">政务行业安全模板</span>
+<span class="dk">check_id:</span> <span class="dv">KS-BL-SSH-EmptyPW</span>
+<span class="dk">expected_state:</span> <span class="dv">PermitEmptyPasswords no (模板基线要求)</span>
+<span class="dk">actual_state:</span> <span class="dv">PermitEmptyPasswords yes (运行时配置)</span>
+<span class="dk">compliance_reference:</span> <span class="dv">等保2.0三级 - CIS Benchmark 5.2.2</span>
+<span class="dk">deviation_score:</span> <span class="dv">-14 points (合规分从92降至78)</span>
+<span class="dk">auto_remediate_available:</span> <span class="dv">YES (G_MODE=s)</span>
+<span class="dk">auto_remediate_status:</span> <span class="dv">PENDING - awaiting admin approval (政务模板要求人工确认)</span>
+<span class="dk">remediation_command:</span> <span class="dv">Set PermitEmptyPasswords no in /etc/ssh/sshd_config</span>
+<span class="dk">alert_sent_to:</span> <span class="dv">security-team@gov-cloud.internal</span></div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button class="page-btn disabled">&laquo;</button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn disabled">&raquo;</button>
+      <span class="page-info">共 11 条日志</span>
+    </div>
+
+  </div><!-- content-area -->
+</div><!-- main-content -->
+
+</div><!-- app-shell -->
+</body>
+</html>

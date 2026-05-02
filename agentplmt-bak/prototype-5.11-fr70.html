@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-70 证据固化与取证回放 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-valid{background:#d1fae5;color:#065f46}.badge-verify{background:#dbeafe;color:#1d4ed8}.badge-tampered{background:#fee2e2;color:#b91c1c}.badge-archived{background:#e5e7eb;color:#6b7280}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-danger{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px -4px rgba(220,38,38,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.lifecycle-flow{display:flex;align-items:center;gap:0;margin:20px 0;flex-wrap:nowrap;overflow-x:auto}
+.lifecycle-stage{flex:1;min-width:160px;border-radius:18px;border:1px solid #eadfd8;padding:18px 14px;text-align:center;position:relative;background:rgba(255,255,255,0.9);transition:all .2s}
+.lifecycle-stage:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-2px)}
+.lifecycle-stage .ls-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 10px}
+.lifecycle-stage .ls-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:4px}
+.lifecycle-stage .ls-desc{font-size:11px;color:var(--text);line-height:1.6}
+.lifecycle-stage .ls-detail{font-size:10px;color:#8f8681;margin-top:8px;font-family:monospace;line-height:1.5}
+.lifecycle-arrow{width:36px;flex-shrink:0;text-align:center;color:#b4a9a0;font-size:20px}
+.evidence-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:18px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.evidence-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.evidence-card .ec-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.evidence-card .ec-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-left:10px}
+.evidence-card .ec-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.evidence-card .ec-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.timeline-container{position:relative;padding-left:30px;margin:20px 0}
+.timeline-line{position:absolute;left:12px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,#dc2626,#d97706,#059669)}
+.timeline-entry{position:relative;margin-bottom:24px;padding-left:24px}
+.timeline-dot{position:absolute;left:-24px;top:4px;width:14px;height:14px;border-radius:50%;border:3px solid;background:#fff;z-index:2}
+.timeline-entry .te-time{font-size:11px;color:#8f8681;font-family:monospace;margin-bottom:4px}
+.timeline-entry .te-content{border-radius:12px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.92);padding:14px 18px}
+.timeline-entry .te-system{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.timeline-entry .te-action{font-size:13px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.timeline-entry .te-evidence{font-size:11px;font-family:monospace;line-height:1.7;color:var(--text);background:#faf7f4;border-radius:6px;padding:8px 12px;margin-top:6px}
+.replay-controls{display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:14px;background:linear-gradient(135deg,#fff9f5,#fff7f3);border:1px solid #eadfd8;margin-bottom:20px}
+.replay-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;transition:all .2s;border:1px solid #eadfd8;background:rgba(255,255,255,0.9)}
+.replay-btn:hover{background:#fef2f2;border-color:#fca5a5}
+.replay-btn.primary{background:linear-gradient(135deg,#ef6b4a,#dc2626);color:white;border:none}
+.replay-progress{flex:1;height:6px;border-radius:3px;background:#f1e7e1;position:relative;cursor:pointer}
+.replay-progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#ef6b4a,#dc2626);width:35%;transition:width .3s}
+.replay-step{font-size:12px;font-weight:600;color:var(--text-h)}
+.chain-row{display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid #f1e7e1}
+.chain-row:last-child{border-bottom:none}
+.chain-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.chain-info{flex:1}
+.chain-info .ci-name{font-size:13px;font-weight:600;color:var(--text-h)}
+.chain-info .ci-desc{font-size:11px;color:#8f8681;margin-top:2px}
+.chain-hash{font-family:monospace;font-size:11px;color:var(--accent-coral);background:#faf7f4;padding:4px 10px;border-radius:6px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chain-status{flex-shrink:0}
+.type-config{background:#dbeafe;color:#1d4ed8}.type-memory{background:#ede9fe;color:#6d28d9}.type-file{background:#fef3c7;color:#92400e}.type-log{background:#d1fae5;color:#065f46}.type-alert{background:#fee2e2;color:#b91c1c}.type-integrity{background:#ffedd5;color:#c2410c}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}.lifecycle-flow{flex-wrap:wrap}.lifecycle-arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.11 审计追踪与运营治理</div>
+    <div class="nav-item" data-page="fr65"><span>FR-65 安全事件全链路审计</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr66"><span>FR-66 合规基线与持续核查</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr67"><span>FR-67 策略版本管理与回滚</span><span class="fr-badge">P2</span></div>
+    <div class="nav-item" data-page="fr68"><span>FR-68 运营指标与SLA看板</span><span class="fr-badge">P2</span></div>
+    <div class="nav-item" data-page="fr69"><span>FR-69 安全事件联动处置与自愈</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item active" data-page="fr70"><span>FR-70 证据固化与取证回放</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr71"><span>FR-71 安全运营SOP与工单</span><span class="fr-badge">P2</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.11 审计追踪与运营治理</div>
+      <div class="page-title">FR-70 | 证据固化与取证回放 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawManager</span>
+      <span class="badge badge-sys">KSecure</span>
+      <span class="badge badge-sys">KubeArmor</span>
+      <span class="badge badge-sys">OpenClaw</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">证据架构</div>
+      <div class="tab" data-tab="snapshots">快照管理</div>
+      <div class="tab" data-tab="replay">取证回放</div>
+      <div class="tab" data-tab="chain">证据链</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 证据架构                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Evidence Preservation &amp; Forensic Replay &mdash; Capture, Sign, Store, Verify, Replay</div>
+        <div class="panel-title">证据固化与取证回放架构</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          FR-70 对高危事件保留执行链、配置快照、记忆快照、文件差异和关联日志，确保安全事件的全链路证据可追溯、可回放、可验证。系统由 ClawManager（Config Revision + SHA256 checksum + 注入快照）+ KSecure/KubeArmor（安全事件日志 Alert/Log + 进程/文件哈希）+ ClawAegis（SelfIntegrityRecord 完整性指纹）协同实现，所有证据带有时间戳和数字签名，支持取证回放和证据链完整性验证。
+        </p>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="badge badge-p1">P1 优先级</span>
+          <span class="badge badge-sys">ClawManager</span>
+          <span class="badge badge-sys">KSecure</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="badge badge-sys">OpenClaw</span>
+          <span class="badge badge-critical">SHA256</span>
+          <span class="badge badge-high">IMA</span>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">1,247</div><div class="sc-label">证据快照总数</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#dc2626">23</div><div class="sc-label">高危事件快照</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#059669">99.8%</div><div class="sc-label">完整性验证通过</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#6d28d9">142GB</div><div class="sc-label">证据库占用</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#d97706">8</div><div class="sc-label">待归档快照</div></div>
+      </div>
+
+      <!-- Evidence Pipeline Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">证据固化流水线 &mdash; 检测 &rarr; 采集 &rarr; 签名 &rarr; 存储 &rarr; 回放</div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-sys">ClawManager</span>
+            <span class="badge badge-sys">KubeArmor</span>
+            <span class="badge badge-sys">KSecure</span>
+          </div>
+        </div>
+
+        <div class="lifecycle-flow">
+          <!-- Stage 1: Incident Detected -->
+          <div class="lifecycle-stage" style="border-left:4px solid #dc2626">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#dc2626">&#x26a0;</div>
+            <div class="ls-title">事件检测</div>
+            <div class="ls-desc">高危事件触发证据采集</div>
+            <div class="ls-detail">
+              ClawAegis: Loop/Dispatch Guard<br>
+              KubeArmor: Critical Alert<br>
+              KSecure: ProcessBlackType<br>
+              ClawManager: Risk Detection
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 2: Capture State -->
+          <div class="lifecycle-stage" style="border-left:4px solid #3b82f6">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8">&#x1f4f7;</div>
+            <div class="ls-title">状态采集</div>
+            <div class="ls-desc">多维度状态快照</div>
+            <div class="ls-detail">
+              Config: InstanceConfigRevision<br>
+              Memory: InjectionSnapshot<br>
+              File: KubeArmor ProcessHash<br>
+              IMA: bpf_ima_file_hash()
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 3: Collect Logs -->
+          <div class="lifecycle-stage" style="border-left:4px solid #d97706">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#d97706">&#x1f4d1;</div>
+            <div class="ls-title">日志收集</div>
+            <div class="ls-desc">关联多源安全日志</div>
+            <div class="ls-detail">
+              KubeArmor: Alert (44 fields)<br>
+              KubeArmor: Log (34 fields)<br>
+              KSecure: SecLog<br>
+              ClawManager: Audit Log
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 4: Sign & Timestamp -->
+          <div class="lifecycle-stage" style="border-left:4px solid #6d28d9">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#6d28d9">&#x1f511;</div>
+            <div class="ls-title">签名时间戳</div>
+            <div class="ls-desc">SHA256 + 数字签名</div>
+            <div class="ls-detail">
+              SHA256: 每份证据校验和<br>
+              Signature: RSA-4096 数字签名<br>
+              Timestamp: RFC 3339 精确到ms<br>
+              SelfIntegrityRecord: 指纹
+            </div>
+          </div>
+          <div class="lifecycle-arrow">&rarr;</div>
+
+          <!-- Stage 5: Store & Verify -->
+          <div class="lifecycle-stage" style="border-left:4px solid #059669">
+            <div class="ls-icon" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#059669">&#x1f3e6;</div>
+            <div class="ls-title">存储验证</div>
+            <div class="ls-desc">证据库存储与完整性校验</div>
+            <div class="ls-detail">
+              Evidence Vault: 安全存储<br>
+              定期验证: SHA256 re-check<br>
+              篡改告警: hash 不匹配告警<br>
+              Available: 支持取证回放
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- What Constitutes Evidence -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">证据构成要素</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+          <!-- Execution Chain -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:linear-gradient(135deg,#fff9f5,#fff7f3);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f517; 执行链 Execution Chain</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              <strong>来源:</strong> KubeArmor Alert (44 字段)<br>
+              &bull; ProcessName, ParentProcessName<br>
+              &bull; ProcessHash, ParentHash (SHA256)<br>
+              &bull; ResourceHash, HashAlgo<br>
+              &bull; EventData (系统调用详情)<br>
+              &bull; 完整父子进程链<br><br>
+              <strong>来源:</strong> KubeArmor Log (34 字段)<br>
+              &bull; 系统调用级别详情<br>
+              &bull; Source/Dest 进程信息<br>
+              &bull; Network 连接信息
+            </div>
+          </div>
+
+          <!-- Config Snapshots -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:linear-gradient(135deg,#eff6ff,#dbeafe);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f4be; 配置快照 Config Snapshots</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              <strong>InstanceConfigRevision 模型:</strong><br>
+              &bull; SHA256 checksum (内容校验)<br>
+              &bull; ContentJSON (完整配置内容)<br>
+              &bull; RevisionNo (版本号)<br>
+              &bull; PublishedAt (发布时间)<br>
+              &bull; ActivatedAt (激活时间)<br><br>
+              <strong>OpenClawInjectionSnapshot:</strong><br>
+              &bull; SourceSnapshotID, SourceBundleID<br>
+              &bull; RenderedManifestJSON (渲染后配置)
+            </div>
+          </div>
+
+          <!-- Log Correlations -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:linear-gradient(135deg,#ecfdf5,#d1fae5);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f4ca; 关联日志 Log Correlations</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              <strong>KSecure SecLog:</strong><br>
+              &bull; Time, LogType, Action<br>
+              &bull; Source, Path, Operation<br>
+              &bull; User, PID<br><br>
+              <strong>ClawManager Audit:</strong><br>
+              &bull; 命令下发记录<br>
+              &bull; 状态变更记录<br>
+              &bull; 审批流程记录
+            </div>
+          </div>
+
+          <!-- File Hashes -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:linear-gradient(135deg,#fef2f2,#fee2e2);padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f510; 文件哈希 File Hashes</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              <strong>KubeArmor Alert:</strong><br>
+              &bull; ProcessHash (进程文件 SHA256)<br>
+              &bull; ResourceHash (资源文件 SHA256)<br>
+              &bull; ParentHash (父进程 SHA256)<br>
+              &bull; HashAlgo: SHA256<br><br>
+              <strong>KubeArmor IMA:</strong><br>
+              &bull; bpf_ima_file_hash() 内核级文件完整性<br>
+              &bull; 运行时文件变更检测
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SelfIntegrityRecord -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">ClawAegis SelfIntegrityRecord &mdash; 证据完整性保障</div>
+          <span class="badge badge-sys">ClawAegis</span>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          ClawAegis 的 SelfIntegrityRecord 机制为证据固化提供底层完整性保障。该机制通过定期对关键文件和配置生成指纹（fingerprint），与证据固化系统深度集成：当高危事件触发证据采集时，SelfIntegrityRecord 的最新指纹被纳入证据链，作为"采集时刻系统状态可信"的旁证。任何后续对证据的篡改都会在定期验证时被发现，因为重新计算的哈希与存储的 SHA256 不匹配。
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="border-radius:12px;padding:14px;background:#faf7f4;border:1px solid #f1e7e1;font-size:12px;line-height:1.7;color:var(--text)">
+            <strong style="color:var(--text-h)">&#x1f511; 指纹生成</strong><br>
+            SelfIntegrityRecord 对 Agent 二进制、配置文件、Skill 定义等关键文件生成 SHA256 fingerprint。每次证据采集时同步记录当前指纹状态，作为系统可信基线。
+          </div>
+          <div style="border-radius:12px;padding:14px;background:#faf7f4;border:1px solid #f1e7e1;font-size:12px;line-height:1.7;color:var(--text)">
+            <strong style="color:var(--text-h)">&#x2705; 完整性验证</strong><br>
+            定期对证据库中的所有快照执行 SHA256 重新计算，与存储的 checksum 比对。匹配 &rarr; 验证通过；不匹配 &rarr; 篡改告警 + 证据链断裂通知。
+          </div>
+          <div style="border-radius:12px;padding:14px;background:#faf7f4;border:1px solid #f1e7e1;font-size:12px;line-height:1.7;color:var(--text)">
+            <strong style="color:var(--text-h)">&#x1f510; IMA 集成</strong><br>
+            KubeArmor 的 bpf_ima_file_hash() 在内核层面对文件进行完整性度量，与 SelfIntegrityRecord 的用户态指纹形成双重保障，覆盖运行时文件变更检测。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 快照管理                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-snapshots">
+
+      <!-- Snapshot Stats -->
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">1,247</div><div class="sc-label">快照总数</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#3b82f6">684</div><div class="sc-label">Config 快照</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#6d28d9">312</div><div class="sc-label">Memory 快照</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#d97706">156</div><div class="sc-label">File Hash 快照</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#059669">95</div><div class="sc-label">Log 关联快照</div></div>
+      </div>
+
+      <!-- Snapshot Data Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">证据快照数据表</div>
+          <div style="display:flex;gap:8px">
+            <select class="form-select" style="width:120px;padding:6px 10px;font-size:12px">
+              <option>全部类型</option>
+              <option>Config</option>
+              <option>Memory</option>
+              <option>File</option>
+              <option>Log</option>
+            </select>
+            <button class="btn-secondary btn-sm">&#x1f50d; 搜索</button>
+            <button class="btn-primary btn-sm">&#x1f4f7; 手动快照</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>快照 ID</th>
+                <th>事件 ID</th>
+                <th>类型</th>
+                <th>时间戳</th>
+                <th>SHA256</th>
+                <th>大小</th>
+                <th>保留期</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">snap-20260501-1428</td>
+                <td style="font-family:monospace;font-size:12px">INC-20260501-012</td>
+                <td><span class="badge type-config">Config</span></td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 14:28:33.472Z</td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">a3f8d2...c7e1b9</td>
+                <td>2.4 MB</td>
+                <td>90天</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">导出</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">验证</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">snap-20260501-1429</td>
+                <td style="font-family:monospace;font-size:12px">INC-20260501-012</td>
+                <td><span class="badge type-memory">Memory</span></td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 14:29:01.115Z</td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">b7c4e1...f2a8d3</td>
+                <td>18.7 MB</td>
+                <td>90天</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">导出</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">验证</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">snap-20260501-1430</td>
+                <td style="font-family:monospace;font-size:12px">INC-20260501-012</td>
+                <td><span class="badge type-file">File</span></td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 14:30:15.893Z</td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">e9d1a4...c5b7f2</td>
+                <td>5.1 MB</td>
+                <td>180天</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">导出</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">验证</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">snap-20260501-1431</td>
+                <td style="font-family:monospace;font-size:12px">INC-20260501-012</td>
+                <td><span class="badge type-log">Log</span></td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 14:31:02.447Z</td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">d4f2c8...a1e9b6</td>
+                <td>3.8 MB</td>
+                <td>365天</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">导出</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">验证</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">snap-20260501-1120</td>
+                <td style="font-family:monospace;font-size:12px">INC-20260501-007</td>
+                <td><span class="badge type-config">Config</span></td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 11:20:08.231Z</td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">c1a7f5...d8e3b4</td>
+                <td>3.2 MB</td>
+                <td>365天</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">导出</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">验证</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">snap-20260501-1121</td>
+                <td style="font-family:monospace;font-size:12px">INC-20260501-007</td>
+                <td><span class="badge type-memory">Memory</span></td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 11:20:45.667Z</td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">f5b2d9...e7c4a1</td>
+                <td>22.3 MB</td>
+                <td>365天</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">导出</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">验证</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">snap-20260430-0915</td>
+                <td style="font-family:monospace;font-size:12px">INC-20260430-003</td>
+                <td><span class="badge type-file">File</span></td>
+                <td style="font-family:monospace;font-size:12px">2026-04-30 09:15:22.890Z</td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">8e4a7c...b3d9f1</td>
+                <td>4.6 MB</td>
+                <td>90天</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">导出</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">延长保留</button>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h);font-family:monospace;font-size:12px">snap-20260428-1630</td>
+                <td style="font-family:monospace;font-size:12px">INC-20260428-015</td>
+                <td><span class="badge type-log">Log</span></td>
+                <td style="font-family:monospace;font-size:12px">2026-04-28 16:30:44.123Z</td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">2c9f6b...a8d4e7</td>
+                <td>8.9 MB</td>
+                <td>90天</td>
+                <td><span class="badge badge-archived">已归档</span></td>
+                <td>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">查看</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">导出</button>
+                  <button class="btn-secondary btn-sm" style="padding:3px 8px;font-size:11px">验证</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- InstanceConfigRevision Model -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">InstanceConfigRevision &mdash; 配置快照模型</div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          ClawManager 的 InstanceConfigRevision 模型是配置快照的核心数据结构。每次配置变更时自动创建新的 Revision 记录，包含完整的 ContentJSON 配置内容和 SHA256 校验和。当高危事件触发证据采集时，系统自动关联当前最新的 ConfigRevision，确保配置状态可追溯。PublishedAt 和 ActivatedAt 的时间差也可作为审计线索，判断配置是否存在未预期的延迟激活。
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f4be; ConfigRevision 字段</div>
+            <div style="font-size:11px;font-family:monospace;line-height:1.8;color:var(--text)">
+              InstanceID: string (FK)<br>
+              RevisionNo: int (自增)<br>
+              ContentJSON: text (完整配置)<br>
+              SHA256: string (32字节 hex)<br>
+              PublishedAt: timestamp<br>
+              ActivatedAt: timestamp (nullable)<br>
+              CreatedBy: string<br>
+              Description: string
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f4be; InjectionSnapshot 字段</div>
+            <div style="font-size:11px;font-family:monospace;line-height:1.8;color:var(--text)">
+              InstanceID: string (FK)<br>
+              SourceSnapshotID: string<br>
+              SourceBundleID: string<br>
+              RenderedManifestJSON: text<br>
+              SHA256: string (渲染结果校验)<br>
+              InjectedAt: timestamp<br>
+              VerifiedAt: timestamp (nullable)<br>
+              Status: string
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 取证回放                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-replay">
+
+      <!-- Incident Selector -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">取证回放 &mdash; 选择事件 &rarr; 时间线回放</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-select" style="width:240px;padding:6px 10px;font-size:12px">
+              <option>INC-20260501-012 高风险指令 (Critical)</option>
+              <option>INC-20260501-007 勒索软件 (Critical)</option>
+              <option>INC-20260501-009 持续循环 (High)</option>
+              <option>INC-20260430-003 数据外泄 (High)</option>
+            </select>
+            <button class="btn-primary btn-sm">&#x25b6; 开始回放</button>
+          </div>
+        </div>
+
+        <!-- Replay Controls -->
+        <div class="replay-controls">
+          <div class="replay-btn" title="跳到开始">&#x23ee;</div>
+          <div class="replay-btn" title="上一步">&#x23f4;</div>
+          <div class="replay-btn primary" title="播放/暂停" id="replay-play">&#x25b6;</div>
+          <div class="replay-btn" title="下一步">&#x23f5;</div>
+          <div class="replay-btn" title="跳到结束">&#x23ed;</div>
+          <div class="replay-progress">
+            <div class="replay-progress-fill" id="replay-fill"></div>
+          </div>
+          <div class="replay-step">步骤 4 / 11</div>
+          <div style="font-size:11px;color:#8f8681;font-family:monospace">T+00:02:18</div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-container">
+          <div class="timeline-line"></div>
+
+          <!-- Step 1: Detection -->
+          <div class="timeline-entry">
+            <div class="timeline-dot" style="border-color:#dc2626"></div>
+            <div class="te-time">2026-05-01 14:28:15.233Z &mdash; T+00:00:00</div>
+            <div class="te-content">
+              <span class="te-system" style="background:#fee2e2;color:#b91c1c">KubeArmor Alert</span>
+              <div class="te-action">检测到高危进程执行 &mdash; ProcessName: encrypt_files, ParentProcessName: bash</div>
+              <div class="te-evidence">
+Alert ID: 1704231815233000000<br>
+Cluster: prod-cluster | Namespace: production<br>
+ProcessName: encrypt_files | PID: 28431 | PPID: 15678<br>
+ParentProcessName: bash | ParentHash: 7a3f8d2e1b4c5d6f...c7e1b9<br>
+ProcessHash: e9d1a4b2c5f7d8e3...c5b7f2<br>
+Resource: /data/important.db | ResourceHash: a1b2c3d4e5f6...a8b9c0<br>
+HashAlgo: SHA256 | Severity: Critical<br>
+EventData: {"syscall":"openat","flags":"O_RDWR","mode":"0644"}
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Evidence Capture -->
+          <div class="timeline-entry">
+            <div class="timeline-dot" style="border-color:#3b82f6"></div>
+            <div class="te-time">2026-05-01 14:28:33.472Z &mdash; T+00:00:18</div>
+            <div class="te-content">
+              <span class="te-system" style="background:#dbeafe;color:#1d4ed8">ClawManager</span>
+              <div class="te-action">自动触发证据采集 &mdash; Config 快照 + Memory 快照</div>
+              <div class="te-evidence">
+snap-20260501-1428 (Config): InstanceConfigRevision #47<br>
+  SHA256: a3f8d2e1b4c5d6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8e1b9<br>
+  ContentJSON: {instance_id: "inst-prod-east-01", desired_state: "running", ...}<br>
+  RevisionNo: 47 | PublishedAt: 2026-05-01T14:28:33Z<br>
+<br>
+snap-20260501-1429 (Memory): InjectionSnapshot<br>
+  SHA256: b7c4e1f2a3d5b6c8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0d3<br>
+  SourceSnapshotID: snap-v2.3-20260415 | SourceBundleID: bundle-0415<br>
+  RenderedManifestJSON: {manifest_version: "2.3", skills: [...], ...}
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: File Hash Evidence -->
+          <div class="timeline-entry">
+            <div class="timeline-dot" style="border-color:#d97706"></div>
+            <div class="te-time">2026-05-01 14:30:15.893Z &mdash; T+00:02:00</div>
+            <div class="te-content">
+              <span class="te-system" style="background:#fef3c7;color:#92400e">KubeArmor IMA</span>
+              <div class="te-action">文件完整性度量 &mdash; bpf_ima_file_hash() 内核级验证</div>
+              <div class="te-evidence">
+snap-20260501-1430 (File): IMA File Hash Collection<br>
+  SHA256: e9d1a4b2c5f7d8e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5b7f2<br>
+<br>
+ProcessHash (encrypt_files): e9d1a4b2c5f7...c5b7f2<br>
+ParentHash (bash): 7a3f8d2e1b4c...c7e1b9<br>
+ResourceHash (/data/important.db): a1b2c3d4e5f6...a8b9c0<br>
+IMA hash (bash): b4c5d6e7f8a9...d1e2f3<br>
+IMA hash (encrypt_files): f6a7b8c9d0e1...a2b3c4<br>
+HashAlgo: SHA256 (all hashes)<br>
+<br>
+SelfIntegrityRecord fingerprint: c8d9e0f1a2b3...e4f5a6
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4: Log Correlation (Current) -->
+          <div class="timeline-entry">
+            <div class="timeline-dot" style="border-color:#059669;box-shadow:0 0 0 4px rgba(5,150,105,0.2)"></div>
+            <div class="te-time">2026-05-01 14:31:02.447Z &mdash; T+00:02:47 &mdash; <strong style="color:#059669">&#x25c0; 当前</strong></div>
+            <div class="te-content" style="border-color:#059669;box-shadow:0 0 0 1px rgba(5,150,105,0.2)">
+              <span class="te-system" style="background:#d1fae5;color:#065f46">KSecure SecLog</span>
+              <div class="te-action">关联日志采集 &mdash; KSecure 安全日志 + ClawManager 审计日志</div>
+              <div class="te-evidence">
+snap-20260501-1431 (Log): Security Log Correlation<br>
+  SHA256: d4f2c8a1b3e5f7a9c0d2e4f6a8b0c1d3e5f7a9b1c3d5e7f9a1b3c5d7e9a1b6<br>
+<br>
+KSecure SecLog entries (3):<br>
+  [14:28:15] LogType=PROCESS Action=DETECT Source=KubeArmor Path=/usr/bin/encrypt_files PID=28431<br>
+  [14:28:18] LogType=FILE Action=WRITE Source=IMA Path=/data/important.db PID=28431<br>
+  [14:28:22] LogType=NETWORK Action=DENY Source=NetworkPolicy Path=- PID=28431<br>
+<br>
+ClawManager Audit entries (2):<br>
+  [14:28:33] Action=EVIDENCE_CAPTURE Target=inst-prod-east-01 User=system<br>
+  [14:28:35] Action=QUARANTINE Target=inst-prod-east-01 User=auto-response
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 5: Auto-Quarantine -->
+          <div class="timeline-entry">
+            <div class="timeline-dot" style="border-color:#dc2626;opacity:0.5"></div>
+            <div class="te-time">2026-05-01 14:28:35.112Z &mdash; T+00:00:20</div>
+            <div class="te-content" style="opacity:0.7">
+              <span class="te-system" style="background:#fee2e2;color:#b91c1c">ClawManager</span>
+              <div class="te-action">自动执行隔离 &mdash; quarantine_skill + NetworkPolicy deny-all-egress</div>
+              <div class="te-evidence">
+Command: quarantine_skill<br>
+NetworkPolicy: deny-all-egress (DNS 53 retained)<br>
+KubeArmor DefaultPosture: audit &rarr; block<br>
+KSecure: host_network_isolate (iptables DROP ALL)
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 6: Notification -->
+          <div class="timeline-entry">
+            <div class="timeline-dot" style="border-color:#6d28d9;opacity:0.5"></div>
+            <div class="te-time">2026-05-01 14:28:45.890Z &mdash; T+00:00:30</div>
+            <div class="te-content" style="opacity:0.7">
+              <span class="te-system" style="background:#ede9fe;color:#6d28d9">Notification</span>
+              <div class="te-action">通知安全团队 &mdash; Critical 通道: 钉钉 + 电话 + 邮件</div>
+              <div class="te-evidence">
+Channel: 钉钉 + 电话 + 邮件<br>
+Recipients: CISO + 安全团队<br>
+Content: INC-20260501-012 高风险指令检测<br>
+Evidence attached: snap-20260501-1428~1431
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 7: Evidence Sign -->
+          <div class="timeline-entry">
+            <div class="timeline-dot" style="border-color:#059669;opacity:0.5"></div>
+            <div class="te-time">2026-05-01 14:32:00.000Z &mdash; T+00:03:45</div>
+            <div class="te-content" style="opacity:0.7">
+              <span class="te-system" style="background:#d1fae5;color:#065f46">Evidence Vault</span>
+              <div class="te-action">证据签名入库 &mdash; RSA-4096 数字签名 + RFC 3339 时间戳</div>
+              <div class="te-evidence">
+Signature Algorithm: RSASSA-PKCS1-v1_5 with SHA-256<br>
+Key Size: RSA-4096<br>
+Timestamp: 2026-05-01T14:32:00.000Z (RFC 3339)<br>
+Signer: evidence-notary@security-platform<br>
+Evidence Bundle: snap-1428 + snap-1429 + snap-1430 + snap-1431<br>
+Bundle Hash: f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 证据链                                                   -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-chain">
+
+      <!-- Chain of Custody Overview -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Chain of Custody &mdash; Evidence Integrity Verification</div>
+        <div class="panel-title">证据链完整性验证</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          每份证据在采集时自动生成 SHA256 哈希校验和，并使用 RSA-4096 数字签名和时间戳服务进行签名。ClawAegis SelfIntegrityRecord 的指纹机制被应用于证据完整性持续监控：定期对证据库中的所有条目重新计算哈希，与存储的校验和比对。任何不匹配立即触发篡改告警，确保证据链的完整性在存储全生命周期内可验证。
+        </p>
+      </div>
+
+      <!-- Integrity Score -->
+      <div style="display:flex;gap:22px;margin-bottom:22px;align-items:flex-start">
+        <div class="app-panel" style="flex:0 0 auto;text-align:center;padding:26px 30px">
+          <div class="score-circle score-high">
+            <div class="score-num">99.8</div>
+            <div class="score-label">完整性 %</div>
+          </div>
+          <div style="font-size:11px;color:#8f8681;margin-top:10px">证据链完整率</div>
+        </div>
+        <div style="flex:1">
+          <div class="stat-row" style="margin-bottom:0">
+            <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">1,247</div><div class="sc-label">证据条目</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#059669">1,245</div><div class="sc-label">验证通过</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#dc2626">0</div><div class="sc-label">篡改告警</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#d97706">2</div><div class="sc-label">待验证</div></div>
+          </div>
+          <div style="margin-top:16px;border-radius:12px;padding:12px 16px;background:#ecfdf5;border:1px solid #bbf7d0;font-size:12px;color:#065f46;line-height:1.6">
+            <strong>上次全量验证:</strong> 2026-05-01 06:00:00 UTC &mdash; 1,245 条目通过，0 条目失败 &mdash; 下次验证: 2026-05-01 18:00:00 UTC
+          </div>
+        </div>
+      </div>
+
+      <!-- Evidence Integrity Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">证据完整性验证记录</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-primary btn-sm">&#x2705; 执行验证</button>
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>证据项</th>
+                <th>类型</th>
+                <th>SHA256 哈希</th>
+                <th>数字签名</th>
+                <th>验证时间</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">snap-20260501-1428</td>
+                <td><span class="badge type-config">Config</span></td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">a3f8d2e1...c7e1b9</td>
+                <td style="font-family:monospace;font-size:11px">RSA-4096/SHA256 sig:a4b5c6...e7f8</td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 06:00:12</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">snap-20260501-1429</td>
+                <td><span class="badge type-memory">Memory</span></td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">b7c4e1f2...f2a8d3</td>
+                <td style="font-family:monospace;font-size:11px">RSA-4096/SHA256 sig:b5c6d7...f8a9</td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 06:00:14</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">snap-20260501-1430</td>
+                <td><span class="badge type-file">File</span></td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">e9d1a4b2...c5b7f2</td>
+                <td style="font-family:monospace;font-size:11px">RSA-4096/SHA256 sig:c6d7e8...a9b0</td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 06:00:15</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">snap-20260501-1431</td>
+                <td><span class="badge type-log">Log</span></td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">d4f2c8a1...a1e9b6</td>
+                <td style="font-family:monospace;font-size:11px">RSA-4096/SHA256 sig:d7e8f9...b0c1</td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 06:00:17</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">snap-20260501-1120</td>
+                <td><span class="badge type-config">Config</span></td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">c1a7f5b2...d8e3b4</td>
+                <td style="font-family:monospace;font-size:11px">RSA-4096/SHA256 sig:e8f9a0...c1d2</td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 06:00:18</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">snap-20260501-1121</td>
+                <td><span class="badge type-memory">Memory</span></td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">f5b2d9a3...e7c4a1</td>
+                <td style="font-family:monospace;font-size:11px">RSA-4096/SHA256 sig:f9a0b1...d2e3</td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 06:00:20</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">snap-20260430-0915</td>
+                <td><span class="badge type-file">File</span></td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">8e4a7c1d...b3d9f1</td>
+                <td style="font-family:monospace;font-size:11px">RSA-4096/SHA256 sig:a1b2c3...e4f5</td>
+                <td style="font-family:monospace;font-size:12px">2026-05-01 06:00:22</td>
+                <td><span class="badge badge-valid">已验证</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight:600;color:var(--text-h)">snap-20260501-new01</td>
+                <td><span class="badge type-alert">Alert</span></td>
+                <td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">pending hash...</td>
+                <td style="font-family:monospace;font-size:11px;color:#8f8681">pending signature...</td>
+                <td style="font-family:monospace;font-size:12px;color:#8f8681">未验证</td>
+                <td><span class="badge badge-verify">待验证</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tampering Alert -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">篡改告警记录</div>
+          <span class="badge badge-low" style="font-size:12px">0 Alert</span>
+        </div>
+        <div style="border-radius:12px;padding:16px;background:#ecfdf5;border:1px solid #bbf7d0;font-size:13px;color:#065f46;line-height:1.7">
+          <strong>当前无篡改告警。</strong> 所有已验证证据的 SHA256 校验和与存储值一致。系统每 12 小时执行一次全量完整性验证（上次: 06:00 UTC），任何哈希不匹配将立即触发 Critical 级别告警，通知 CISO 和安全团队，并标记受影响证据为"可能被篡改"状态。SelfIntegrityRecord 指纹机制同时监控证据采集服务自身的完整性。
+        </div>
+      </div>
+
+      <!-- SelfIntegrityRecord Applied -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">SelfIntegrityRecord 应用 &mdash; 证据完整性双重保障</div>
+          <span class="badge badge-sys">ClawAegis</span>
+        </div>
+
+        <div class="chain-row">
+          <div class="chain-icon" style="background:#fee2e2;color:#b91c1c">&#x1f511;</div>
+          <div class="chain-info">
+            <div class="ci-name">SHA256 哈希校验</div>
+            <div class="ci-desc">每份证据在采集时计算 SHA256 哈希，存储时保留原始哈希值作为基准。验证时重新计算与基准比对。</div>
+          </div>
+          <div class="chain-hash">SHA256 (primary integrity check)</div>
+          <div class="chain-status"><span class="badge badge-valid">Active</span></div>
+        </div>
+
+        <div class="chain-row">
+          <div class="chain-icon" style="background:#dbeafe;color:#1d4ed8">&#x1f510;</div>
+          <div class="chain-info">
+            <div class="ci-name">RSA-4096 数字签名</div>
+            <div class="ci-desc">使用 RSA-4096 私钥对每份证据（含哈希）进行签名，确保证据来源可信且未被篡改。</div>
+          </div>
+          <div class="chain-hash">RSASSA-PKCS1-v1_5/SHA256</div>
+          <div class="chain-status"><span class="badge badge-valid">Active</span></div>
+        </div>
+
+        <div class="chain-row">
+          <div class="chain-icon" style="background:#fef3c7;color:#92400e">&#x23f1;</div>
+          <div class="chain-info">
+            <div class="ci-name">RFC 3339 时间戳</div>
+            <div class="ci-desc">精确到毫秒级的时间戳，记录证据采集、签名、验证的每个时间节点，构成时间证据链。</div>
+          </div>
+          <div class="chain-hash">RFC 3339 (ms precision)</div>
+          <div class="chain-status"><span class="badge badge-valid">Active</span></div>
+        </div>
+
+        <div class="chain-row">
+          <div class="chain-icon" style="background:#ede9fe;color:#6d28d9">&#x1f575;</div>
+          <div class="chain-info">
+            <div class="ci-name">SelfIntegrityRecord 指纹</div>
+            <div class="ci-desc">ClawAegis SelfIntegrityRecord 对证据采集服务自身的完整性进行监控，确保采集工具未被篡改。</div>
+          </div>
+          <div class="chain-hash">fingerprint: c8d9e0f1a2b3...e4f5a6</div>
+          <div class="chain-status"><span class="badge badge-valid">Active</span></div>
+        </div>
+
+        <div class="chain-row">
+          <div class="chain-icon" style="background:#ffedd5;color:#c2410c">&#x1f6e1;</div>
+          <div class="chain-info">
+            <div class="ci-name">KubeArmor IMA 度量</div>
+            <div class="ci-desc">bpf_ima_file_hash() 在内核层面对证据相关文件进行完整性度量，与用户态哈希形成双重保障。</div>
+          </div>
+          <div class="chain-hash">IMA bpf_ima_file_hash()</div>
+          <div class="chain-status"><span class="badge badge-valid">Active</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+      <div class="config-grid">
+
+        <!-- Auto-Snapshot Triggers -->
+        <div class="config-section">
+          <div class="cs-title">&#x26a1; 自动快照触发条件</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">Critical 事件自动快照</div><div class="desc">KubeArmor Critical Alert 触发全量证据采集</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">High 事件自动快照</div><div class="desc">ClawAegis Loop/Dispatch Guard 高危触发</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">处置前强制快照</div><div class="desc">FR-69 执行处置动作前必须完成证据采集 (blocking gate)</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">配置变更自动快照</div><div class="desc">InstanceConfigRevision 变更时自动保留前一版本快照</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">Medium 事件快照</div><div class="desc">Medium 级别事件按需采集（默认关闭，减少存储开销）</div></div>
+              <div class="toggle-switch"><input type="checkbox"><label class="toggle-slider"></label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Snapshot Scope -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4f7; 快照内容范围</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">配置快照 (Config)</div><div class="desc">InstanceConfigRevision 完整内容 + InjectionSnapshot</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">记忆快照 (Memory)</div><div class="desc">OpenClaw 运行时状态 + InjectionSnapshot 渲染配置</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">文件哈希 (File)</div><div class="desc">KubeArmor ProcessHash/ResourceHash + IMA bpf_ima_file_hash()</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">关联日志 (Log)</div><div class="desc">KSecure SecLog + KubeArmor Alert/Log + ClawManager Audit</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">SelfIntegrityRecord</div><div class="desc">采集时同步记录 ClawAegis 完整性指纹</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Retention Policy -->
+        <div class="config-section">
+          <div class="cs-title">&#x23f0; 保留策略 (按事件等级)</div>
+          <div style="overflow-x:auto">
+            <table class="data-table" style="font-size:12px">
+              <thead><tr><th>事件等级</th><th>保留期限</th><th>快照类型</th><th>存储加密</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge badge-critical">Critical</span></td><td>365 天</td><td>全量 (Config+Memory+File+Log)</td><td>AES-256</td></tr>
+                <tr><td><span class="badge badge-high">High</span></td><td>180 天</td><td>全量 (Config+Memory+File+Log)</td><td>AES-256</td></tr>
+                <tr><td><span class="badge badge-medium">Medium</span></td><td>90 天</td><td>精简 (Config+Log)</td><td>AES-256</td></tr>
+                <tr><td><span class="badge badge-low">Low</span></td><td>30 天</td><td>最小 (Log only)</td><td>AES-256</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Integrity Verification Schedule -->
+        <div class="config-section">
+          <div class="cs-title">&#x2705; 完整性验证计划</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">全量验证频率</div><div class="desc">对所有证据条目执行 SHA256 重新计算和比对</div></div>
+              <select class="form-select" style="width:140px">
+                <option>每 12 小时</option>
+                <option>每 6 小时</option>
+                <option>每 24 小时</option>
+                <option>每周</option>
+              </select>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">增量验证</div><div class="desc">新增证据条目入库后立即验证</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">篡改告警级别</div><div class="desc">哈希不匹配时的告警等级</div></div>
+              <select class="form-select" style="width:120px">
+                <option>Critical</option>
+                <option>High</option>
+              </select>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">验证失败处理</div><div class="desc">验证失败时的自动处理策略</div></div>
+              <select class="form-select" style="width:140px">
+                <option>告警+标记</option>
+                <option>告警+隔离</option>
+                <option>仅告警</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signature Algorithm -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f511; 签名算法配置</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">哈希算法</div><div class="desc">证据内容校验和算法</div></div>
+              <select class="form-select" style="width:120px">
+                <option>SHA-256</option>
+                <option>SHA-384</option>
+                <option>SHA-512</option>
+              </select>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">签名算法</div><div class="desc">数字签名算法</div></div>
+              <select class="form-select" style="width:200px">
+                <option>RSASSA-PKCS1-v1_5 (RSA-4096)</option>
+                <option>RSASSA-PSS (RSA-4096)</option>
+                <option>ECDSA (P-521)</option>
+              </select>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">密钥轮换</div><div class="desc">签名密钥定期轮换</div></div>
+              <select class="form-select" style="width:120px">
+                <option>每年</option>
+                <option>每季度</option>
+                <option>每月</option>
+              </select>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">时间戳服务</div><div class="desc">证据采集时间戳精度</div></div>
+              <select class="form-select" style="width:160px">
+                <option>RFC 3339 (毫秒级)</option>
+                <option>RFC 3339 (微秒级)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evidence Export Format -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4e4; 证据导出格式</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">导出格式</div><div class="desc">证据包的标准导出格式</div></div>
+              <select class="form-select" style="width:140px">
+                <option>JSON + Binary</option>
+                <option>JSON only</option>
+                <option>PDF Report</option>
+                <option>Raw Archive</option>
+              </select>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">导出加密</div><div class="desc">导出证据包是否加密</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">导出审批</div><div class="desc">导出证据需要安全团队审批</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">导出审计日志</div><div class="desc">记录每次导出操作的详细信息</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KubeArmor Alert Field Selection -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6e1; KubeArmor Alert 字段选择</div>
+          <div style="font-size:11px;color:var(--text);line-height:1.6;margin-bottom:10px">
+            KubeArmor Alert 包含 44 个字段，以下为证据采集时保留的关键字段（默认全量保留，可按需精简）：
+          </div>
+          <div style="font-size:11px;font-family:monospace;line-height:1.7;background:#faf7f4;border-radius:8px;padding:12px;color:var(--text)">
+<span style="color:#059669">&#x2713;</span> ClusterName &nbsp;&nbsp;<span style="color:#059669">&#x2713;</span> NamespaceName &nbsp;&nbsp;<span style="color:#059669">&#x2713;</span> PodName<br>
+<span style="color:#059669">&#x2713;</span> ProcessName &nbsp;&nbsp;<span style="color:#059669">&#x2713;</span> ParentProcessName<br>
+<span style="color:#059669">&#x2713;</span> ProcessHash &nbsp;&nbsp;<span style="color:#059669">&#x2713;</span> ParentHash<br>
+<span style="color:#059669">&#x2713;</span> ResourceHash &nbsp;&nbsp;<span style="color:#059669">&#x2713;</span> HashAlgo<br>
+<span style="color:#059669">&#x2713;</span> EventData &nbsp;&nbsp;<span style="color:#059669">&#x2713;</span> Severity<br>
+<span style="color:#059669">&#x2713;</span> Action &nbsp;&nbsp;<span style="color:#059669">&#x2713;</span> Result &nbsp;&nbsp;<span style="color:#059669">&#x2713;</span> Timestamp
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#8f8681">KubeArmor Log (34 字段) 同样全量保留，包含系统调用详情和网络连接信息</div>
+        </div>
+
+        <!-- IMA Integration -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f510; IMA 集成配置</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">KubeArmor IMA 度量</div><div class="desc">启用 bpf_ima_file_hash() 内核级文件完整性度量</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">IMA 度量范围</div><div class="desc">哪些路径下的文件纳入 IMA 度量</div></div>
+              <select class="form-select" style="width:160px">
+                <option>/usr/bin, /usr/sbin</option>
+                <option>全量 (所有可执行文件)</option>
+                <option>自定义路径</option>
+              </select>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">IMA 与 ProcessHash 对比</div><div class="desc">自动对比 IMA hash 与 KubeArmor Alert ProcessHash</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">IMA 不匹配告警</div><div class="desc">IMA 与 ProcessHash 不一致时触发告警（可能文件被替换）</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Storage Capacity -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4be; 存储容量管理</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">当前存储使用</div></div>
+              <span style="font-weight:700;color:var(--text-h)">142 GB / 500 GB (28.4%)</span>
+            </div>
+            <div style="margin:10px 0;height:8px;border-radius:4px;background:#f1e7e1">
+              <div style="height:100%;width:28.4%;border-radius:4px;background:linear-gradient(90deg,#059669,#10b981)"></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">存储告警阈值</div><div class="desc">使用率超过阈值时告警</div></div>
+              <select class="form-select" style="width:100px">
+                <option>80%</option>
+                <option>85%</option>
+                <option>90%</option>
+              </select>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">超限自动归档</div><div class="desc">超过保留期的证据自动归档到冷存储</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">预估增长</div><div class="desc">基于当前事件频率预估月增长量</div></div>
+              <span style="font-weight:600;color:var(--text-h)">~18 GB/月</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chain of Custody Rules -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f517; 证据链规则</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">证据不可删除</div><div class="desc">在保留期内，任何人均无法删除已固化的证据（包括管理员）</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">证据不可修改</div><div class="desc">WORM (Write Once Read Many) 模式，固化后只读</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">访问审计</div><div class="desc">每次访问证据的操作都记录审计日志</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+            <div class="toggle-row" style="padding:8px 0">
+              <div class="toggle-label"><div class="name">导出需审批</div><div class="desc">证据导出需要安全团队 Lead 审批</div></div>
+              <div class="toggle-switch"><input type="checkbox" checked><label class="toggle-slider"></label></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- content-area -->
+</div><!-- main-content -->
+
+</div><!-- app-shell -->
+
+<script>
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('tab-'+this.dataset.tab).classList.add('active');
+  });
+});
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',function(){
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+// Replay simulation
+let replayPos = 35;
+let isPlaying = false;
+const playBtn = document.getElementById('replay-play');
+const fillBar = document.getElementById('replay-fill');
+if(playBtn){
+  playBtn.addEventListener('click',function(){
+    isPlaying = !isPlaying;
+    this.textContent = isPlaying ? '⏸' : '▶';
+  });
+}
+</script>
+</body>
+</html>

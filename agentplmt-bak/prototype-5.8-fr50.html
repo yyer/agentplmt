@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-50 决策边界管理 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh;overflow:hidden;height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+
+/* ─── app-shell ─── */
+.app-shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── sidebar ─── */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--shell-warm);border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);display:flex;flex-direction:column;overflow-y:auto;z-index:100;flex-shrink:0}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px;flex-shrink:0}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c;white-space:nowrap}
+.nav-item .fr-badge.p0{background:#fee2e2;color:#b91c1c}
+.nav-item .fr-badge.p1{background:#fef3c7;color:#92400e}
+.nav-sep{height:1px;background:#efe2da;margin:8px 16px}
+
+/* ─── main ─── */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.subheader{height:var(--subheader-h);min-height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;flex-shrink:0;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{flex:1;overflow-y:auto;padding:28px 36px 60px;max-width:1800px}
+
+/* ─── panel ─── */
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+
+/* ─── badges ─── */
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-blocked{background:#fee2e2;color:#b91c1c}.badge-observed{background:#fef3c7;color:#92400e}.badge-allowed{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-green{background:#d1fae5;color:#065f46}.badge-fail{background:#fee2e2;color:#b91c1c}.badge-warn{background:#fef3c7;color:#92400e}
+.badge-auto{background:#dbeafe;color:#1d4ed8}.badge-suggest{background:#fef3c7;color:#92400e}.badge-manual{background:#fee2e2;color:#b91c1c}
+.badge-running{background:#dbeafe;color:#1d4ed8}.badge-succeeded{background:#d1fae5;color:#065f46}.badge-pending{background:#f3f4f6;color:#6b7280}.badge-dispatched{background:#e0e7ff;color:#4338ca}
+
+/* ─── buttons ─── */
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{box-shadow:0 6px 20px -4px rgba(239,107,74,0.55);transform:translateY(-1px)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-secondary:hover{border-color:var(--accent-coral);color:var(--accent-strong)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.btn-danger{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#dc2626,#991b1b);box-shadow:0 4px 14px -4px rgba(220,38,38,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-danger:hover{box-shadow:0 6px 20px -4px rgba(220,38,38,0.55);transform:translateY(-1px)}
+.btn-warn{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 4px 14px -4px rgba(245,158,11,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+
+/* ─── toggle ─── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+
+/* ─── mode-selector ─── */
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.mode-btn.active-auto{background:#dbeafe;color:#1d4ed8}.mode-btn.active-suggest{background:#fef3c7;color:#92400e}.mode-btn.active-manual{background:#fee2e2;color:#b91c1c}
+
+/* ─── data-table ─── */
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.data-table code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+
+/* ─── form ─── */
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-row{display:flex;gap:16px;align-items:flex-start}.form-row .form-group{flex:1}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e6763' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.form-select:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+
+/* ─── tag ─── */
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+
+/* ─── log ─── */
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+
+/* ─── score-circle ─── */
+.score-circle{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;font-weight:800;line-height:1}
+.score-circle .score-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;margin-top:3px;opacity:.7}
+.score-high{background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#15803d}.score-med{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e}.score-low{background:linear-gradient(135deg,#fee2e2,#fecaca);color:#b91c1c}
+
+/* ─── tabs ─── */
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626;font-weight:600}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ─── rule-card ─── */
+.rule-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:16px;margin-bottom:12px}
+.rule-card .rule-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.rule-card .rule-flag{font-size:12px;font-weight:700;font-family:monospace;color:#dc2626}
+.rule-card .rule-desc{font-size:12px;color:var(--text);line-height:1.6}
+.rule-card .rule-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.rule-card .rule-pattern{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.rule-card .rule-meta{display:flex;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid #f1e7e1;flex-wrap:wrap}
+.rule-card .rule-meta-item{font-size:11px;color:#8f8681}.rule-card .rule-meta-item strong{color:var(--text-h);font-weight:600}
+
+/* ─── stat-mini ─── */
+.stat-mini{text-align:center;padding:10px}.stat-mini .value{font-size:1.5rem;font-weight:700}.stat-mini .label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:2px}
+
+/* ─── section-title ─── */
+.section-title{font-size:1.1rem;font-weight:700;color:var(--text-h);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.sub-title{font-size:.92rem;font-weight:600;color:var(--text-h);margin:16px 0 10px}
+
+/* ─── flow-diagram ─── */
+.flow-diagram{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:10px 0}
+.flow-node{border-radius:14px;padding:10px 16px;font-size:12px;font-weight:600;text-align:center;min-width:100px;flex-shrink:0}
+.flow-node.detect{background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8;border:1px solid #bfdbfe}
+.flow-node.evaluate{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border:1px solid #fcd34d}
+.flow-node.decide{background:linear-gradient(135deg,#faf5ff,#e9d5ff);color:#7c3aed;border:1px solid #c4b5fd}
+.flow-node.execute{background:linear-gradient(135deg,#fff7ed,#ffedd5);color:#c2410c;border:1px solid #fdba74}
+.flow-node.block{background:linear-gradient(135deg,#fee2e2,#fecaca);color:#b91c1c;border:1px solid #fca5a5}
+.flow-node.pass{background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#15803d;border:1px solid #86efac}
+.flow-node.route{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#4338ca;border:1px solid #a5b4fc}
+.flow-node.approve{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border:1px solid #fcd34d}
+.flow-arrow{display:flex;align-items:center;color:#c4b0a2;font-size:18px;padding:0 6px;flex-shrink:0}
+.flow-desc{font-size:10px;font-weight:400;color:var(--text);margin-top:3px;font-family:system-ui,sans-serif}
+
+/* ─── zone-card ─── */
+.zone-card{border-radius:20px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden}
+.zone-card::before{content:"";position:absolute;top:0;left:0;right:0;bottom:0;opacity:0.06;pointer-events:none}
+.zone-auto{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #93c5fd;color:#1e40af}
+.zone-auto::before{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+.zone-suggest{background:linear-gradient(135deg,#fffbeb,#fef3c7);border:2px solid #fcd34d;color:#78350f}
+.zone-suggest::before{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.zone-manual{background:linear-gradient(135deg,#fef2f2,#fee2e2);border:2px solid #fca5a5;color:#991b1b}
+.zone-manual::before{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.zone-card .zone-icon{font-size:2rem;margin-bottom:8px}
+.zone-card .zone-title{font-size:1.1rem;font-weight:800;margin-bottom:4px}
+.zone-card .zone-subtitle{font-size:.75rem;opacity:.7;margin-bottom:12px}
+.zone-card .zone-desc{font-size:.82rem;line-height:1.7;opacity:.85}
+.zone-card .zone-examples{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
+.zone-card .zone-example{border-radius:8px;background:rgba(255,255,255,0.5);padding:3px 10px;font-size:11px;font-weight:600}
+
+/* ─── config-summary ─── */
+.config-summary{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px}
+.config-stat{border-radius:14px;background:rgba(255,255,255,0.85);border:1px solid #f1e7e1;padding:14px 20px;flex:1;min-width:140px;text-align:center}
+.config-stat .val{font-size:1.3rem;font-weight:700;color:var(--text-h)}
+.config-stat .lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:3px}
+
+/* ─── code-block ─── */
+.code-block{border-radius:12px;background:#1c1917;color:#e7e5e4;padding:14px 18px;font-size:12px;font-family:monospace;line-height:1.7;overflow-x:auto;margin:8px 0}
+.code-block .kw{color:#f87171}.code-block .str{color:#fbbf24}.code-block .cmt{color:#78716c}.code-block .fn{color:#a78bfa}.code-block .num{color:#34d399}
+
+/* ─── monitoring-grid ─── */
+.monitoring-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.monitor-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.monitor-card .mc-value{font-size:2rem;font-weight:800;line-height:1}
+.monitor-card .mc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.monitor-card .mc-sub{font-size:11px;color:var(--text);margin-top:4px}
+.mc-red{color:#dc2626}.mc-green{color:#059669}.mc-amber{color:#d97706}.mc-blue{color:#2563eb}
+
+/* ─── config-grid ─── */
+.config-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.config-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-card .cc-title{font-size:.9rem;font-weight:700;color:var(--text-h);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.config-card .cc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px}
+.config-card .cc-row:last-child{border-bottom:none}
+.config-card .cc-key{color:var(--text);font-weight:500}.config-card .cc-val{font-weight:700;color:var(--text-h)}
+.config-card .cc-input{width:80px;text-align:right;border-radius:10px;border:1px solid #e5d9d1;padding:5px 10px;font-size:13px;color:var(--text-h);outline:none}
+.config-card .cc-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+
+/* ─── zone-selector ─── */
+.zone-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px}
+.zone-sel-btn{border-radius:8px;padding:4px 10px;font-size:10px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.zone-sel-btn.sel-auto{background:#dbeafe;color:#1d4ed8}.zone-sel-btn.sel-suggest{background:#fef3c7;color:#92400e}.zone-sel-btn.sel-manual{background:#fee2e2;color:#b91c1c}
+
+/* ─── approval-flow ─── */
+.approval-step{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid #f1e7e1}
+.approval-step:last-child{border-bottom:none}
+.approval-step-indicator{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0}
+.step-pending{background:#f3f4f6;color:#6b7280}.step-active{background:#dbeafe;color:#1d4ed8;box-shadow:0 0 0 4px rgba(59,130,246,0.2)}.step-done{background:#dcfce7;color:#15803d}.step-blocked{background:#fee2e2;color:#b91c1c}
+.approval-step-content{flex:1}
+.approval-step-title{font-size:.9rem;font-weight:700;color:var(--text-h);margin-bottom:4px}
+.approval-step-desc{font-size:.78rem;color:var(--text);line-height:1.6}
+
+/* ─── role-compare ─── */
+.role-compare{display:flex;gap:16px;flex-wrap:wrap}
+.role-col{flex:1;min-width:280px;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.role-col .role-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #f1e7e1}
+.role-col .role-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;color:#fff;flex-shrink:0}
+.role-admin-avatar{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.role-user-avatar{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+.role-col .role-name{font-size:.9rem;font-weight:700;color:var(--text-h)}
+.role-col .role-badge{font-size:10px;font-weight:600;border-radius:6px;padding:2px 8px}
+.role-col .role-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:12px;border-bottom:1px solid #f5f1ed}
+.role-col .role-row:last-child{border-bottom:none}
+.role-col .role-action{color:var(--text);font-weight:500}
+.role-col .role-zone{font-weight:600;font-size:11px}
+
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.8 模型决策安全与人工监管</div>
+    <div class="nav-item" data-page="fr47"><span>FR-47 模型输出安全验证</span><span class="fr-badge p0">P0</span></div>
+    <div class="nav-item" data-page="fr48"><span>FR-48 模型幻觉与偏见检测</span><span class="fr-badge p0">P0</span></div>
+    <div class="nav-item" data-page="fr49"><span>FR-49 模型行为审计追踪</span><span class="fr-badge p0">P0</span></div>
+    <div class="nav-item active" data-page="fr50"><span>FR-50 决策边界管理</span><span class="fr-badge p0">P0</span></div>
+    <div class="nav-item" data-page="fr51"><span>FR-51 人工接管与回退机制</span><span class="fr-badge p1">P1</span></div>
+    <div class="nav-item" data-page="fr52"><span>FR-52 决策透明度与可解释性</span><span class="fr-badge p1">P1</span></div>
+    <div class="nav-sep"></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="boundary-logs"><span>边界审计日志</span></div>
+    <div class="nav-item" data-page="approval-queue"><span>审批队列</span></div>
+  </nav>
+</aside>
+
+<!-- Main Content -->
+<div class="main-content">
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.8 模型决策安全与人工监管</div>
+      <div class="page-title">FR-50 | 决策边界管理 | <span class="badge badge-p0">P0 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn-secondary btn-sm">导出策略报告</button>
+      <button class="btn-primary btn-sm">边界测试</button>
+    </div>
+  </div>
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="tab-arch">决策边界架构</div>
+      <div class="tab" data-tab="tab-policy">边界策略</div>
+      <div class="tab" data-tab="tab-approval">审批策略</div>
+      <div class="tab" data-tab="tab-monitor">边界监控</div>
+      <div class="tab" data-tab="tab-config">配置</div>
+    </div>
+
+    <!-- ==================== Tab 1: 决策边界架构 ==================== -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Panel: 三区决策边界模型 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Three-Zone Decision Boundary Model</div>
+            <div class="panel-title">三区决策边界模型</div>
+          </div>
+          <span class="badge badge-sys">ClawManager + OpenClaw</span>
+        </div>
+        <p style="font-size:.82rem;color:var(--text);line-height:1.7;margin-bottom:20px">
+          决策边界管理的核心原则：明确哪些决策可自动执行、哪些只能建议、哪些必须人工确认，避免模型凭"看起来合理"就推进高影响动作。系统基于 <code>RiskRule.Severity</code> 和 <code>RiskRule.Action</code> 自动划分决策区域，同时支持按角色差异化配置。
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:20px">
+          <!-- Auto Zone -->
+          <div class="zone-card zone-auto">
+            <div class="zone-icon">&#9889;</div>
+            <div class="zone-title">自动执行区 (Auto Zone)</div>
+            <div class="zone-subtitle">低风险 | 无需人工介入</div>
+            <div class="zone-desc">
+              风险等级为 <code>low</code>，且 <code>Action=allow</code> 的操作自动执行。模型可自主推进此类决策，无需等待人工确认。系统自动记录审计日志，确保可追溯性。覆盖只读查询、状态检查、信息收集等低影响操作。
+            </div>
+            <div class="zone-examples">
+              <span class="zone-example">health_check</span>
+              <span class="zone-example">start_openclaw</span>
+              <span class="zone-example">collect_system_info</span>
+              <span class="zone-example">sync_skill_inventory</span>
+              <span class="zone-example">refresh_skill_inventory</span>
+            </div>
+          </div>
+          <!-- Advisory Zone -->
+          <div class="zone-card zone-suggest">
+            <div class="zone-icon">&#9888;</div>
+            <div class="zone-title">建议区 (Advisory Zone)</div>
+            <div class="zone-subtitle">中等风险 | 建议并提示</div>
+            <div class="zone-desc">
+              风险等级为 <code>medium</code>，或 <code>Action=route_secure_model</code> 的操作进入建议区。系统自动执行但附加风险提示和警告标记，同时将请求路由至安全模型。操作者收到风险告知，可选择性中止。适用于配置变更、技能更新等中等影响操作。
+            </div>
+            <div class="zone-examples">
+              <span class="zone-example">reload_config</span>
+              <span class="zone-example">apply_config_revision</span>
+              <span class="zone-example">update_skill</span>
+              <span class="zone-example">install_skill</span>
+              <span class="zone-example">collect_skill_package</span>
+            </div>
+          </div>
+          <!-- Manual Zone -->
+          <div class="zone-card zone-manual">
+            <div class="zone-icon">&#128274;</div>
+            <div class="zone-title">人工确认区 (Manual Zone)</div>
+            <div class="zone-subtitle">高风险 | 必须人工审批</div>
+            <div class="zone-desc">
+              风险等级为 <code>high</code>，或 <code>Action=require_approval</code>/<code>block</code> 的操作强制进入人工确认区。模型只能提出建议，不能自主执行。需指定审批人确认后方可下发 <code>InstanceCommand</code>。覆盖停止实例、隔离技能、删除等高影响操作。
+            </div>
+            <div class="zone-examples">
+              <span class="zone-example">stop_openclaw</span>
+              <span class="zone-example">quarantine_skill</span>
+              <span class="zone-example">remove_skill</span>
+              <span class="zone-example">uninstall_skill</span>
+              <span class="zone-example">disable_skill</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: RiskRule Severity/Action → 决策区域映射 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">RiskRule to Decision Zone Mapping</div>
+            <div class="panel-title">RiskRule Severity / Action 与决策区域映射</div>
+          </div>
+          <span class="badge badge-enforce">Enforce</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>RiskRule.Severity</th>
+              <th>RiskRule.Action</th>
+              <th>决策区域</th>
+              <th>执行方式</th>
+              <th>人工介入</th>
+              <th>审计级别</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-low">low</span></td>
+              <td><code>allow</code></td>
+              <td><span class="badge badge-auto">Auto Zone</span></td>
+              <td>自动执行</td>
+              <td>无需</td>
+              <td>标准日志</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><code>allow</code></td>
+              <td><span class="badge badge-suggest">Advisory Zone</span></td>
+              <td>自动执行 + 警告</td>
+              <td>风险告知</td>
+              <td>增强日志</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><code>route_secure_model</code></td>
+              <td><span class="badge badge-suggest">Advisory Zone</span></td>
+              <td>路由至安全模型</td>
+              <td>风险告知</td>
+              <td>增强日志 + 模型路由记录</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-high">high</span></td>
+              <td><code>route_secure_model</code></td>
+              <td><span class="badge badge-manual">Manual Zone</span></td>
+              <td>人工确认 + 安全模型</td>
+              <td>必须审批</td>
+              <td>完整审计</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-high">high</span></td>
+              <td><code>require_approval</code></td>
+              <td><span class="badge badge-manual">Manual Zone</span></td>
+              <td>人工审批后执行</td>
+              <td>必须审批</td>
+              <td>完整审计 + 审批链</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-critical">any</span></td>
+              <td><code>block</code></td>
+              <td><span class="badge badge-manual">Manual Zone</span> (阻断)</td>
+              <td>直接阻断，不可执行</td>
+              <td>N/A（已阻断）</td>
+              <td>阻断审计 + 告警</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="config-summary">
+          <div class="config-stat"><div class="val" style="color:#1d4ed8">3</div><div class="lbl">决策区域</div></div>
+          <div class="config-stat"><div class="val" style="color:#059669">4</div><div class="lbl">RiskRule Action 类型</div></div>
+          <div class="config-stat"><div class="val" style="color:#d97706">3</div><div class="lbl">Severity 等级</div></div>
+          <div class="config-stat"><div class="val" style="color:#dc2626">17</div><div class="lbl">InstanceCommand 类型</div></div>
+        </div>
+      </div>
+
+      <!-- Panel: resolveTargetModel 决策流程 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">AI Gateway Decision Flow</div>
+            <div class="panel-title">resolveTargetModel 决策流程</div>
+          </div>
+          <span class="badge badge-sys">ClawManager AI Gateway</span>
+        </div>
+        <div class="flow-diagram" style="justify-content:center;padding:16px 0;flex-wrap:wrap">
+          <div class="flow-node detect">请求到达<div class="flow-desc">ChatCompletionRequest<br>Model + Messages</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div class="flow-node evaluate">风险分析<div class="flow-desc">RiskDetectionService<br>.AnalyzeText()</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div class="flow-node decide">判定敏感性<div class="flow-desc">IsSensitive?<br>HighestAction?</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="flow-node pass">非敏感 → 放行<div class="flow-desc">return selectedModel<br>Action=allow (Auto)</div></div>
+            <div class="flow-node route">敏感 + 安全模型 → 放行<div class="flow-desc">selectedModel.IsSecure<br>Action=allow (Auto)</div></div>
+            <div class="flow-node execute">敏感 + 非安全 → 路由<div class="flow-desc">route_secure_model<br>(Advisory Zone)</div></div>
+            <div class="flow-node approve">require_approval → 阻断<div class="flow-desc">需人工审批<br>(Manual Zone)</div></div>
+            <div class="flow-node block">block → 直接阻断<div class="flow-desc">请求被拦截<br>(Manual Zone)</div></div>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="cmt">// resolveTargetModel 核心决策逻辑 (ClawManager AI Gateway)</span>
+<span class="kw">func</span> (s *service) <span class="fn">resolveTargetModel</span>(selectedModel *models.LLMModel, analysis services.RiskAnalysis) (*models.LLMModel, <span class="kw">string</span>, error) {
+    <span class="cmt">// 1. 模型不存在 → 拒绝</span>
+    <span class="kw">if</span> selectedModel == <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, models.RiskActionAllow, errors.<span class="fn">New</span>(<span class="str">"model is not active"</span>)
+    }
+    <span class="cmt">// 2. 非敏感内容 → 自动放行 (Auto Zone)</span>
+    <span class="kw">if</span> !analysis.IsSensitive {
+        <span class="kw">return</span> selectedModel, models.RiskActionAllow, <span class="kw">nil</span>
+    }
+    <span class="cmt">// 3. require_approval 或 block → 阻断 (Manual Zone)</span>
+    <span class="kw">if</span> analysis.HighestAction == <span class="str">"require_approval"</span> || analysis.HighestAction == models.RiskActionBlock {
+        <span class="kw">return</span> <span class="kw">nil</span>, models.RiskActionBlock, errors.<span class="fn">New</span>(<span class="str">"blocked by risk policy"</span>)
+    }
+    <span class="cmt">// 4. 敏感但模型安全 → 放行 (Auto Zone, secure model)</span>
+    <span class="kw">if</span> selectedModel.IsSecure {
+        <span class="kw">return</span> selectedModel, models.RiskActionAllow, <span class="kw">nil</span>
+    }
+    <span class="cmt">// 5. 敏感且非安全模型 → 路由至安全模型 (Advisory Zone)</span>
+    <span class="kw">for</span> _, item := <span class="kw">range</span> activeModels {
+        <span class="kw">if</span> item.IsSecure {
+            <span class="kw">return</span> &amp;resolved, models.RiskActionRouteSecureModel, <span class="kw">nil</span>
+        }
+    }
+    <span class="cmt">// 6. 无可用安全模型 → 阻断 (Manual Zone)</span>
+    <span class="kw">return</span> <span class="kw">nil</span>, models.RiskActionBlock, errors.<span class="fn">New</span>(<span class="str">"requires active secure model"</span>)
+}
+        </div>
+      </div>
+
+      <!-- Panel: InstanceCommand 类型 → 决策区域映射 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">InstanceCommand Type to Zone Mapping</div>
+            <div class="panel-title">InstanceCommand 类型 &rarr; 决策区域映射</div>
+          </div>
+        </div>
+        <p style="font-size:.82rem;color:var(--text);line-height:1.7;margin-bottom:16px">
+          ClawManager 支持 17 种 <code>InstanceCommand</code> 类型，每种类型根据其影响范围和可逆性映射到不同的决策区域。命令生命周期为 <code>pending</code> &rarr; <code>dispatched</code> &rarr; <code>running</code> &rarr; <code>succeeded</code>/<code>failed</code>，Manual Zone 的命令在 <code>pending</code> 阶段需等待审批。
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">
+          <!-- Auto Zone Commands -->
+          <div style="border-radius:16px;border:1px solid #93c5fd;background:rgba(239,246,255,0.6);padding:16px">
+            <div style="font-size:.85rem;font-weight:700;color:#1d4ed8;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+              <span style="width:8px;height:8px;border-radius:50%;background:#3b82f6"></span>
+              Auto Zone — 自动执行
+            </div>
+            <div style="font-size:.78rem;color:var(--text);line-height:2">
+              <code>start_openclaw</code> — 启动实例（可逆）<br>
+              <code>restart_openclaw</code> — 重启实例（可逆）<br>
+              <code>health_check</code> — 健康检查（只读）<br>
+              <code>collect_system_info</code> — 系统信息收集（只读）<br>
+              <code>sync_skill_inventory</code> — 同步技能清单（只读）<br>
+              <code>refresh_skill_inventory</code> — 刷新技能清单（只读）<br>
+              <code>collect_skill_package</code> — 收集技能包（只读）
+            </div>
+          </div>
+          <!-- Advisory Zone Commands -->
+          <div style="border-radius:16px;border:1px solid #fcd34d;background:rgba(255,251,235,0.6);padding:16px">
+            <div style="font-size:.85rem;font-weight:700;color:#92400e;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+              <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span>
+              Advisory Zone — 建议并提示
+            </div>
+            <div style="font-size:.78rem;color:var(--text);line-height:2">
+              <code>reload_config</code> — 重新加载配置（可影响运行）<br>
+              <code>apply_config_revision</code> — 应用配置版本（影响配置）<br>
+              <code>install_skill</code> — 安装技能（引入新能力）<br>
+              <code>update_skill</code> — 更新技能（改变行为）<br>
+              <code>handle_skill_risk</code> — 处理技能风险（降级操作）
+            </div>
+          </div>
+          <!-- Manual Zone Commands -->
+          <div style="border-radius:16px;border:1px solid #fca5a5;background:rgba(254,242,242,0.6);padding:16px">
+            <div style="font-size:.85rem;font-weight:700;color:#b91c1c;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+              <span style="width:8px;height:8px;border-radius:50%;background:#ef4444"></span>
+              Manual Zone — 必须人工确认
+            </div>
+            <div style="font-size:.78rem;color:var(--text);line-height:2">
+              <code>stop_openclaw</code> — 停止实例（服务中断）<br>
+              <code>quarantine_skill</code> — 隔离技能（影响可用性）<br>
+              <code>disable_skill</code> — 禁用技能（影响功能）<br>
+              <code>remove_skill</code> — 移除技能（不可逆）<br>
+              <code>uninstall_skill</code> — 卸载技能（不可逆）
+            </div>
+          </div>
+        </div>
+        <div class="config-summary">
+          <div class="config-stat"><div class="val" style="color:#1d4ed8">7</div><div class="lbl">Auto Zone 命令</div></div>
+          <div class="config-stat"><div class="val" style="color:#d97706">5</div><div class="lbl">Advisory Zone 命令</div></div>
+          <div class="config-stat"><div class="val" style="color:#dc2626">5</div><div class="lbl">Manual Zone 命令</div></div>
+          <div class="config-stat"><div class="val" style="color:#7c3aed">17</div><div class="lbl">命令类型总计</div></div>
+        </div>
+      </div>
+
+      <!-- Panel: InstanceDesiredState 与决策边界联动 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">DesiredState & Decision Boundary</div>
+            <div class="panel-title">InstanceDesiredState 与决策边界联动</div>
+          </div>
+        </div>
+        <div class="flow-diagram" style="justify-content:center;padding:12px 0;flex-wrap:wrap">
+          <div class="flow-node detect">命令下发<div class="flow-desc">InstanceCommand<br>.CommandType</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div class="flow-node evaluate">决策区域判定<div class="flow-desc">Auto / Advisory / Manual</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="flow-node pass">Auto: 自动执行<div class="flow-desc">更新 DesiredState<br>DesiredPowerState / ConfigRevision</div></div>
+            <div class="flow-node approve">Advisory: 提示后执行<div class="flow-desc">附加风险警告<br>记录 AdvisoryReason</div></div>
+            <div class="flow-node block">Manual: 等待审批<div class="flow-desc">pending 状态保持<br>直到人工 Approve/Reject</div></div>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="cmt">// InstanceDesiredState 结构</span>
+{
+  <span class="str">"InstanceID"</span>: <span class="num">42</span>,
+  <span class="str">"DesiredPowerState"</span>: <span class="str">"running"</span>,         <span class="cmt">// running | stopped</span>
+  <span class="str">"DesiredConfigRevisionID"</span>: <span class="num">15</span>,    <span class="cmt">// 配置版本号</span>
+  <span class="str">"DesiredRuntimeAction"</span>: <span class="str">"quarantine"</span>, <span class="cmt">// 运行时动作</span>
+  <span class="str">"UpdatedBy"</span>: <span class="num">3</span>                       <span class="cmt">// 操作发起者 UserID</span>
+}
+        </div>
+        <p style="font-size:.82rem;color:var(--text);line-height:1.7;margin-top:10px">
+          <strong>关键联动逻辑:</strong> 当 <code>start_openclaw</code> 或 <code>restart_openclaw</code> 命令下发时，<code>DesiredPowerState</code> 自动更新为 <code>running</code>；当 <code>stop_openclaw</code> 下发时更新为 <code>stopped</code>；当 <code>apply_config_revision</code> 下发时更新 <code>DesiredConfigRevisionID</code>。<code>UpdatedBy</code> 字段记录操作发起者，Manual Zone 命令的 <code>UpdatedBy</code> 必须为审批人 ID。
+        </p>
+      </div>
+
+    </div>
+
+    <!-- ==================== Tab 2: 边界策略 ==================== -->
+    <div class="tab-content" id="tab-policy">
+
+      <!-- Panel: 高影响动作默认人工确认 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">High-Impact Default Policy</div>
+            <div class="panel-title">高影响动作默认策略</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:12px;font-weight:600;color:var(--text-h)">高影响默认人工确认</span>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-high-impact" checked>
+              <label class="toggle-slider" for="toggle-high-impact"></label>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:.82rem;color:var(--text);line-height:1.7">
+          开启后，所有 <code>Severity=high</code> 或 <code>Action=require_approval/block</code> 的操作自动归入 Manual Zone，无论其他策略如何配置。这是系统的安全基线，确保高影响动作（如停止实例、隔离技能、删除资源）永远需要人工确认。该策略优先级最高，不可被角色差异化策略覆盖。
+        </p>
+        <div class="config-summary" style="margin-top:14px">
+          <div class="config-stat"><div class="val" style="color:#dc2626">ON</div><div class="lbl">强制策略状态</div></div>
+          <div class="config-stat"><div class="val" style="color:#1d4ed8">5</div><div class="lbl">受保护命令类型</div></div>
+          <div class="config-stat"><div class="val" style="color:#059669">0</div><div class="lbl">本月越界尝试</div></div>
+          <div class="config-stat"><div class="val" style="color:#7c3aed">最高</div><div class="lbl">策略优先级</div></div>
+        </div>
+      </div>
+
+      <!-- Panel: 决策边界策略表 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Decision Boundary Policy Table</div>
+            <div class="panel-title">决策边界策略配置表</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">导出 CSV</button>
+            <button class="btn-primary btn-sm">保存策略</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>操作类型</th>
+              <th>InstanceCommand</th>
+              <th>风险等级</th>
+              <th>默认区域</th>
+              <th>Admin 覆盖</th>
+              <th>Regular 覆盖</th>
+              <th>当前配置</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>启动实例</td>
+              <td><code>start_openclaw</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+            </tr>
+            <tr>
+              <td>停止实例</td>
+              <td><code>stop_openclaw</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+            </tr>
+            <tr>
+              <td>重启实例</td>
+              <td><code>restart_openclaw</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><span class="badge badge-auto">Auto(Admin) / Advisory(User)</span></td>
+            </tr>
+            <tr>
+              <td>健康检查</td>
+              <td><code>health_check</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+            </tr>
+            <tr>
+              <td>收集系统信息</td>
+              <td><code>collect_system_info</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+            </tr>
+            <tr>
+              <td>应用配置版本</td>
+              <td><code>apply_config_revision</code></td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-suggest">Advisory(Admin) / Manual(User)</span></td>
+            </tr>
+            <tr>
+              <td>重载配置</td>
+              <td><code>reload_config</code></td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-suggest">Advisory(Admin) / Manual(User)</span></td>
+            </tr>
+            <tr>
+              <td>安装技能</td>
+              <td><code>install_skill</code></td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-suggest">Advisory(Admin) / Manual(User)</span></td>
+            </tr>
+            <tr>
+              <td>更新技能</td>
+              <td><code>update_skill</code></td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-suggest">Advisory(Admin) / Manual(User)</span></td>
+            </tr>
+            <tr>
+              <td>卸载技能</td>
+              <td><code>uninstall_skill</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+            </tr>
+            <tr>
+              <td>移除技能</td>
+              <td><code>remove_skill</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+            </tr>
+            <tr>
+              <td>禁用技能</td>
+              <td><code>disable_skill</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+            </tr>
+            <tr>
+              <td>隔离技能</td>
+              <td><code>quarantine_skill</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-suggest">Advisory(Admin) / Manual(User)</span></td>
+            </tr>
+            <tr>
+              <td>处理技能风险</td>
+              <td><code>handle_skill_risk</code></td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+            </tr>
+            <tr>
+              <td>同步技能清单</td>
+              <td><code>sync_skill_inventory</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+            </tr>
+            <tr>
+              <td>刷新技能清单</td>
+              <td><code>refresh_skill_inventory</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+            </tr>
+            <tr>
+              <td>收集技能包</td>
+              <td><code>collect_skill_package</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+            </tr>
+            <tr>
+              <td>AI Gateway 非敏感请求</td>
+              <td><code>allow (original model)</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+            </tr>
+            <tr>
+              <td>AI Gateway 安全模型路由</td>
+              <td><code>route_secure_model</code></td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-auto">Auto</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-suggest">Advisory</span></div></td>
+              <td><span class="badge badge-auto">Auto(Admin) / Advisory(User)</span></td>
+            </tr>
+            <tr>
+              <td>AI Gateway 审批请求</td>
+              <td><code>require_approval</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+            </tr>
+            <tr>
+              <td>AI Gateway 阻断请求</td>
+              <td><code>block</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><span class="badge badge-manual">Manual (Blocked)</span></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><div class="zone-selector"><span class="zone-sel-btn sel-manual">Manual</span></div></td>
+              <td><span class="badge badge-blocked">Blocked</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel: 角色差异化权限 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Role-Based Zone Differentiation</div>
+            <div class="panel-title">角色差异化决策权限</div>
+          </div>
+          <span class="badge badge-sys">ClawManager User.Role</span>
+        </div>
+        <p style="font-size:.82rem;color:var(--text);line-height:1.7;margin-bottom:16px">
+          ClawManager 的 <code>User.Role</code> 字段支持 <code>admin</code> 和普通用户两种角色。决策边界策略可按角色差异化配置：admin 可获得更宽松的自动执行权限（如隔离技能可在 Advisory Zone 执行），而普通用户在相同操作上强制进入更严格的区域。
+        </p>
+        <div class="role-compare">
+          <!-- Admin -->
+          <div class="role-col">
+            <div class="role-header">
+              <div class="role-avatar role-admin-avatar">A</div>
+              <div>
+                <div class="role-name">Admin 管理员</div>
+                <span class="badge badge-p0" style="margin-top:2px">admin</span>
+              </div>
+            </div>
+            <div class="role-row"><span class="role-action">stop_openclaw</span><span class="role-zone badge badge-manual">Manual</span></div>
+            <div class="role-row"><span class="role-action">quarantine_skill</span><span class="role-zone badge badge-suggest">Advisory</span></div>
+            <div class="role-row"><span class="role-action">apply_config_revision</span><span class="role-zone badge badge-suggest">Advisory</span></div>
+            <div class="role-row"><span class="role-action">reload_config</span><span class="role-zone badge badge-suggest">Advisory</span></div>
+            <div class="role-row"><span class="role-action">install_skill</span><span class="role-zone badge badge-suggest">Advisory</span></div>
+            <div class="role-row"><span class="role-action">update_skill</span><span class="role-zone badge badge-suggest">Advisory</span></div>
+            <div class="role-row"><span class="role-action">route_secure_model</span><span class="role-zone badge badge-auto">Auto</span></div>
+            <div class="role-row"><span class="role-action">restart_openclaw</span><span class="role-zone badge badge-auto">Auto</span></div>
+          </div>
+          <!-- Regular User -->
+          <div class="role-col">
+            <div class="role-header">
+              <div class="role-avatar role-user-avatar">U</div>
+              <div>
+                <div class="role-name">Regular User 普通用户</div>
+                <span class="badge badge-p1" style="margin-top:2px">user</span>
+              </div>
+            </div>
+            <div class="role-row"><span class="role-action">stop_openclaw</span><span class="role-zone badge badge-manual">Manual</span></div>
+            <div class="role-row"><span class="role-action">quarantine_skill</span><span class="role-zone badge badge-manual">Manual</span></div>
+            <div class="role-row"><span class="role-action">apply_config_revision</span><span class="role-zone badge badge-manual">Manual</span></div>
+            <div class="role-row"><span class="role-action">reload_config</span><span class="role-zone badge badge-manual">Manual</span></div>
+            <div class="role-row"><span class="role-action">install_skill</span><span class="role-zone badge badge-manual">Manual</span></div>
+            <div class="role-row"><span class="role-action">update_skill</span><span class="role-zone badge badge-manual">Manual</span></div>
+            <div class="role-row"><span class="role-action">route_secure_model</span><span class="role-zone badge badge-suggest">Advisory</span></div>
+            <div class="role-row"><span class="role-action">restart_openclaw</span><span class="role-zone badge badge-suggest">Advisory</span></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:14px 18px;background:#faf7f4;border-radius:12px">
+          <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+            <div class="toggle-label">
+              <div class="name">Admin 可将 Manual 降级为 Advisory</div>
+              <div class="desc">允许 admin 在特定操作上将 Manual Zone 降级为 Advisory Zone（如 quarantine_skill），但不能降级为 Auto</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-admin-downgrade" checked>
+              <label class="toggle-slider" for="toggle-admin-downgrade"></label>
+            </div>
+          </div>
+          <div class="toggle-row" style="border-bottom:none;padding:6px 0;margin-top:4px">
+            <div class="toggle-label">
+              <div class="name">普通用户不可降级 Manual Zone</div>
+              <div class="desc">强制约束：普通用户面对 Manual Zone 操作无法自行降级，必须请求 admin 审批</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-user-lock" checked>
+              <label class="toggle-slider" for="toggle-user-lock"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== Tab 3: 审批策略 ==================== -->
+    <div class="tab-content" id="tab-approval">
+
+      <!-- Panel: 审批流程 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Approval Flow</div>
+            <div class="panel-title">ClawManager 审批流程</div>
+          </div>
+          <span class="badge badge-sys">ClawManager InstanceCommand</span>
+        </div>
+        <p style="font-size:.82rem;color:var(--text);line-height:1.7;margin-bottom:16px">
+          Manual Zone 的 InstanceCommand 在 <code>pending</code> 状态下进入审批队列。审批人审核命令类型、目标实例、发起者信息和风险分析结果后，决定 Approve 或 Reject。审批通过后命令进入 <code>dispatched</code> 状态，由 Agent 拉取执行。
+        </p>
+        <div class="approval-step">
+          <div class="approval-step-indicator step-done">1</div>
+          <div class="approval-step-content">
+            <div class="approval-step-title">命令创建 (Command Created)</div>
+            <div class="approval-step-desc">操作者发起 <code>InstanceCommand</code>，系统判定命令属于 Manual Zone。命令状态设为 <code>pending</code>，<code>IssuedBy</code> 记录发起者 UserID，<code>IdempotencyKey</code> 保证幂等性。</div>
+          </div>
+        </div>
+        <div class="approval-step">
+          <div class="approval-step-indicator step-active">2</div>
+          <div class="approval-step-content">
+            <div class="approval-step-title">审批要求 (Approval Required)</div>
+            <div class="approval-step-desc">系统自动匹配 <code>RiskRule</code>，若 <code>Action=require_approval</code> 或 <code>Severity=high</code>，命令进入审批队列。生成审批请求，包含命令详情、风险分析结果、发起者信息。</div>
+          </div>
+        </div>
+        <div class="approval-step">
+          <div class="approval-step-indicator step-pending">3</div>
+          <div class="approval-step-content">
+            <div class="approval-step-title">人工审核 (Human Review)</div>
+            <div class="approval-step-desc">审批人（需为 admin 角色）查看审批请求，评估风险等级、影响范围、可逆性。可查看 <code>RiskAnalysis.Hits</code> 中的详细匹配规则，以及命令的 <code>DesiredState</code> 变更影响。</div>
+          </div>
+        </div>
+        <div class="approval-step">
+          <div class="approval-step-indicator step-pending">4</div>
+          <div class="approval-step-content">
+            <div class="approval-step-title">审批决策 (Approve / Reject)</div>
+            <div class="approval-step-desc">Approve: 命令状态从 <code>pending</code> 变为 <code>dispatched</code>，<code>UpdatedBy</code> 更新为审批人 ID，Agent 可拉取执行。<br>Reject: 命令标记为 <code>failed</code>，<code>ErrorMessage</code> 记录拒绝原因，通知发起者。</div>
+          </div>
+        </div>
+        <div class="approval-step">
+          <div class="approval-step-indicator step-pending">5</div>
+          <div class="approval-step-content">
+            <div class="approval-step-title">命令下发与执行 (Dispatch & Execute)</div>
+            <div class="approval-step-desc">Agent 拉取 <code>dispatched</code> 状态命令，执行后更新为 <code>running</code>，最终变为 <code>succeeded</code> 或 <code>failed</code>。<code>TimeoutSeconds</code> 确保命令不会无限挂起。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: RiskRule 审批集成 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">RiskRule Integration</div>
+            <div class="panel-title">RiskRule 审批策略集成表</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">新增规则</button>
+            <button class="btn-primary btn-sm">保存</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>RuleID</th>
+              <th>DisplayName</th>
+              <th>Pattern</th>
+              <th>Severity</th>
+              <th>Action</th>
+              <th>Zone Mapping</th>
+              <th>IsEnabled</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>RR-001</code></td>
+              <td>敏感数据检测</td>
+              <td><code>(password|secret|token|api_key)\s*[:=]</code></td>
+              <td><span class="badge badge-high">high</span></td>
+              <td><code>require_approval</code></td>
+              <td><span class="badge badge-manual">Manual Zone</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="rr-001" checked><label class="toggle-slider" for="rr-001"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>RR-002</code></td>
+              <td>PII 信息检测</td>
+              <td><code>(\d{3}[-.]?\d{4}|\d{6,18})</code></td>
+              <td><span class="badge badge-high">high</span></td>
+              <td><code>route_secure_model</code></td>
+              <td><span class="badge badge-manual">Manual Zone</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="rr-002" checked><label class="toggle-slider" for="rr-002"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>RR-003</code></td>
+              <td>代码注入检测</td>
+              <td><code>(rm\s+-rf|DROP\s+TABLE|eval\s*\()</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><code>block</code></td>
+              <td><span class="badge badge-blocked">Blocked</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="rr-003" checked><label class="toggle-slider" for="rr-003"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>RR-004</code></td>
+              <td>中等风险关键词</td>
+              <td><code>(config|settings|admin)\s*(update|change|modify)</code></td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><code>route_secure_model</code></td>
+              <td><span class="badge badge-suggest">Advisory Zone</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="rr-004" checked><label class="toggle-slider" for="rr-004"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>RR-005</code></td>
+              <td>低风险通用查询</td>
+              <td><code>(help|status|info|version|list)</code></td>
+              <td><span class="badge badge-low">low</span></td>
+              <td><code>allow</code></td>
+              <td><span class="badge badge-auto">Auto Zone</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="rr-005" checked><label class="toggle-slider" for="rr-005"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>RR-006</code></td>
+              <td>数据外泄模式</td>
+              <td><code>(exfil|upload|export)\s*(data|record|database)</code></td>
+              <td><span class="badge badge-critical">high</span></td>
+              <td><code>block</code></td>
+              <td><span class="badge badge-blocked">Blocked</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="rr-006" checked><label class="toggle-slider" for="rr-006"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>RR-007</code></td>
+              <td>内部IP泄露</td>
+              <td><code>10\.\d{1,3}\.\d{1,3}\.\d{1,3}</code></td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td><code>route_secure_model</code></td>
+              <td><span class="badge badge-suggest">Advisory Zone</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="rr-007" checked><label class="toggle-slider" for="rr-007"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>RR-008</code></td>
+              <td>提权操作检测</td>
+              <td><code>(sudo|chmod|chown|root)\s+</code></td>
+              <td><span class="badge badge-high">high</span></td>
+              <td><code>require_approval</code></td>
+              <td><span class="badge badge-manual">Manual Zone</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="rr-008" checked><label class="toggle-slider" for="rr-008"></label></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:16px;padding:14px 18px;background:rgba(254,242,242,0.6);border:1px solid #fca5a5;border-radius:12px">
+          <div style="font-size:.85rem;font-weight:700;color:#b91c1c;margin-bottom:6px">关键规则: require_approval 始终映射至 Manual Zone</div>
+          <div style="font-size:.78rem;color:var(--text);line-height:1.7">
+            在 <code>compareRiskAction</code> 函数中，<code>require_approval</code> 被视为与 <code>block</code> 同等严重（rank=3）。这意味着任何匹配 <code>Action=require_approval</code> 规则的请求都会被 AI Gateway 阻断，必须经过人工审批流程后方可放行。此行为不可配置，是系统安全基线。
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 审批队列 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Approval Queue</div>
+            <div class="panel-title">待审批命令队列</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-manual">4 待审批</span>
+            <button class="btn-secondary btn-sm">批量审批</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Command ID</th>
+              <th>类型</th>
+              <th>目标实例</th>
+              <th>发起者</th>
+              <th>风险等级</th>
+              <th>审批原因</th>
+              <th>等待时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>CMD-1847</code></td>
+              <td><span class="badge badge-critical">stop_openclaw</span></td>
+              <td><code>openclaw-prod-03</code></td>
+              <td>user-liwei (ID:12)</td>
+              <td><span class="badge badge-high">high</span></td>
+              <td>Manual Zone: 高影响动作</td>
+              <td>5 分钟</td>
+              <td style="display:flex;gap:6px"><button class="btn-primary btn-sm">审批</button><button class="btn-secondary btn-sm">拒绝</button></td>
+            </tr>
+            <tr>
+              <td><code>CMD-1846</code></td>
+              <td><span class="badge badge-critical">quarantine_skill</span></td>
+              <td><code>openclaw-dev-01/bash_exec</code></td>
+              <td>circuit-breaker-auto</td>
+              <td><span class="badge badge-high">high</span></td>
+              <td>require_approval 规则匹配</td>
+              <td>12 分钟</td>
+              <td style="display:flex;gap:6px"><button class="btn-primary btn-sm">审批</button><button class="btn-secondary btn-sm">拒绝</button></td>
+            </tr>
+            <tr>
+              <td><code>CMD-1845</code></td>
+              <td><span class="badge badge-high">uninstall_skill</span></td>
+              <td><code>openclaw-staging-02/old_parser</code></td>
+              <td>user-zhangsan (ID:7)</td>
+              <td><span class="badge badge-high">high</span></td>
+              <td>Manual Zone: 不可逆操作</td>
+              <td>23 分钟</td>
+              <td style="display:flex;gap:6px"><button class="btn-primary btn-sm">审批</button><button class="btn-secondary btn-sm">拒绝</button></td>
+            </tr>
+            <tr>
+              <td><code>CMD-1843</code></td>
+              <td><span class="badge badge-medium">apply_config_revision</span></td>
+              <td><code>openclaw-prod-01</code></td>
+              <td>user-wangfang (ID:15)</td>
+              <td><span class="badge badge-medium">medium</span></td>
+              <td>Regular User Manual Zone</td>
+              <td>41 分钟</td>
+              <td style="display:flex;gap:6px"><button class="btn-primary btn-sm">审批</button><button class="btn-secondary btn-sm">拒绝</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel: 审批超时与升级 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Approval Timeout & Escalation</div>
+            <div class="panel-title">审批超时与升级规则</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:280px;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px">
+            <div style="font-size:.9rem;font-weight:700;color:var(--text-h);margin-bottom:12px">超时规则</div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">审批超时自动拒绝</div><div class="desc">超时未审批的命令自动标记为 failed</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="toggle-timeout" checked><label class="toggle-slider" for="toggle-timeout"></label></div>
+            </div>
+            <div class="form-group" style="margin-top:12px">
+              <label class="form-label">超时时间（分钟）</label>
+              <input class="form-input" type="number" value="60" style="width:120px">
+              <div class="form-hint">Manual Zone 命令在审批队列中的最大等待时间</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">预警时间（分钟）</label>
+              <input class="form-input" type="number" value="45" style="width:120px">
+              <div class="form-hint">超时前发送提醒通知的时间点</div>
+            </div>
+          </div>
+          <div style="flex:1;min-width:280px;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px">
+            <div style="font-size:.9rem;font-weight:700;color:var(--text-h);margin-bottom:12px">升级规则</div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">超时自动升级</div><div class="desc">审批超时后自动升级至更高级别审批人</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="toggle-escalate" checked><label class="toggle-slider" for="toggle-escalate"></label></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">高危命令即时通知</div><div class="desc">Severity=high 的命令审批请求即时通知所有 admin</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="toggle-urgent" checked><label class="toggle-slider" for="toggle-urgent"></label></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">阻断操作需双人审批</div><div class="desc">require_approval 匹配的请求需两个 admin 同时确认</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="toggle-dual"><label class="toggle-slider" for="toggle-dual"></label></div>
+            </div>
+            <div class="form-group" style="margin-top:12px">
+              <label class="form-label">最大升级层级</label>
+              <input class="form-input" type="number" value="2" style="width:120px">
+              <div class="form-hint">超过此层级后执行默认拒绝策略</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== Tab 4: 边界监控 ==================== -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- Panel: 边界合规率 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Boundary Compliance</div>
+            <div class="panel-title">决策边界合规监控</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text)">最近 24 小时</span>
+            <button class="btn-secondary btn-sm">刷新</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+          <div class="score-circle score-high">
+            <div class="score-num">97.3</div>
+            <div class="score-label">合规率 %</div>
+          </div>
+          <div style="flex:1;min-width:300px">
+            <div class="monitoring-grid">
+              <div class="monitor-card">
+                <div class="mc-value mc-blue">1,247</div>
+                <div class="mc-label">Auto 执行</div>
+                <div class="mc-sub">自动区决策总数</div>
+              </div>
+              <div class="monitor-card">
+                <div class="mc-value mc-amber">384</div>
+                <div class="mc-label">Advisory 建议</div>
+                <div class="mc-sub">建议区决策总数</div>
+              </div>
+              <div class="monitor-card">
+                <div class="mc-value" style="color:#7c3aed">156</div>
+                <div class="mc-label">Manual 审批</div>
+                <div class="mc-sub">人工区已审批数</div>
+              </div>
+              <div class="monitor-card">
+                <div class="mc-value mc-red">6</div>
+                <div class="mc-label">边界违规</div>
+                <div class="mc-sub">越界尝试次数</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 边界违规统计 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Boundary Violation Stats</div>
+            <div class="panel-title">边界违规详情</div>
+          </div>
+          <span class="badge badge-fail">6 violations</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>违规 ID</th>
+              <th>时间</th>
+              <th>操作类型</th>
+              <th>应属区域</th>
+              <th>实际执行</th>
+              <th>发起者</th>
+              <th>违规原因</th>
+              <th>处理状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>VL-042</code></td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 14:32</td>
+              <td><code>stop_openclaw</code></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><span class="badge badge-auto">Auto (错误放行)</span></td>
+              <td>system-auto</td>
+              <td>策略配置错误：Zone 映射未生效</td>
+              <td><span class="badge badge-succeeded">已修复</span></td>
+            </tr>
+            <tr>
+              <td><code>VL-041</code></td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 11:15</td>
+              <td><code>quarantine_skill</code></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><span class="badge badge-suggest">Advisory (越级)</span></td>
+              <td>user-liwei (ID:12)</td>
+              <td>普通用户触发 admin 级别操作</td>
+              <td><span class="badge badge-succeeded">已拦截</span></td>
+            </tr>
+            <tr>
+              <td><code>VL-040</code></td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 09:47</td>
+              <td><code>apply_config_revision</code></td>
+              <td><span class="badge badge-manual">Manual (User)</span></td>
+              <td><span class="badge badge-auto">Auto (错误放行)</span></td>
+              <td>user-wangfang (ID:15)</td>
+              <td>角色差异化策略未生效</td>
+              <td><span class="badge badge-succeeded">已修复</span></td>
+            </tr>
+            <tr>
+              <td><code>VL-039</code></td>
+              <td style="font-family:monospace;font-size:12px">2026-04-30 23:12</td>
+              <td><code>require_approval</code></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><span class="badge badge-auto">Auto (绕过审批)</span></td>
+              <td>model-gpt4o</td>
+              <td>AI Gateway resolveTargetModel 逻辑缺陷</td>
+              <td><span class="badge badge-succeeded">已修复</span></td>
+            </tr>
+            <tr>
+              <td><code>VL-038</code></td>
+              <td style="font-family:monospace;font-size:12px">2026-04-30 18:35</td>
+              <td><code>remove_skill</code></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><span class="badge badge-suggest">Advisory (降级)</span></td>
+              <td>admin-zhangwei (ID:1)</td>
+              <td>admin 手动降级不可逆操作</td>
+              <td><span class="badge badge-warn">审查中</span></td>
+            </tr>
+            <tr>
+              <td><code>VL-037</code></td>
+              <td style="font-family:monospace;font-size:12px">2026-04-30 15:08</td>
+              <td><code>uninstall_skill</code></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><span class="badge badge-auto">Auto (绕过)</span></td>
+              <td>circuit-breaker-auto</td>
+              <td>熔断器自动下发但未走审批</td>
+              <td><span class="badge badge-succeeded">已修复</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel: 决策边界事件日志 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Boundary Event Log</div>
+            <div class="panel-title">决策边界事件日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">筛选</button>
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">BND-20260501-047</span>
+            <span class="badge badge-auto">Zone Transition</span>
+            <span class="badge badge-auto">Auto</span>
+            <span class="log-time">2026-05-01 14:45:22</span>
+          </div>
+          <div class="log-body">
+            Auto Zone 执行: <code>health_check</code> 命令下发至 <code>openclaw-prod-03</code>。风险等级 low，自动放行。命令 IdempotencyKey: <code>health_check-1746101122</code>，TimeoutSeconds: 300。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">BND-20260501-046</span>
+            <span class="badge badge-suggest">Advisory Warning</span>
+            <span class="badge badge-suggest">Advisory</span>
+            <span class="log-time">2026-05-01 14:38:15</span>
+          </div>
+          <div class="log-body">
+            Advisory Zone 执行: <code>update_skill</code> 命令下发至 <code>openclaw-staging-01/data_parser</code>。风险等级 medium，admin 用户自动执行但附加警告。风险提示: "此操作将改变技能行为，建议在非生产环境验证"。
+          </div>
+          <div class="log-detail">
+CommandType: update_skill
+Target: openclaw-staging-01 / skill: data_parser
+IssuedBy: admin-zhangwei (ID:1)
+RiskLevel: medium
+Zone: Advisory (admin downgrade from Manual)
+AdvisoryReason: "技能更新可能影响运行中任务的行为"
+RiskAnalysis.Hits: [RR-004: "中等风险关键词匹配"]
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">BND-20260501-045</span>
+            <span class="badge badge-manual">Manual Approval</span>
+            <span class="badge badge-manual">Manual</span>
+            <span class="log-time">2026-05-01 14:23:08</span>
+          </div>
+          <div class="log-body">
+            Manual Zone 审批通过: <code>stop_openclaw</code> 命令审批通过。审批人 admin-liuchen (ID:3) 确认停止 <code>openclaw-dev-02</code> 实例。DesiredPowerState 更新为 stopped，UpdatedBy 设为审批人 ID。
+          </div>
+          <div class="log-detail">
+CommandType: stop_openclaw
+Target: openclaw-dev-02
+InitiatedBy: user-liwei (ID:12)
+ApprovedBy: admin-liuchen (ID:3)
+ApprovalDuration: 5m 12s
+RiskLevel: high
+Zone: Manual (不可降级)
+DesiredState.DesiredPowerState: stopped
+DesiredState.UpdatedBy: 3 (admin-liuchen)
+Lifecycle: pending(14:17:56) → dispatched(14:23:08) → running(14:23:09) → succeeded(14:24:31)
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">BND-20260501-044</span>
+            <span class="badge badge-blocked">Boundary Violation</span>
+            <span class="badge badge-fail">Violation</span>
+            <span class="log-time">2026-05-01 14:32:11</span>
+          </div>
+          <div class="log-body">
+            边界违规拦截: 普通用户 user-liwei (ID:12) 试图执行 <code>quarantine_skill</code> 命令，该命令属于 Manual Zone 且普通用户不可降级。系统自动拦截并记录违规事件。已通知 admin 团队。
+          </div>
+          <div class="log-detail">
+ViolationID: VL-041
+CommandType: quarantine_skill
+Target: openclaw-prod-01 / skill: bash_exec
+InitiatedBy: user-liwei (ID:12) [role: user]
+RequiredZone: Manual
+AttemptedZone: Advisory (user attempted downgrade)
+BlockReason: "Regular user cannot downgrade Manual Zone operations"
+Notification: Sent to admin channel #security-alerts
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">BND-20260501-043</span>
+            <span class="badge badge-blocked">Request Blocked</span>
+            <span class="badge badge-blocked">Blocked</span>
+            <span class="log-time">2026-05-01 14:15:33</span>
+          </div>
+          <div class="log-body">
+            AI Gateway 阻断: 请求匹配 <code>require_approval</code> 规则 (RR-008: 提权操作检测)。请求内容包含 <code>sudo</code> 关键词，<code>resolveTargetModel</code> 返回 <code>RiskActionBlock</code>，请求被直接拦截。
+          </div>
+          <div class="log-detail">
+RiskAnalysis.IsSensitive: true
+RiskAnalysis.HighestSeverity: high
+RiskAnalysis.HighestAction: require_approval
+RiskAnalysis.Hits: [RR-008: "提权操作检测"]
+resolveTargetModel: return nil, RiskActionBlock
+BlockMessage: "request was blocked by risk policy"
+Model: gpt-4o (IsSecure: false)
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 区域决策分布 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Zone Decision Distribution</div>
+            <div class="panel-title">区域决策分布（最近 7 天）</div>
+          </div>
+        </div>
+        <div class="monitoring-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+          <div class="monitor-card" style="border-left:4px solid #3b82f6">
+            <div class="mc-value mc-blue">8,729</div>
+            <div class="mc-label">Auto Zone 决策</div>
+            <div class="mc-sub">占比 69.2% | 日均 1,247</div>
+          </div>
+          <div class="monitor-card" style="border-left:4px solid #f59e0b">
+            <div class="mc-value mc-amber">2,688</div>
+            <div class="mc-label">Advisory Zone 决策</div>
+            <div class="mc-sub">占比 21.3% | 日均 384</div>
+          </div>
+          <div class="monitor-card" style="border-left:4px solid #7c3aed">
+            <div class="mc-value" style="color:#7c3aed">1,092</div>
+            <div class="mc-label">Manual Zone 审批</div>
+            <div class="mc-sub">占比 8.7% | 日均 156 | 通过率 94.1%</div>
+          </div>
+          <div class="monitor-card" style="border-left:4px solid #ef4444">
+            <div class="mc-value mc-red">42</div>
+            <div class="mc-label">Blocked 阻断</div>
+            <div class="mc-sub">占比 0.3% | 日均 6</div>
+          </div>
+          <div class="monitor-card" style="border-left:4px solid #dc2626">
+            <div class="mc-value mc-red">18</div>
+            <div class="mc-label">边界违规</div>
+            <div class="mc-sub">日均 2.6 | 已修复 15 | 审查中 3</div>
+          </div>
+          <div class="monitor-card" style="border-left:4px solid #059669">
+            <div class="mc-value mc-green">97.3%</div>
+            <div class="mc-label">合规率</div>
+            <div class="mc-sub">目标 &ge; 95% | 当前达标</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== Tab 5: 配置 ==================== -->
+    <div class="tab-content" id="tab-config">
+
+      <!-- Panel: 默认区域配置 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Default Zone Configuration</div>
+            <div class="panel-title">默认决策区域配置</div>
+          </div>
+          <button class="btn-primary btn-sm">保存配置</button>
+        </div>
+        <div class="config-grid">
+          <!-- Severity → Zone Mapping -->
+          <div class="config-card">
+            <div class="cc-title"><span style="width:8px;height:8px;border-radius:50%;background:#3b82f6"></span> Severity → Zone 映射</div>
+            <div class="cc-row"><span class="cc-key">Severity: low</span><span class="cc-val"><span class="badge badge-auto">Auto Zone</span></span></div>
+            <div class="cc-row"><span class="cc-key">Severity: medium</span><select class="form-select" style="width:160px"><option selected>Advisory Zone</option><option>Auto Zone</option><option>Manual Zone</option></select></div>
+            <div class="cc-row"><span class="cc-key">Severity: high</span><span class="cc-val"><span class="badge badge-manual">Manual Zone</span> <span style="font-size:10px;color:#b91c1c">(强制)</span></span></div>
+          </div>
+          <!-- Action → Zone Mapping -->
+          <div class="config-card">
+            <div class="cc-title"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span> Action → Zone 映射</div>
+            <div class="cc-row"><span class="cc-key">Action: allow</span><span class="cc-val"><span class="badge badge-auto">Auto Zone</span></span></div>
+            <div class="cc-row"><span class="cc-key">Action: route_secure_model</span><select class="form-select" style="width:160px"><option selected>Advisory Zone</option><option>Auto Zone</option><option>Manual Zone</option></select></div>
+            <div class="cc-row"><span class="cc-key">Action: require_approval</span><span class="cc-val"><span class="badge badge-manual">Manual Zone</span> <span style="font-size:10px;color:#b91c1c">(强制)</span></span></div>
+            <div class="cc-row"><span class="cc-key">Action: block</span><span class="cc-val"><span class="badge badge-blocked">Blocked</span> <span style="font-size:10px;color:#b91c1c">(强制)</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 角色差异化覆盖 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Role-Based Zone Overrides</div>
+            <div class="panel-title">角色差异化区域覆盖</div>
+          </div>
+          <button class="btn-primary btn-sm">保存</button>
+        </div>
+        <div class="config-grid">
+          <div class="config-card">
+            <div class="cc-title"><span class="role-avatar role-admin-avatar" style="width:24px;height:24px;font-size:.6rem">A</span> Admin 覆盖规则</div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">允许 Manual → Advisory 降级</div><div class="desc">admin 可将特定 Manual Zone 操作降级至 Advisory</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-admin-down" checked><label class="toggle-slider" for="cfg-admin-down"></label></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">禁止 Manual → Auto 降级</div><div class="desc">即使是 admin 也不能将 Manual 降级至 Auto（安全基线）</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-admin-lock" checked><label class="toggle-slider" for="cfg-admin-lock"></label></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">安全模型路由自动放行</div><div class="desc">admin 使用安全模型时 route_secure_model 自动放行至 Auto Zone</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-admin-secure" checked><label class="toggle-slider" for="cfg-admin-secure"></label></div>
+            </div>
+          </div>
+          <div class="config-card">
+            <div class="cc-title"><span class="role-avatar role-user-avatar" style="width:24px;height:24px;font-size:.6rem">U</span> Regular User 覆盖规则</div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">强制 Manual Zone 约束</div><div class="desc">普通用户不可降级 Manual Zone 操作</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-user-lock" checked><label class="toggle-slider" for="cfg-user-lock"></label></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">Advisory 需风险确认</div><div class="desc">普通用户执行 Advisory Zone 操作需确认风险提示</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-user-confirm" checked><label class="toggle-slider" for="cfg-user-confirm"></label></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">配置变更需审批</div><div class="desc">普通用户的 Advisory Zone 配置变更操作强制升级至 Manual</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-user-upgrade" checked><label class="toggle-slider" for="cfg-user-upgrade"></label></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 审批与超时配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Approval & Timeout Settings</div>
+            <div class="panel-title">审批策略与超时配置</div>
+          </div>
+          <button class="btn-primary btn-sm">保存</button>
+        </div>
+        <div class="config-grid">
+          <div class="config-card">
+            <div class="cc-title"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed"></span> 审批超时设置</div>
+            <div class="cc-row"><span class="cc-key">Manual Zone 审批超时</span><input class="cc-input" type="number" value="60"> <span style="font-size:11px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">超时预警时间</span><input class="cc-input" type="number" value="45"> <span style="font-size:11px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">超时默认动作</span><select class="form-select" style="width:120px"><option selected>拒绝</option><option>升级</option><option>保持等待</option></select></div>
+            <div class="cc-row"><span class="cc-key">InstanceCommand 默认超时</span><input class="cc-input" type="number" value="300"> <span style="font-size:11px;color:#8f8681">秒</span></div>
+          </div>
+          <div class="config-card">
+            <div class="cc-title"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626"></span> 升级规则</div>
+            <div class="cc-row"><span class="cc-key">最大升级层级</span><input class="cc-input" type="number" value="2"></div>
+            <div class="cc-row"><span class="cc-key">升级间隔</span><input class="cc-input" type="number" value="15"> <span style="font-size:11px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">高危命令即时通知</span><span class="cc-val"><div class="toggle-switch" style="margin:0"><input type="checkbox" id="cfg-urgent" checked><label class="toggle-slider" for="cfg-urgent"></label></div></span></div>
+            <div class="cc-row"><span class="cc-key">require_approval 双人审批</span><span class="cc-val"><div class="toggle-switch" style="margin:0"><input type="checkbox" id="cfg-dual"><label class="toggle-slider" for="cfg-dual"></label></div></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 边界违规告警 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Boundary Violation Alert Thresholds</div>
+            <div class="panel-title">边界违规告警阈值</div>
+          </div>
+          <button class="btn-primary btn-sm">保存</button>
+        </div>
+        <div class="config-grid">
+          <div class="config-card">
+            <div class="cc-title"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444"></span> 告警阈值</div>
+            <div class="cc-row"><span class="cc-key">每小时违规次数告警</span><input class="cc-input" type="number" value="3"></div>
+            <div class="cc-row"><span class="cc-key">每日违规次数告警</span><input class="cc-input" type="number" value="10"></div>
+            <div class="cc-row"><span class="cc-key">合规率低于告警</span><input class="cc-input" type="number" value="95"> <span style="font-size:11px;color:#8f8681">%</span></div>
+            <div class="cc-row"><span class="cc-key">合规率严重告警</span><input class="cc-input" type="number" value="90"> <span style="font-size:11px;color:#8f8681">%</span></div>
+          </div>
+          <div class="config-card">
+            <div class="cc-title"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span> 告警通知</div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">实时告警推送</div><div class="desc">边界违规事件即时推送至 admin 通知频道</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-alert-realtime" checked><label class="toggle-slider" for="cfg-alert-realtime"></label></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">每日合规摘要</div><div class="desc">每日发送决策边界合规摘要报告</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-alert-daily" checked><label class="toggle-slider" for="cfg-alert-daily"></label></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><div class="name">自动冻结策略</div><div class="desc">合规率低于严重阈值时自动冻结所有 Manual Zone 降级</div></div>
+              <div class="toggle-switch"><input type="checkbox" id="cfg-alert-freeze" checked><label class="toggle-slider" for="cfg-alert-freeze"></label></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 自定义操作类型配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Custom Action Type Configuration</div>
+            <div class="panel-title">自定义操作类型与区域配置</div>
+          </div>
+          <button class="btn-primary btn-sm">新增操作类型</button>
+        </div>
+        <p style="font-size:.82rem;color:var(--text);line-height:1.7;margin-bottom:16px">
+          除 17 种标准 <code>InstanceCommand</code> 类型外，可自定义操作类型并分配决策区域。自定义类型需关联 RiskRule Pattern，系统在运行时动态匹配并判定区域。
+        </p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>操作类型</th>
+              <th>描述</th>
+              <th>关联 RiskRule</th>
+              <th>默认区域</th>
+              <th>Admin 覆盖</th>
+              <th>User 覆盖</th>
+              <th>启用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>bulk_data_export</code></td>
+              <td>批量数据导出</td>
+              <td>RR-006 (数据外泄模式)</td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="custom-1" checked><label class="toggle-slider" for="custom-1"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>network_policy_change</code></td>
+              <td>网络策略变更</td>
+              <td>RR-008 (提权操作检测)</td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><span class="badge badge-manual">Manual</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="custom-2" checked><label class="toggle-slider" for="custom-2"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>model_parameter_tune</code></td>
+              <td>模型参数调优</td>
+              <td>RR-004 (中等风险关键词)</td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="custom-3" checked><label class="toggle-slider" for="custom-3"></label></div></td>
+            </tr>
+            <tr>
+              <td><code>security_scan_trigger</code></td>
+              <td>安全扫描触发</td>
+              <td>RR-005 (低风险通用查询)</td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><span class="badge badge-auto">Auto</span></td>
+              <td><div class="toggle-switch" style="margin:0"><input type="checkbox" id="custom-4" checked><label class="toggle-slider" for="custom-4"></label></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel: ClawAegis 防御模块联动 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Defense Module Integration</div>
+            <div class="panel-title">ClawAegis 防御模块与决策边界联动</div>
+          </div>
+          <span class="badge badge-sys">ClawAegis 12 Modules</span>
+        </div>
+        <p style="font-size:.82rem;color:var(--text);line-height:1.7;margin-bottom:16px">
+          ClawAegis 的 12 个防御模块可独立配置 enforce/observe/off 模式。防御模块的触发事件可作为决策边界判定的输入：enforce 模式的阻断事件直接映射至 Manual Zone（Blocked），observe 模式的告警事件映射至 Advisory Zone。
+        </p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>防御模块</th>
+              <th>当前模式</th>
+              <th>触发时决策区域</th>
+              <th>联动说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Loop Guard</td>
+              <td><span class="badge badge-enforce">Enforce</span></td>
+              <td><span class="badge badge-manual">Manual (Auto-Blocked)</span></td>
+              <td>循环调用自动阻断，映射至 Manual Zone 的自动阻断子类</td>
+            </tr>
+            <tr>
+              <td>Dispatch Guard</td>
+              <td><span class="badge badge-enforce">Enforce</span></td>
+              <td><span class="badge badge-manual">Manual (Auto-Blocked)</span></td>
+              <td>危险调度模式即时阻断，BLOCK_REASON_DISPATCH_GUARD</td>
+            </tr>
+            <tr>
+              <td>Exfiltration Chain</td>
+              <td><span class="badge badge-enforce">Enforce</span></td>
+              <td><span class="badge badge-manual">Manual (Auto-Blocked)</span></td>
+              <td>数据外泄链阻断，BLOCK_REASON_EXFILTRATION_CHAIN</td>
+            </tr>
+            <tr>
+              <td>Content Filter</td>
+              <td><span class="badge badge-enforce">Enforce</span></td>
+              <td><span class="badge badge-manual">Manual (Blocked)</span></td>
+              <td>内容过滤触发 RiskRule，block 直接进入 Manual Zone</td>
+            </tr>
+            <tr>
+              <td>Network Monitor</td>
+              <td><span class="badge badge-observe">Observe</span></td>
+              <td><span class="badge badge-suggest">Advisory</span></td>
+              <td>网络异常仅告警，映射至 Advisory Zone 提供风险提示</td>
+            </tr>
+            <tr>
+              <td>Resource Guard</td>
+              <td><span class="badge badge-enforce">Enforce</span></td>
+              <td><span class="badge badge-manual">Manual (Auto-Blocked)</span></td>
+              <td>资源耗尽自动干预，下发 stop_openclaw 进入 Manual Zone</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    tab.classList.add('active');
+    const target = document.getElementById(tab.dataset.tab);
+    if (target) target.classList.add('active');
+  });
+});
+
+// Sidebar nav item clicks
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+// Zone selector clicks
+document.querySelectorAll('.zone-selector').forEach(selector => {
+  selector.querySelectorAll('.zone-sel-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selector.querySelectorAll('.zone-sel-btn').forEach(b => {
+        b.className = 'zone-sel-btn';
+      });
+      if (btn.textContent.trim() === 'Auto') btn.className = 'zone-sel-btn sel-auto';
+      else if (btn.textContent.trim() === 'Advisory') btn.className = 'zone-sel-btn sel-suggest';
+      else if (btn.textContent.trim() === 'Manual') btn.className = 'zone-sel-btn sel-manual';
+    });
+  });
+});
+</script>
+</body>
+</html>

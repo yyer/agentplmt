@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5.2 身份、权限与工具控制 — 功能原型</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#fff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--shell:linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,249,245,.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,.58);--sidebar-w:260px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(255,248,244,.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,.8),0 0 12px -4px rgba(239,68,68,.25)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}.badge-info{background:#dbeafe;color:#1e40af}
+.badge-blocked{background:#fee2e2;color:#b91c1c}.badge-observed{background:#fef3c7;color:#92400e}.badge-allowed{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,.1);color:#c2410c;border:1px solid rgba(239,107,74,.2)}
+.badge-green{background:#dcfce7;color:#15803d}.badge-blue{background:#dbeafe;color:#1e40af}.badge-purple{background:#ede9fe;color:#6d28d9}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-secondary:hover{border-color:#ef6b4a;color:var(--text-h);background:rgba(255,248,245,.95)}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.btn-danger{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:#dc2626;box-shadow:0 4px 14px -4px rgba(220,38,38,.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}
+.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover{background:#fffaf6}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,.12)}
+.form-input::placeholder{color:#b8a8a0}
+textarea.form-input{min-height:80px;resize:vertical;font-family:monospace}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-row{display:flex;gap:12px}.form-row>*{flex:1}
+select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236e6763'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+.tag .remove{cursor:pointer;color:#b8a8a0;font-size:14px;line-height:1}.tag .remove:hover{color:#dc2626}
+.tag-add{border-radius:8px;border:1px dashed #d1c7bf;background:transparent;padding:4px 10px;font-size:11px;color:#8f8681;cursor:pointer}.tag-add:hover{border-color:#ef6b4a;color:#ef6b4a}
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}
+.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}
+.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+.log-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.log-chain-step{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,.9);padding:3px 10px;font-size:11px;font-weight:500}
+.log-chain-arrow{color:#c4b0a2;font-size:14px}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-mini{text-align:center;padding:10px}.stat-mini .value{font-size:1.5rem;font-weight:700}.stat-mini .label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8f8681;margin-top:2px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.profile-card{border-radius:20px;border:1px solid #eadfd8;background:var(--shell);padding:20px;transition:all .2s}
+.profile-card:hover{transform:translateY(-2px);box-shadow:0 12px 36px -16px rgba(72,44,24,.35)}
+.profile-card .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.profile-card .card-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.profile-card .card-desc{font-size:12px;color:var(--text);line-height:1.6;margin-bottom:14px}
+.perm-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:12px}
+.perm-row:last-child{border-bottom:none}
+.perm-row .perm-name{font-weight:500;color:var(--text-h)}.perm-row .perm-value{font-weight:600}
+.approval-card{border-radius:18px;border:1px solid #eadfd8;background:rgba(255,255,255,.9);padding:18px;margin-bottom:12px}
+.approval-card .approval-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.approval-card .approval-title{font-size:13px;font-weight:700;color:var(--text-h)}
+.approval-card .approval-meta{font-size:12px;color:#8f8681;margin-bottom:8px}
+.approval-card .approval-detail{border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.6;color:var(--text);overflow-x:auto}
+.approval-actions{display:flex;gap:8px;margin-top:12px}
+.agent-card{border-radius:18px;border:1px solid #eadfd8;background:rgba(255,255,255,.9);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:10px;transition:all .2s}
+.agent-card:hover{box-shadow:0 6px 20px -10px rgba(72,44,24,.3)}
+.agent-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0}
+.agent-info{flex:1}.agent-info .agent-name{font-size:13px;font-weight:700;color:var(--text-h)}.agent-info .agent-meta{font-size:11px;color:#8f8681;margin-top:2px}
+.code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.2 身份、权限与工具控制</div>
+    <div class="nav-item active" data-page="fr06">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      FR-06 智能体身份认证与可信声明
+      <span class="fr-badge">P0</span>
+    </div>
+    <div class="nav-item" data-page="fr07">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      FR-07 面向 Agent 的最小权限运行框架
+      <span class="fr-badge">P0</span>
+    </div>
+    <div class="nav-item" data-page="fr08">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m8.66-13.5l-5.2 3m-6.92 4l-5.2 3M22.66 17.5l-5.2-3m-6.92-4l-5.2-3"/></svg>
+      FR-08 细粒度动态访问控制
+      <span class="fr-badge">P0</span>
+    </div>
+    <div class="nav-item" data-page="fr09">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      FR-09 工具白名单与能力分域
+      <span class="fr-badge">P0</span>
+    </div>
+    <div class="nav-item" data-page="fr10">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+      FR-10 工具调用监控与预算限制
+      <span class="fr-badge">P1</span>
+    </div>
+    <div class="nav-item" data-page="fr11">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+      FR-11 敏感操作审批与人工确认
+      <span class="fr-badge">P0</span>
+    </div>
+    <div class="nav-item" data-page="fr12">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+      FR-12 跨代理权限隔离
+      <span class="fr-badge">P1</span>
+    </div>
+    <div class="nav-section-label">全局视图</div>
+    <div class="nav-item" data-page="agents">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      已注册 Agent 列表
+    </div>
+    <div class="nav-item" data-page="logs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      权限与审批日志
+    </div>
+  </nav>
+</aside>
+
+<div class="main-content">
+
+<!-- ═══════════ FR-06 智能体身份认证与可信声明 ═══════════ -->
+<div id="page-fr06" class="page-content">
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-06 &middot; P0</div><div class="page-title">智能体身份认证与可信声明</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">导出配置</button><button class="btn-primary btn-sm">保存配置</button></div>
+  </div>
+  <div class="content-area">
+
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div style="display:flex;gap:24px;">
+          <div class="stat-mini"><div class="value" style="color:#15803d;">3</div><div class="label">已注册 Agent</div></div>
+          <div class="stat-mini"><div class="value" style="color:#3b82f6;">2</div><div class="label">在线</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e;">1</div><div class="label">离线</div></div>
+        </div>
+        <div style="flex:1;font-size:13px;color:var(--text);">
+          为 Agent、Tool、Plugin、Service 等对象建立统一身份，支持双向认证、可信来源验证和身份绑定。Agent 通过 <span class="code">AgentBootstrapToken</span> 启动注册，获取 <span class="code">agt_sess_</span> 前缀会话令牌，15 秒心跳保活。
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="fr06-reg">注册与认证</div>
+      <div class="tab" data-tab="fr06-config">认证配置</div>
+      <div class="tab" data-tab="fr06-log">认证日志</div>
+    </div>
+
+    <div id="fr06-reg" class="tab-content active">
+      <!-- Agent Registration Flow -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Registration Flow</div><div class="panel-title">Agent 注册认证流程</div></div><span class="badge-sys">clawmanager</span></div>
+        <div class="log-chain" style="justify-content:center;gap:10px;padding:10px 0;">
+          <div class="log-chain-step" style="padding:8px 16px;">Agent 启动<br><span style="font-size:10px;color:#8f8681;">携带 Bootstrap Token</span></div>
+          <span class="log-chain-arrow" style="font-size:20px;">&#x2192;</span>
+          <div class="log-chain-step" style="padding:8px 16px;">POST /agent/register<br><span style="font-size:10px;color:#8f8681;">验证 Token + 协议版本</span></div>
+          <span class="log-chain-arrow" style="font-size:20px;">&#x2192;</span>
+          <div class="log-chain-step" style="padding:8px 16px;border-color:#dc2626;color:#dc2626;">签发 Session Token<br><span style="font-size:10px;">agt_sess_ (24h)</span></div>
+          <span class="log-chain-arrow" style="font-size:20px;">&#x2192;</span>
+          <div class="log-chain-step" style="padding:8px 16px;">心跳保活<br><span style="font-size:10px;color:#8f8681;">15s 间隔</span></div>
+          <span class="log-chain-arrow" style="font-size:20px;">&#x2192;</span>
+          <div class="log-chain-step" style="padding:8px 16px;">命令轮询<br><span style="font-size:10px;color:#8f8681;">5s 间隔</span></div>
+        </div>
+      </div>
+
+      <!-- Registered Agents -->
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Registered Agents</div><div class="panel-title">已注册 Agent 列表</div></div><button class="btn-secondary btn-sm">+ 注册新 Agent</button></div>
+        <table class="data-table">
+          <thead><tr><th>Agent ID</th><th>版本</th><th>协议</th><th>能力</th><th>状态</th><th>最后心跳</th><th>会话令牌</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">agent-openclaw-prod-01</td>
+              <td>v1.2.0</td>
+              <td><span class="badge badge-info">v1</span></td>
+              <td><div class="tag-list"><span class="tag">shell</span><span class="tag">file_ops</span><span class="tag">web_search</span></div></td>
+              <td><span class="badge badge-green">online</span></td>
+              <td style="font-size:12px;color:#8f8681;font-family:monospace;">2026-04-30 15:30:12</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681;">agt_sess_3f8a...b2c1</td>
+              <td><button class="btn-secondary btn-sm">吊销</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">agent-openclaw-prod-02</td>
+              <td>v1.2.0</td>
+              <td><span class="badge badge-info">v1</span></td>
+              <td><div class="tag-list"><span class="tag">shell</span><span class="tag">code_exec</span></div></td>
+              <td><span class="badge badge-green">online</span></td>
+              <td style="font-size:12px;color:#8f8681;font-family:monospace;">2026-04-30 15:29:58</td>
+              <td style="font-size:11px;font-family:monospace;color:#8f8681;">agt_sess_7d2e...a4f3</td>
+              <td><button class="btn-secondary btn-sm">吊销</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">agent-openclaw-dev-01</td>
+              <td>v1.1.3</td>
+              <td><span class="badge badge-info">v1</span></td>
+              <td><div class="tag-list"><span class="tag">shell</span></div></td>
+              <td><span class="badge" style="background:#e5e7eb;color:#6b7280;">offline</span></td>
+              <td style="font-size:12px;color:#8f8681;font-family:monospace;">2026-04-30 09:12:44</td>
+              <td style="font-size:11px;font-family:monospace;color:#dc2626;">已过期</td>
+              <td><button class="btn-secondary btn-sm">吊销</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr06-config" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Auth Configuration</div><div class="panel-title">认证参数配置</div></div></div>
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">Bootstrap Token 签名密钥 <span class="code">INSTANCE_ACCESS_TOKEN_SECRET</span></div>
+            <input type="password" class="form-input" value="••••••••••••••••" style="font-family:monospace;">
+            <div class="form-hint">Agent 注册时验证的 Bearer Token 签名密钥。需与 Instance.AgentBootstrapToken 匹配</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">会话令牌有效期</div>
+            <input type="number" class="form-input" value="24" style="max-width:120px;">
+            <div class="form-hint">小时（默认 24h），心跳时自动续期</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">心跳间隔 <span class="code">heartbeat_interval_seconds</span></div>
+            <input type="number" class="form-input" value="15" style="max-width:120px;">
+            <div class="form-hint">秒（默认 15s）</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">命令轮询间隔 <span class="code">command_poll_interval_seconds</span></div>
+            <input type="number" class="form-input" value="5" style="max-width:120px;">
+            <div class="form-hint">秒（默认 5s）</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">在线判定阈值</div>
+            <input type="number" class="form-input" value="45" style="max-width:120px;">
+            <div class="form-hint">秒（心跳 ≤45s 为 online，≤120s 为 stale，>120s 为 offline）</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">允许的协议版本</div>
+            <div class="tag-list"><span class="tag">v1 <span class="remove">&times;</span></span><span class="tag-add">+ 添加版本</span></div>
+            <div class="form-hint">不在列表中的协议版本将被拒绝注册</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Self Protection</div><div class="panel-title">身份保护策略（ClawAegis）</div></div><span class="badge-sys">claw-aegis</span></div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">自保护开关 <span class="code">selfProtectionEnabled</span></div><div class="desc">保护 claw-aegis 插件目录、安全配置和受保护路径不被读取/修改/删除</div></div>
+          <div style="display:flex;align-items:center;"><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          <div class="mode-selector"><div class="mode-btn active-enforce">enforce</div><div class="mode-btn">observe</div><div class="mode-btn">off</div></div></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">禁止 openclaw CLI 控制命令</div><div class="desc">阻断 openclaw reset、openclaw uninstall、openclaw skills update 等命令</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">禁止禁用安全插件请求</div><div class="desc">检测并阻断 "disable claw-aegis"、"uninstall safety plugin" 等请求</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="margin-top:14px;">
+          <div class="form-label">受保护 Plugin <span class="code">protectedPlugins</span></div>
+          <div class="tag-list"><span class="tag">claw-aegis <span class="remove">&times;</span></span><span class="tag-add">+ 添加 Plugin ID</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fr06-log" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Auth Events</div><div class="panel-title">认证事件日志</div></div></div>
+        <div class="log-entry">
+          <div class="log-header"><span class="log-time">2026-04-30 15:28:03</span><span class="log-id">agent.register</span><span class="badge badge-allowed">REGISTERED</span><span class="badge-sys">clawmanager</span></div>
+          <div class="log-body">Agent <span class="code">agent-openclaw-prod-01</span> 注册成功。协议 v1，能力: [shell, file_ops, web_search]</div>
+          <div class="log-detail">POST /api/v1/agent/register | instance_id: 12 | agent_version: v1.2.0 | ip: 10.244.1.35<br>session_token: agt_sess_3f8a...b2c1 | expires_at: 2026-05-01T15:28:03Z</div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header"><span class="log-time">2026-04-30 15:25:17</span><span class="log-id">selfProtection</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-critical">CRITICAL</span><span class="badge-sys">claw-aegis</span></div>
+          <div class="log-body">阻断访问受保护插件目录：Agent 尝试 <span class="code">ls ~/.openclaw/extensions/claw-aegis/</span></div>
+          <div class="log-detail">hook: before_tool_call | strategy: self_protection_guard | protected: claw-aegis plugin<br>action: BLOCK | reason: 安全限制：禁止访问、查询、修改、删除或绕过受保护的插件目录</div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header"><span class="log-time">2026-04-30 14:58:41</span><span class="log-id">agent.register</span><span class="badge badge-blocked">REJECTED</span><span class="badge badge-high">HIGH</span><span class="badge-sys">clawmanager</span></div>
+          <div class="log-body">Agent 注册失败：Bootstrap Token 无效。来源 IP: <span class="code">10.244.3.99</span></div>
+          <div class="log-detail">POST /api/v1/agent/register | error: invalid bootstrap token | ip: 10.244.3.99<br>可能原因: 未授权 Agent 尝试注册或 Token 泄露</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FR-07 面向 Agent 的最小权限运行框架 ═══════════ -->
+<div id="page-fr07" class="page-content" style="display:none;">
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-07 &middot; P0</div><div class="page-title">面向 Agent 的最小权限运行框架</div></div><div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">+ 新建画像</button><button class="btn-primary btn-sm">保存配置</button></div></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Permission Profiles</div><div class="panel-title">Agent 权限画像</div></div></div>
+      <div class="card-grid">
+
+        <div class="profile-card" style="border-color:#dc2626;">
+          <div class="card-header"><div class="card-title" style="color:#dc2626;">只读型 (read-only)</div><span class="badge badge-p0">P0</span></div>
+          <div class="card-desc">仅允许读取文件和查询信息，禁止任何写操作、命令执行和网络外联</div>
+          <div class="perm-row"><span class="perm-name">文件读取</span><span class="perm-value" style="color:#15803d;">允许</span></div>
+          <div class="perm-row"><span class="perm-name">文件写入/删除</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+          <div class="perm-row"><span class="perm-name">Shell 命令</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+          <div class="perm-row"><span class="perm-name">网络外联</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+          <div class="perm-row"><span class="perm-name">记忆写入</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+          <div class="perm-row"><span class="perm-name">工具调用</span><span class="perm-value" style="color:#92400e;">仅 read-only 工具</span></div>
+        </div>
+
+        <div class="profile-card" style="border-color:#d59a22;">
+          <div class="card-header"><div class="card-title" style="color:#d59a22;">办公型 (office)</div><span class="badge badge-p0">P0</span></div>
+          <div class="card-desc">允许日常办公操作：文件读写、受限命令，禁止高危操作和未授权外联</div>
+          <div class="perm-row"><span class="perm-name">文件读取</span><span class="perm-value" style="color:#15803d;">允许</span></div>
+          <div class="perm-row"><span class="perm-name">文件写入</span><span class="perm-value" style="color:#15803d;">workspace 内允许</span></div>
+          <div class="perm-row"><span class="perm-name">Shell 命令</span><span class="perm-value" style="color:#92400e;">低风险命令</span></div>
+          <div class="perm-row"><span class="perm-name">网络外联</span><span class="perm-value" style="color:#92400e;">白名单域名</span></div>
+          <div class="perm-row"><span class="perm-name">记忆写入</span><span class="perm-value" style="color:#15803d;">允许（≤8KB）</span></div>
+          <div class="perm-row"><span class="perm-name">工具调用</span><span class="perm-value" style="color:#92400e;">办公工具集</span></div>
+        </div>
+
+        <div class="profile-card" style="border-color:#3b82f6;">
+          <div class="card-header"><div class="card-title" style="color:#3b82f6;">开发型 (developer)</div><span class="badge badge-p1">P1</span></div>
+          <div class="card-desc">允许代码开发操作：git、构建、测试，禁止系统级修改和凭据访问</div>
+          <div class="perm-row"><span class="perm-name">文件读取</span><span class="perm-value" style="color:#15803d;">允许</span></div>
+          <div class="perm-row"><span class="perm-name">文件写入</span><span class="perm-value" style="color:#15803d;">workspace 内允许</span></div>
+          <div class="perm-row"><span class="perm-name">Shell 命令</span><span class="perm-value" style="color:#15803d;">开发命令集</span></div>
+          <div class="perm-row"><span class="perm-name">网络外联</span><span class="perm-value" style="color:#92400e;">白名单 + API</span></div>
+          <div class="perm-row"><span class="perm-name">记忆写入</span><span class="perm-value" style="color:#15803d;">允许（≤8KB）</span></div>
+          <div class="perm-row"><span class="perm-name">凭据访问</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+        </div>
+
+        <div class="profile-card" style="border-color:#6d28d9;">
+          <div class="card-header"><div class="card-title" style="color:#6d28d9;">运维型 (ops)</div><span class="badge badge-p1">P1</span></div>
+          <div class="card-desc">允许运维操作：系统查询、服务管理，高危操作需人工确认</div>
+          <div class="perm-row"><span class="perm-name">文件读取</span><span class="perm-value" style="color:#15803d;">允许</span></div>
+          <div class="perm-row"><span class="perm-name">文件写入</span><span class="perm-value" style="color:#92400e;">需审批</span></div>
+          <div class="perm-row"><span class="perm-name">Shell 命令</span><span class="perm-value" style="color:#92400e;">运维命令集</span></div>
+          <div class="perm-row"><span class="perm-name">网络外联</span><span class="perm-value" style="color:#92400e;">白名单</span></div>
+          <div class="perm-row"><span class="perm-name">sudo/特权</span><span class="perm-value" style="color:#dc2626;">需人工确认</span></div>
+          <div class="perm-row"><span class="perm-name">凭据访问</span><span class="perm-value" style="color:#dc2626;">需人工确认</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile binding -->
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Profile Binding</div><div class="panel-title">Agent 画像绑定</div></div></div>
+      <table class="data-table">
+        <thead><tr><th>实例</th><th>Agent ID</th><th>当前画像</th><th>失效模式</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">openclaw-prod-01</td><td style="font-family:monospace;">agent-openclaw-prod-01</td>
+            <td><select class="form-input" style="max-width:180px;padding:5px 10px;font-size:12px;"><option selected>办公型 (office)</option><option>只读型 (read-only)</option><option>开发型 (developer)</option><option>运维型 (ops)</option></select></td>
+            <td><select class="form-input" style="max-width:160px;padding:5px 10px;font-size:12px;"><option>safe_mode</option><option>block_all</option><option>read_only</option></select></td>
+            <td><button class="btn-secondary btn-sm">应用</button></td></tr>
+          <tr><td style="font-weight:600;">openclaw-prod-02</td><td style="font-family:monospace;">agent-openclaw-prod-02</td>
+            <td><select class="form-input" style="max-width:180px;padding:5px 10px;font-size:12px;"><option>办公型 (office)</option><option>只读型 (read-only)</option><option selected>开发型 (developer)</option><option>运维型 (ops)</option></select></td>
+            <td><select class="form-input" style="max-width:160px;padding:5px 10px;font-size:12px;"><option>safe_mode</option><option>block_all</option><option>read_only</option></select></td>
+            <td><button class="btn-secondary btn-sm">应用</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FR-08 细粒度动态访问控制 ═══════════ -->
+<div id="page-fr08" class="page-content" style="display:none;">
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-08 &middot; P0</div><div class="page-title">细粒度动态访问控制</div></div></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Dynamic Access Control</div><div class="panel-title">动态访问控制规则</div></div><button class="btn-secondary btn-sm">+ 添加规则</button></div>
+      <table class="data-table">
+        <thead><tr><th>规则名称</th><th>主体</th><th>资源</th><th>目的</th><th>上下文条件</th><th>动作</th><th>优先级</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600;">凭据文件保护</td>
+            <td><span class="badge badge-blue">所有 Agent</span></td>
+            <td><span class="code">.env, credentials/</span></td>
+            <td>读取</td>
+            <td>无限制（始终生效）</td>
+            <td><span class="badge badge-enforce">阻断</span></td>
+            <td style="font-weight:700;color:#dc2626;">1</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">安全配置保护</td>
+            <td><span class="badge badge-blue">所有 Agent</span></td>
+            <td><span class="code">openclaw.json</span></td>
+            <td>写入/删除</td>
+            <td>无限制</td>
+            <td><span class="badge badge-enforce">阻断</span></td>
+            <td style="font-weight:700;color:#dc2626;">2</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">高危命令需审批</td>
+            <td><span class="badge badge-purple">运维型 Agent</span></td>
+            <td><span class="code">sudo, chmod 777</span></td>
+            <td>执行</td>
+            <td>需人工确认</td>
+            <td><span class="badge badge-observe">需审批</span></td>
+            <td style="font-weight:700;color:#d59a22;">3</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">外联白名单</td>
+            <td><span class="badge badge-blue">所有 Agent</span></td>
+            <td><span class="code">非白名单域名</span></td>
+            <td>网络请求</td>
+            <td>egressAllowlistEnabled=true</td>
+            <td><span class="badge badge-enforce">阻断</span></td>
+            <td style="font-weight:700;color:#dc2626;">4</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">高风险上下文降权</td>
+            <td><span class="badge badge-blue">所有 Agent</span></td>
+            <td>AI Gateway 请求</td>
+            <td>模型路由</td>
+            <td>风险评分 ≥ 60</td>
+            <td><span class="badge badge-observe">路由安全模型</span></td>
+            <td style="font-weight:700;color:#d59a22;">5</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">AI Gateway Routing</div><div class="panel-title">AI Gateway 风险路由逻辑</div></div><span class="badge-sys">clawmanager</span></div>
+      <div class="log-chain" style="justify-content:center;gap:8px;padding:8px 0;">
+        <div class="log-chain-step" style="padding:6px 14px;">LLM 请求</div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:6px 14px;border-color:#ef6b4a;">风险规则扫描</div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="log-chain-step" style="padding:4px 12px;font-size:11px;background:#d1fae5;border-color:#86efac;color:#065f46;">无敏感内容 → 原模型放行</div>
+          <div class="log-chain-step" style="padding:4px 12px;font-size:11px;background:#fef3c7;border-color:#fde68a;color:#92400e;">中等风险 → 路由安全模型 (is_secure=true)</div>
+          <div class="log-chain-step" style="padding:4px 12px;font-size:11px;background:#fee2e2;border-color:#fecaca;color:#b91c1c;">高风险/阻断 → BLOCK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FR-09 工具白名单与能力分域 ═══════════ -->
+<div id="page-fr09" class="page-content" style="display:none;">
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-09 &middot; P0</div><div class="page-title">工具白名单与能力分域</div></div><div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">+ 注册工具</button><button class="btn-primary btn-sm">保存配置</button></div></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Tool Classification</div><div class="panel-title">工具分类与分级配置</div></div></div>
+      <table class="data-table">
+        <thead><tr><th>工具名称</th><th>安全级别</th><th>分类</th><th>调用策略</th><th>速率限制</th><th>审批要求</th><th>适用画像</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">ReadFile</td><td><span class="badge badge-low">LOW</span></td><td>只读</td><td>直接允许</td><td>无限制</td><td>无</td><td>全部</td></tr>
+          <tr><td style="font-weight:600;">WebSearch</td><td><span class="badge badge-low">LOW</span></td><td>只读</td><td>直接允许</td><td>60/min</td><td>无</td><td>全部</td></tr>
+          <tr><td style="font-weight:600;">WriteFile</td><td><span class="badge badge-medium">MEDIUM</span></td><td>有限写</td><td>workspace 内允许</td><td>30/min</td><td>workspace 外需确认</td><td>办公/开发/运维</td></tr>
+          <tr><td style="font-weight:600;">Bash</td><td><span class="badge badge-critical">CRITICAL</span></td><td>高危执行</td><td>命令级检测</td><td>15/min</td><td>高危命令需审批</td><td>开发/运维</td></tr>
+          <tr><td style="font-weight:600;">memory_store</td><td><span class="badge badge-medium">MEDIUM</span></td><td>有限写</td><td>大小/内容检测</td><td>10/min</td><td>超限内容需确认</td><td>办公/开发/运维</td></tr>
+          <tr><td style="font-weight:600;">Edit</td><td><span class="badge badge-medium">MEDIUM</span></td><td>有限写</td><td>路径检测</td><td>30/min</td><td>保护路径需确认</td><td>开发/运维</td></tr>
+          <tr><td style="font-weight:600;">curl/wget</td><td><span class="badge badge-critical">CRITICAL</span></td><td>对外连接</td><td>白名单+外泄检测</td><td>10/min</td><td>非白名单需审批</td><td>开发</td></tr>
+          <tr><td style="font-weight:600;">npm/pip install</td><td><span class="badge badge-high">HIGH</span></td><td>系统管理</td><td>需审批</td><td>5/min</td><td>始终需确认</td><td>运维</td></tr>
+          <tr><td style="font-weight:600;">docker</td><td><span class="badge badge-high">HIGH</span></td><td>系统管理</td><td>需审批</td><td>5/min</td><td>始终需确认</td><td>运维</td></tr>
+          <tr><td style="font-weight:600;">kubectl</td><td><span class="badge badge-critical">CRITICAL</span></td><td>系统管理</td><td>阻断（仅运维+审批）</td><td>3/min</td><td>始终需审批</td><td>运维</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Dangerous Command Categories</div><div class="panel-title">危险命令模式库（SecureClaw）</div></div><span class="badge-sys">secureclaw</span></div>
+      <table class="data-table">
+        <thead><tr><th>类别</th><th>严重性</th><th>默认动作</th><th>示例模式</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">remote_code_execution</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-enforce">block</span></td><td><span class="code">curl | sh</span> <span class="code">wget | bash</span> <span class="code">curl | python</span></td></tr>
+          <tr><td style="font-weight:600;">dynamic_execution</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-enforce">block</span></td><td><span class="code">eval(</span> <span class="code">exec(</span> <span class="code">Function(</span> <span class="code">os.system(</span></td></tr>
+          <tr><td style="font-weight:600;">destructive</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-observe">require_approval</span></td><td><span class="code">rm -rf</span> <span class="code">mkfs.</span> <span class="code">dd if=</span> <span class="code">DROP TABLE</span></td></tr>
+          <tr><td style="font-weight:600;">permission_escalation</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-observe">require_approval</span></td><td><span class="code">chmod 777</span> <span class="code">sudo</span></td></tr>
+          <tr><td style="font-weight:600;">config_modification</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-observe">require_approval</span></td><td><span class="code">.bashrc</span> <span class="code">.zshrc</span> <span class="code">crontab</span> <span class="code">sudoers</span></td></tr>
+          <tr><td style="font-weight:600;">deserialization</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-observed">warn</span></td><td><span class="code">pickle.load</span> <span class="code">yaml.unsafe_load</span></td></tr>
+          <tr><td style="font-weight:600;">data_exfiltration</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-enforce">block</span></td><td><span class="code">curl -d @</span> <span class="code">wget --post-file</span> <span class="code">nc -</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FR-10 工具调用监控与预算限制 ═══════════ -->
+<div id="page-fr10" class="page-content" style="display:none;">
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-10 &middot; P1</div><div class="page-title">工具调用监控与预算限制</div></div><button class="btn-primary btn-sm">保存配置</button></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Rate & Budget Limits</div><div class="panel-title">速率限制与预算配置</div></div><span class="badge-sys">clawmanager</span></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">API 成本每日限额 <span class="code">cost.dailyLimitUsd</span></div><div class="form-row"><input type="number" class="form-input" value="5" style="max-width:120px;"><span style="padding:9px 0;font-size:13px;color:#8f8681;">USD</span></div><div class="form-hint">超出后触发 SC-COST-004 告警</div></div>
+        <div class="form-group"><div class="form-label">API 成本月度限额 <span class="code">cost.monthlyLimitUsd</span></div><div class="form-row"><input type="number" class="form-input" value="100" style="max-width:120px;"><span style="padding:9px 0;font-size:13px;color:#8f8681;">USD</span></div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">熔断器 <span class="code">cost.circuitBreakerEnabled</span></div>
+          <div class="toggle-row" style="border:none;padding:6px 0;"><div class="toggle-label"><div class="desc">成本超限后自动阻断后续 API 请求</div></div><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        </div>
+        <div class="form-group"><div class="form-label">高频调用检测阈值 <span class="code">SC-COST-003</span></div><div class="form-row"><input type="number" class="form-input" value="5" style="max-width:80px;"><span style="padding:9px 0;font-size:13px;color:#8f8681;">分钟间隔（低于此值告警）</span></div></div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Loop Guard</div><div class="panel-title">循环调用检测配置</div></div><span class="badge-sys">claw-aegis</span></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">容许重复次数 <span class="code">LOOP_GUARD_ALLOW_COUNT</span></div><input type="number" class="form-input" value="3" style="max-width:100px;"><div class="form-hint">同一 run 内重复变更工具调用超过此次数触发 loop_guard</div></div>
+        <div class="form-group"><div class="form-label">适用工具 <span class="code">LOOP_GUARD_TOOL_NAMES</span></div>
+          <div class="tag-list"><span class="tag">write <span class="remove">&times;</span></span><span class="tag">edit <span class="remove">&times;</span></span><span class="tag">apply_patch <span class="remove">&times;</span></span><span class="tag">exec <span class="remove">&times;</span></span><span class="tag">bash <span class="remove">&times;</span></span><span class="tag">memory_store <span class="remove">&times;</span></span><span class="tag-add">+ 添加</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Usage Dashboard</div><div class="panel-title">用量监控面板</div></div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;">
+        <div class="stat-mini"><div class="value" style="color:#3b82f6;">$2.34</div><div class="label">今日成本</div></div>
+        <div class="stat-mini"><div class="value" style="color:#d59a22;">$47.80</div><div class="label">本月成本</div></div>
+        <div class="stat-mini"><div class="value" style="color:#15803d;">1,247</div><div class="label">今日工具调用</div></div>
+        <div class="stat-mini"><div class="value" style="color:#dc2626;">0</div><div class="label">循环阻断</div></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>实例</th><th>今日调用</th><th>今日成本</th><th>循环检测</th><th>限额使用</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">openclaw-prod-01</td><td>842</td><td>$1.52</td><td><span class="badge badge-allowed">0</span></td><td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:6px;border-radius:999px;background:#efe7e1;"><div style="width:30%;height:100%;border-radius:999px;background:linear-gradient(90deg,#ef6b4a,#d59a22);"></div></div><span style="font-size:11px;color:#8f8681;">30%</span></div></td></tr>
+          <tr><td style="font-weight:600;">openclaw-prod-02</td><td>405</td><td>$0.82</td><td><span class="badge badge-observed">2 (observe)</span></td><td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:6px;border-radius:999px;background:#efe7e1;"><div style="width:16%;height:100%;border-radius:999px;background:linear-gradient(90deg,#ef6b4a,#d59a22);"></div></div><span style="font-size:11px;color:#8f8681;">16%</span></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FR-11 敏感操作审批与人工确认 ═══════════ -->
+<div id="page-fr11" class="page-content" style="display:none;">
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-11 &middot; P0</div><div class="page-title">敏感操作审批与人工确认</div></div><div style="display:flex;gap:8px;"><span class="badge" style="background:#fee2e2;color:#b91c1c;font-size:12px;padding:5px 14px;">3 待审批</span><button class="btn-secondary btn-sm">审批配置</button></div></div>
+  <div class="content-area">
+    <div class="tabs">
+      <div class="tab active" data-tab="fr11-pending">待审批 (3)</div>
+      <div class="tab" data-tab="fr11-history">审批历史</div>
+      <div class="tab" data-tab="fr11-config">审批规则</div>
+    </div>
+
+    <div id="fr11-pending" class="tab-content active">
+      <div class="approval-card" style="border-left:4px solid #dc2626;">
+        <div class="approval-header"><div class="approval-title">高危命令执行请求</div><div style="display:flex;gap:6px;"><span class="badge badge-critical">CRITICAL</span><span class="badge badge-p0">需审批</span></div></div>
+        <div class="approval-meta">Agent: <span class="code">agent-openclaw-prod-02</span> | 实例: openclaw-prod-02 | 请求时间: 2026-04-30 15:28:44</div>
+        <div class="approval-detail">
+tool: Bash | command: "sudo systemctl restart nginx"<br>
+风险: 权限提升命令 (sudo) + 系统服务管理<br>
+触发规则: permission_escalation → require_approval
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text);">影响分析：重启 nginx 服务将导致该实例上所有 Web 服务短暂中断（约 2-5 秒）</div>
+        <div class="approval-actions"><button class="btn-primary btn-sm">批准执行</button><button class="btn-danger btn-sm">拒绝</button><button class="btn-secondary btn-sm">查看详情</button></div>
+      </div>
+
+      <div class="approval-card" style="border-left:4px solid #d59a22;">
+        <div class="approval-header"><div class="approval-title">批量文件删除请求</div><div style="display:flex;gap:6px;"><span class="badge badge-high">HIGH</span><span class="badge badge-p0">需审批</span></div></div>
+        <div class="approval-meta">Agent: <span class="code">agent-openclaw-prod-01</span> | 实例: openclaw-prod-01 | 请求时间: 2026-04-30 15:22:11</div>
+        <div class="approval-detail">
+tool: Bash | command: "rm -rf /workspace/old-logs/"<br>
+风险: 递归删除目录 (destructive) + workspace 外路径<br>
+触发规则: destructive → require_approval + workspace_delete_guard
+        </div>
+        <div class="approval-actions"><button class="btn-primary btn-sm">批准执行</button><button class="btn-danger btn-sm">拒绝</button><button class="btn-secondary btn-sm">查看详情</button></div>
+      </div>
+
+      <div class="approval-card" style="border-left:4px solid #3b82f6;">
+        <div class="approval-header"><div class="approval-title">记忆写入超限</div><div style="display:flex;gap:6px;"><span class="badge badge-medium">MEDIUM</span><span class="badge badge-p1">需确认</span></div></div>
+        <div class="approval-meta">Agent: <span class="code">agent-openclaw-prod-01</span> | 实例: openclaw-prod-01 | 请求时间: 2026-04-30 15:15:33</div>
+        <div class="approval-detail">
+tool: memory_store | target: MEMORY.md | content_size: 12,400 chars (limit: 8,192)<br>
+风险: 记忆写入超出字符上限 (MEMORY_WRITE_MAX_CHARS) + 疑似注入内容<br>
+触发规则: memory_guard → BLOCK (可人工覆盖)
+        </div>
+        <div class="approval-actions"><button class="btn-primary btn-sm">批准写入</button><button class="btn-danger btn-sm">拒绝</button><button class="btn-secondary btn-sm">查看内容</button></div>
+      </div>
+    </div>
+
+    <div id="fr11-history" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Approval History</div><div class="panel-title">审批历史记录</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>时间</th><th>Agent</th><th>操作类型</th><th>风险级别</th><th>审批结果</th><th>审批人</th><th>耗时</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;font-size:12px;">2026-04-30 14:55</td><td>agent-prod-01</td><td>文件删除</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-allowed">已批准</span></td><td>admin</td><td>2m 15s</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px;">2026-04-30 13:30</td><td>agent-prod-02</td><td>sudo 命令</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-blocked">已拒绝</span></td><td>admin</td><td>45s</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px;">2026-04-30 11:20</td><td>agent-prod-01</td><td>外联请求</td><td><span class="badge badge-medium">MEDIUM</span></td><td><span class="badge badge-allowed">已批准</span></td><td>admin</td><td>1m 30s</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px;">2026-04-29 17:45</td><td>agent-prod-02</td><td>配置修改</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-blocked">已拒绝</span></td><td>security-admin</td><td>8m 22s</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr11-config" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Approval Rules</div><div class="panel-title">审批规则配置</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>操作类型</th><th>匹配条件</th><th>风险级别</th><th>审批模式</th><th>超时动作</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">文件删除</td><td><span class="code">rm -rf</span>、workspace 外删除</td><td><span class="badge badge-high">HIGH</span></td><td>单次审批</td><td>自动拒绝 (5min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">sudo 命令</td><td><span class="code">sudo</span>、<span class="code">chmod 777</span></td><td><span class="badge badge-critical">CRITICAL</span></td><td>单次审批</td><td>自动拒绝 (3min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">实例停机</td><td>stop/restart 实例</td><td><span class="badge badge-critical">CRITICAL</span></td><td>双人审批</td><td>自动拒绝 (10min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">凭据访问</td><td><span class="code">.env</span>、<span class="code">credentials/</span></td><td><span class="badge badge-critical">CRITICAL</span></td><td>始终阻断</td><td>—</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">记忆超限写入</td><td>content > 8192 chars</td><td><span class="badge badge-medium">MEDIUM</span></td><td>单次审批</td><td>自动拒绝 (5min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">非白名单外联</td><td>非 egressAllowlist 域名</td><td><span class="badge badge-high">HIGH</span></td><td>单次审批</td><td>自动拒绝 (3min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ FR-12 跨代理权限隔离 ═══════════ -->
+<div id="page-fr12" class="page-content" style="display:none;">
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-12 &middot; P1</div><div class="page-title">跨代理权限隔离</div></div></div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px;">跨代理权限隔离原则</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        多个 Agent 协同过程中，权限不能自动继承或隐式共享。每次跨代理调用必须：<br>
+        1) 重新校验原始意图和调用边界 &nbsp; 2) 不继承调用者的权限 &nbsp; 3) 按被调用者自身画像执行 &nbsp; 4) 跨代理操作记录完整审计链
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Cross-Agent Isolation Matrix</div><div class="panel-title">跨代理调用权限矩阵</div></div></div>
+      <table class="data-table">
+        <thead><tr><th>调用者 → 被调用者</th><th>prod-01 (办公型)</th><th>prod-02 (开发型)</th><th>dev-01 (只读型)</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">prod-01 (办公型)</td><td style="background:#f5f1ed;text-align:center;">—</td><td style="background:#fef3c7;text-align:center;font-size:12px;">需意图校验<br>不继承权限</td><td style="background:#fef3c7;text-align:center;font-size:12px;">需意图校验<br>被调用方只读</td></tr>
+          <tr><td style="font-weight:600;">prod-02 (开发型)</td><td style="background:#fef3c7;text-align:center;font-size:12px;">需意图校验<br>不继承权限</td><td style="background:#f5f1ed;text-align:center;">—</td><td style="background:#fef3c7;text-align:center;font-size:12px;">需意图校验<br>被调用方只读</td></tr>
+          <tr><td style="font-weight:600;">dev-01 (只读型)</td><td style="background:#fee2e2;text-align:center;font-size:12px;">禁止调用<br>权限不足</td><td style="background:#fee2e2;text-align:center;font-size:12px;">禁止调用<br>权限不足</td><td style="background:#f5f1ed;text-align:center;">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Delegation Chain</div><div class="panel-title">Delegation Chain 审计追踪</div></div></div>
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:18:05</span><span class="log-id">cross-agent</span><span class="badge badge-observed">OBSERVED</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">跨代理调用：prod-01 → prod-02，意图校验通过，权限不继承</div>
+        <div class="log-chain">
+          <span class="log-chain-step">prod-01 (办公型)</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="border-color:#d59a22;">意图校验: "构建代码"</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">prod-02 (开发型)</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="background:#dcfce7;border-color:#86efac;">ALLOW</span>
+        </div>
+        <div class="log-detail">caller: agent-openclaw-prod-01 (office) | callee: agent-openclaw-prod-02 (developer)<br>intent: "构建代码" | permission_inheritance: NONE<br>callee_permissions: developer profile (独立执行)</div>
+      </div>
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 14:42:30</span><span class="log-id">cross-agent</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-high">HIGH</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">跨代理调用被阻断：dev-01 (只读型) 试图调用 prod-02 (开发型)，权限不足</div>
+        <div class="log-detail">caller: agent-openclaw-dev-01 (read-only) | callee: agent-openclaw-prod-02 (developer)<br>reason: read-only profile cannot delegate to higher-privilege agents<br>action: BLOCK</div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Isolation Rules</div><div class="panel-title">隔离规则配置</div></div></div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">禁止权限继承</div><div class="desc">跨代理调用时，被调用者使用自身画像权限，不继承调用者权限</div></div>
+        <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">意图校验</div><div class="desc">跨代理调用必须声明调用意图，系统校验意图与权限边界一致性</div></div>
+        <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">低权限禁止调用高权限</div><div class="desc">只读型 Agent 不可调用办公型/开发型/运维型 Agent</div></div>
+        <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">Delegation Chain 深度限制</div><div class="desc">限制代理调用链最大深度，防止 transitive permission 风险</div></div>
+        <div style="display:flex;align-items:center;gap:8px;"><input type="number" class="form-input" value="3" style="width:80px;padding:6px 10px;font-size:12px;"><span style="font-size:12px;color:#8f8681;">层</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ Agent List Page ═══════════ -->
+<div id="page-agents" class="page-content" style="display:none;">
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">Agent Registry</div><div class="page-title">已注册 Agent 列表</div></div><button class="btn-secondary btn-sm">刷新</button></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="agent-card">
+        <div class="agent-avatar" style="background:linear-gradient(135deg,#15803d,#22c55e);">P1</div>
+        <div class="agent-info" style="flex:1;">
+          <div class="agent-name">agent-openclaw-prod-01</div>
+          <div class="agent-meta">v1.2.0 | 协议 v1 | 注册于 2026-04-28 09:00:15 | IP: 10.244.1.35</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="badge badge-green">online</span>
+          <span class="badge badge-p1">办公型</span>
+          <div style="display:flex;gap:4px;"><span class="tag" style="font-size:10px;">shell</span><span class="tag" style="font-size:10px;">file_ops</span><span class="tag" style="font-size:10px;">web_search</span></div>
+          <button class="btn-secondary btn-sm">详情</button>
+          <button class="btn-secondary btn-sm" style="color:#dc2626;border-color:#fecaca;">吊销</button>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-avatar" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">P2</div>
+        <div class="agent-info" style="flex:1;">
+          <div class="agent-name">agent-openclaw-prod-02</div>
+          <div class="agent-meta">v1.2.0 | 协议 v1 | 注册于 2026-04-28 09:05:22 | IP: 10.244.1.42</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="badge badge-green">online</span>
+          <span class="badge badge-blue">开发型</span>
+          <div style="display:flex;gap:4px;"><span class="tag" style="font-size:10px;">shell</span><span class="tag" style="font-size:10px;">code_exec</span></div>
+          <button class="btn-secondary btn-sm">详情</button>
+          <button class="btn-secondary btn-sm" style="color:#dc2626;border-color:#fecaca;">吊销</button>
+        </div>
+      </div>
+      <div class="agent-card" style="opacity:0.7;">
+        <div class="agent-avatar" style="background:#9ca3af;">D1</div>
+        <div class="agent-info" style="flex:1;">
+          <div class="agent-name">agent-openclaw-dev-01</div>
+          <div class="agent-meta">v1.1.3 | 协议 v1 | 注册于 2026-04-25 14:20:33 | 最后心跳: 2026-04-30 09:12:44</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="badge" style="background:#e5e7eb;color:#6b7280;">offline</span>
+          <span class="badge" style="background:#d1fae5;color:#065f46;">只读型</span>
+          <div style="display:flex;gap:4px;"><span class="tag" style="font-size:10px;">shell</span></div>
+          <button class="btn-secondary btn-sm">详情</button>
+          <button class="btn-secondary btn-sm" style="color:#dc2626;border-color:#fecaca;">吊销</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ Logs Page ═══════════ -->
+<div id="page-logs" class="page-content" style="display:none;">
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">Permission & Approval Log</div><div class="page-title">权限与审批日志</div></div><button class="btn-secondary btn-sm">导出</button></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <select class="form-input" style="max-width:180px;padding:7px 12px;font-size:12px;">
+          <option>全部类型</option><option>认证事件</option><option>权限阻断</option><option>审批操作</option><option>跨代理调用</option>
+        </select>
+        <select class="form-input" style="max-width:140px;padding:7px 12px;font-size:12px;">
+          <option>全部动作</option><option>BLOCKED</option><option>APPROVED</option><option>REJECTED</option><option>OBSERVED</option>
+        </select>
+        <input type="text" class="form-input" placeholder="搜索..." style="max-width:220px;padding:7px 12px;font-size:12px;">
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:28:44</span><span class="log-id">approval.pending</span><span class="badge badge-observed">PENDING</span><span class="badge badge-critical">CRITICAL</span><span class="badge-sys">claw-aegis</span></div>
+        <div class="log-body">Agent <span class="code">agent-openclaw-prod-02</span> 请求执行 <span class="code">sudo systemctl restart nginx</span>，等待人工审批</div>
+        <div class="log-detail">strategy: command_block → require_approval | rule: permission_escalation<br>agent_profile: developer | timeout: 3min | auto_action: reject</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:25:17</span><span class="log-id">selfProtection</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-critical">CRITICAL</span><span class="badge-sys">claw-aegis</span></div>
+        <div class="log-body">Agent 尝试访问受保护插件目录 <span class="code">~/.openclaw/extensions/claw-aegis/</span>，已阻断</div>
+        <div class="log-detail">strategy: self_protection_guard | protected: claw-aegis plugin<br>action: BLOCK | agent: agent-openclaw-prod-01</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:18:05</span><span class="log-id">cross-agent</span><span class="badge badge-observed">OBSERVED</span><span class="badge badge-medium">MEDIUM</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">跨代理调用 prod-01 → prod-02，意图校验通过，权限不继承</div>
+        <div class="log-detail">caller: prod-01 (office) | callee: prod-02 (developer) | intent: "构建代码"<br>permission_inheritance: NONE | delegation_depth: 1/3</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:10:33</span><span class="log-id">exfiltrationGuard</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-critical">CRITICAL</span><span class="badge-sys">claw-aegis</span></div>
+        <div class="log-body">检测到数据外泄链路：读取 <span class="code">.env</span> 后发起 <span class="code">curl POST</span>，已阻断</div>
+        <div class="log-detail">strategy: exfiltration_guard | matchedConditions: [priorSecretRead, outboundCall]<br>agent: agent-openclaw-prod-01 | profile: office</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 14:55:21</span><span class="log-id">riskRule</span><span class="badge badge-observed">REROUTED</span><span class="badge badge-high">HIGH</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">AI Gateway 风险规则命中，请求路由到安全模型</div>
+        <div class="log-detail">event: gateway.request.rerouted | hit_rules: [api_key_like]<br>original_model: gpt-4o | rerouted_to: secure-internal-model | severity: high<br>instance: openclaw-prod-01 | trace_id: trc_a1b2c3d4</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 14:42:30</span><span class="log-id">cross-agent</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-high">HIGH</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">跨代理调用被阻断：只读型 Agent 试图调用开发型 Agent</div>
+        <div class="log-detail">caller: dev-01 (read-only) | callee: prod-02 (developer)<br>reason: low-privilege agent cannot delegate to higher-privilege agent</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+document.querySelectorAll('.nav-item[data-page]').forEach(i=>{i.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));i.classList.add('active');document.querySelectorAll('.page-content').forEach(p=>p.style.display='none');document.getElementById('page-'+i.dataset.page).style.display='block'})});
+document.querySelectorAll('.tab[data-tab]').forEach(t=>{t.addEventListener('click',()=>{const p=t.parentElement;p.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));t.classList.add('active');const c=t.closest('.content-area')||t.closest('.page-content');c.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));document.getElementById(t.dataset.tab).classList.add('active')})});
+document.querySelectorAll('.mode-selector .mode-btn').forEach(b=>{b.addEventListener('click',()=>{const s=b.parentElement;s.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active-enforce','active-observe','active-off'));b.classList.add('active-'+b.dataset.mode)})});
+</script>
+</body>
+</html>

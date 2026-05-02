@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FR-42 协议版本固定与降级防护 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh;overflow:hidden;height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}code,pre{font-family:"SF Mono","Fira Code","Cascadia Code",Menlo,Consolas,monospace;font-size:.85em}
+
+.app-shell{display:flex;height:100vh;overflow:hidden}
+
+/* ─── sidebar ─── */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--shell-warm);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;z-index:10}
+.sidebar-logo{padding:20px 24px;font-size:1.15rem;font-weight:700;color:var(--text-h);letter-spacing:-.02em;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.sidebar-logo .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.sidebar-nav{flex:1;padding:8px 0}
+.nav-section-label{padding:16px 24px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text);opacity:.6;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 24px;font-size:.87rem;color:var(--text);cursor:pointer;transition:all .15s;border-left:3px solid transparent;text-decoration:none}
+.nav-item:hover{background:rgba(239,68,68,.04);color:var(--text-h)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent-strong);border-left-color:var(--accent);font-weight:600}
+.nav-item .nav-priority{margin-left:auto;font-size:.65rem;padding:1px 6px;border-radius:4px;font-weight:600}
+.nav-priority.p0{background:#fef2f2;color:#dc2626}
+.nav-priority.p1{background:#fffbeb;color:#d97706}
+.nav-priority.p2{background:#e5e7eb;color:#6b7280}
+.nav-sep{height:1px;background:var(--border);margin:8px 24px}
+
+/* ─── main ─── */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.subheader{height:var(--subheader-h);min-height:var(--subheader-h);padding:0 32px;display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);gap:12px;font-size:.9rem;color:var(--text)}
+.subheader strong{color:var(--text-h);font-weight:600}
+.content-area{flex:1;overflow-y:auto;padding:24px 32px 40px}
+
+/* ─── panel ─── */
+.app-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.app-panel-warm{background:linear-gradient(135deg,#fff9f5,#fff7f3);border:1px solid #f0e0d6;border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.panel-title{font-size:1rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:.75rem;color:var(--text);opacity:.7;margin-bottom:4px}
+
+/* ─── badges ─── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.badge-p0{background:#fef2f2;color:#dc2626}.badge-p1{background:#fffbeb;color:#d97706}.badge-p2{background:#e5e7eb;color:#6b7280}
+.badge-enforce{background:#fef2f2;color:#dc2626}.badge-observe{background:#fffbeb;color:#d97706}.badge-off{background:#f3f4f6;color:#9ca3af}
+.badge-critical{background:#7f1d1d;color:#fff}.badge-high{background:#ef4444;color:#fff}.badge-medium{background:#f59e0b;color:#fff}.badge-low{background:#3b82f6;color:#fff}.badge-info{background:#e5e7eb;color:#6b7280}
+.badge-blocked{background:#7f1d1d;color:#fecaca}.badge-observed{background:#fffbeb;color:#92400e}.badge-allowed{background:#ecfdf5;color:#065f46}
+.badge-sys{background:#ede9fe;color:#6d28d9}.badge-green{background:#ecfdf5;color:#059669}
+.badge-fail{background:#fef2f2;color:#dc2626}.badge-mismatch{background:#fef2f2;color:#b91c1c}
+.badge-audit{background:#eff6ff;color:#1d4ed8}.badge-warn{background:#fffbeb;color:#92400e}
+.badge-rejected{background:#7f1d1d;color:#fecaca}.badge-alert{background:#fef3c7;color:#92400e}
+
+/* ─── buttons ─── */
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary:hover{background:var(--accent-strong)}
+.btn-secondary{background:transparent;color:var(--text);border:1px solid var(--border);padding:8px 18px;border-radius:8px;font-size:.82rem;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sm{padding:5px 12px;font-size:.75rem}
+
+/* ─── toggle ─── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-switch{width:40px;height:22px;border-radius:11px;background:#d1d5db;position:relative;cursor:pointer;transition:all .2s;flex-shrink:0}
+.toggle-switch.on{background:var(--accent)}
+.toggle-switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle-switch.on::after{left:20px}
+
+/* ─── mode-selector ─── */
+.mode-selector{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.mode-btn{padding:5px 14px;font-size:.75rem;cursor:pointer;border:none;background:transparent;color:var(--text);transition:all .15s}
+.mode-btn.active{font-weight:600}
+.mode-btn.active.enforce{background:var(--accent-bg);color:var(--accent-strong)}
+.mode-btn.active.observe{background:#fffbeb;color:#d97706}
+.mode-btn.active.off{background:#f3f4f6;color:#9ca3af}
+
+/* ─── data-table ─── */
+.data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.data-table th{text-align:left;padding:10px 12px;background:#faf7f4;color:var(--text-h);font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+.data-table tr:hover td{background:rgba(239,68,68,.02)}
+.data-table code{background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral)}
+
+/* ─── fi-field-table ─── */
+.fi-field-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.fi-field-table th{text-align:left;padding:8px 10px;background:#faf7f4;color:var(--text-h);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;font-size:.72rem}
+.fi-field-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;font-size:.78rem}
+.fi-field-table code{background:#f5f0eb;padding:1px 5px;border-radius:3px;font-size:.74rem;color:var(--accent-coral)}
+
+/* ─── form ─── */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:.8rem;font-weight:600;color:var(--text-h);margin-bottom:4px}
+.form-input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;color:var(--text-h);background:var(--surface);transition:all .15s}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.form-hint{font-size:.72rem;color:var(--text);opacity:.7;margin-top:4px}
+.form-row{display:flex;gap:16px;align-items:flex-start}
+.form-row .form-group{flex:1}
+
+/* ─── tag ─── */
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:500;background:#f5f0eb;color:var(--text-h)}
+.tag.mitre{background:#fef2f2;color:#b91c1c}.tag.nist{background:#eff6ff;color:#1d4ed8}.tag.cis{background:#ecfdf5;color:#065f46}
+
+/* ─── log ─── */
+.log-entry{padding:14px 18px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface);transition:all .15s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,.18)}
+.log-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:.72rem;color:var(--text);opacity:.6;font-family:monospace;white-space:nowrap}
+.log-body{font-size:.85rem;color:var(--text-h);line-height:1.6}
+.log-body code{background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.8rem;color:var(--accent-coral)}
+.log-detail{font-size:.75rem;color:var(--text);margin-top:8px;padding:10px 14px;background:#faf7f4;border-radius:8px;font-family:monospace;word-break:break-all;line-height:1.7}
+.log-chain{display:flex;align-items:center;gap:5px;margin-top:10px;flex-wrap:wrap}
+.log-chain-step{padding:4px 12px;border-radius:6px;font-size:.72rem;font-weight:500;background:#f5f0eb;color:var(--text-h);border:1px solid var(--border)}
+.log-chain-step.blocked-step{border-color:#dc2626;color:#dc2626;background:#fee2e2;font-weight:700}
+.log-chain-arrow{color:var(--text);opacity:.35;font-size:.85rem}
+
+/* ─── score-circle ─── */
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}
+.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}
+.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+
+/* ─── tabs ─── */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 20px;font-size:.85rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text);transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text-h)}
+.tab.active{color:var(--accent-strong);border-bottom-color:var(--accent);font-weight:600}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ─── rule-card ─── */
+.rule-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px}
+.rule-card .rc-id{font-size:.72rem;color:var(--accent);font-weight:600;font-family:monospace;margin-bottom:4px}
+.rule-card .rc-pattern{font-family:monospace;font-size:.78rem;color:var(--text-h);background:#faf7f4;padding:6px 10px;border-radius:6px;word-break:break-all;margin-bottom:6px}
+.rule-card .rc-desc{font-size:.8rem;color:var(--text)}
+
+/* ─── stat-mini ─── */
+.stat-mini{text-align:center;padding:12px}
+.stat-mini .sm-val{font-size:1.5rem;font-weight:700;color:var(--text-h);line-height:1}
+.stat-mini .sm-label{font-size:.7rem;color:var(--text);margin-top:4px}
+
+/* ─── section-title ─── */
+.section-title{font-size:1.1rem;font-weight:700;color:var(--text-h);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border)}
+.sub-title{font-size:.92rem;font-weight:600;color:var(--text-h);margin:16px 0 10px}
+
+/* ─── page sections ─── */
+.page-section{display:none}
+.page-section.active{display:block}
+
+/* ─── flow-step ─── */
+.flow-container{display:flex;align-items:flex-start;gap:0;flex-wrap:wrap;padding:8px 0}
+.flow-step{padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:.78rem;font-weight:500;position:relative;flex-shrink:0}
+.flow-step.step-reject{border-color:#dc2626;background:#fef2f2;color:#dc2626;font-weight:700}
+.flow-step.step-accept{border-color:#059669;background:#ecfdf5;color:#059669;font-weight:700}
+.flow-step.step-current{border-color:var(--accent);background:var(--accent-bg);color:var(--accent-strong)}
+.flow-arrow{padding:0 6px;color:var(--text);opacity:.4;font-size:1rem;display:flex;align-items:center;height:40px}
+
+/* ─── misc ─── */
+.mono{font-family:monospace}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mt-20{margin-top:20px}
+.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}
+.flex{display:flex}.flex-wrap{flex-wrap:wrap}.items-center{align-items:center}.gap-8{gap:8px}.gap-12{gap:12px}.gap-16{gap:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px}
+.text-sm{font-size:.82rem}.text-xs{font-size:.72rem}
+.text-accent{color:var(--accent)}.text-muted{opacity:.6}
+.w-full{width:100%}
+.p-16{padding:16px}
+.overflow-x{overflow-x:auto}
+
+/* ─── code-block ─── */
+.code-block{background:#1a1a2e;color:#e0e0e0;padding:14px 18px;border-radius:8px;font-family:monospace;font-size:.8rem;overflow-x:auto;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+.code-block .kw{color:#c084fc}.code-block .str{color:#86efac}.code-block .num{color:#fbbf24}.code-block .cm{color:#6b7280}.code-block .fn{color:#93c5fd}
+
+/* ─── schema-field ─── */
+.schema-field-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.schema-field-row:last-child{border-bottom:none}
+.sf-name{font-family:monospace;font-size:.78rem;color:var(--accent-coral);font-weight:600;min-width:160px;flex-shrink:0}
+.sf-type{font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:4px;background:#eff6ff;color:#1d4ed8;white-space:nowrap;flex-shrink:0}
+.sf-constraint{font-size:.72rem;font-family:monospace;color:var(--text-h);background:#faf7f4;padding:2px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.sf-desc{font-size:.78rem;color:var(--text);flex:1}
+
+/* ─── check-item ─── */
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.check-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;margin-top:2px}
+.check-icon.pass{background:#ecfdf5;color:#059669}
+.check-icon.fail{background:#fef2f2;color:#dc2626}
+.check-icon.warn{background:#fffbeb;color:#d97706}
+
+/* ─── compliance-tag ─── */
+.compliance-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:.72rem;font-weight:500;margin:2px}
+.compliance-tag.aia{background:#fef2f2;color:#b91c1c}
+.compliance-tag.asi{background:#eff6ff;color:#1d4ed8}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+<!-- ==================== SIDEBAR ==================== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><span class="logo-dot"></span>多智能体协同安全</div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.7 多智能体协同与协议安全</div>
+    <a class="nav-item" data-page="fr40">FR-40 代理间双向身份认证 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr41">FR-41 消息签名与完整性 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item active" data-page="fr42">FR-42 协议版本固定与降级防护 <span class="nav-priority p1">P1</span></a>
+    <a class="nav-item" data-page="fr43">FR-43 Anti-replay 与时效控制 <span class="nav-priority p1">P1</span></a>
+    <a class="nav-item" data-page="fr44">FR-44 代理发现与注册保护 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr45">FR-45 代理交互验证与异常监控 <span class="nav-priority p1">P1</span></a>
+    <a class="nav-item" data-page="fr46">FR-46 资源配额与速率限制 <span class="nav-priority p0">P0</span></a>
+    <a class="nav-item" data-page="fr47">FR-47 系统干预与熔断机制 <span class="nav-priority p1">P1</span></a>
+    <a class="nav-item" data-page="fr48">FR-48 多智能体共识验证 <span class="nav-priority p2">P2</span></a>
+    <div class="nav-sep"></div>
+    <a class="nav-item" data-page="audit">协议安全审计</a>
+  </nav>
+</aside>
+
+<!-- ==================== MAIN ==================== -->
+<div class="main-content">
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE: FR-42 协议版本固定与降级防护                    -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section active" id="page-fr42">
+  <div class="subheader">
+    <span>FR-42</span><span style="opacity:.3">|</span>
+    <strong>协议版本固定与降级防护</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-p1">P1 优先级</span>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-sys">ClawManager + OpenClaw</span>
+  </div>
+  <div class="content-area">
+
+    <div class="tabs" data-tabgroup="fr42">
+      <div class="tab active" data-tab="fr42-protocol">协议版本管理</div>
+      <div class="tab" data-tab="fr42-schema">Schema注册</div>
+      <div class="tab" data-tab="fr42-downgrade">降级检测</div>
+      <div class="tab" data-tab="fr42-log">拦截日志</div>
+      <div class="tab" data-tab="fr42-config">配置</div>
+    </div>
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- Tab 1: 协议版本管理                             -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <div class="tab-content active" id="fr42-protocol">
+
+      <!-- Panel 1: 支持的协议版本 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Protocol Version Registry</div>
+            <div class="panel-title">支持的协议版本</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">4 协议族</span>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>协议族</th><th>版本</th><th>状态</th><th>注册时间</th><th>最低版本</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>AgentProtocol</code></td>
+                <td><code>v1</code> <span class="badge badge-green">当前</span></td>
+                <td><span class="badge badge-allowed">Active</span></td>
+                <td>2026-01-15</td>
+                <td><code>v1</code></td>
+                <td><button class="btn-secondary btn-sm">查看详情</button></td>
+              </tr>
+              <tr>
+                <td><code>ClawManager API</code></td>
+                <td><code>v1</code> <span class="badge badge-green">当前</span></td>
+                <td><span class="badge badge-allowed">Active</span></td>
+                <td>2026-01-15</td>
+                <td><code>v1</code></td>
+                <td><button class="btn-secondary btn-sm">查看详情</button></td>
+              </tr>
+              <tr>
+                <td><code>KubeArmor gRPC</code></td>
+                <td><code>proto3</code> <span class="badge badge-green">当前</span></td>
+                <td><span class="badge badge-allowed">Active</span></td>
+                <td>2026-02-10</td>
+                <td><code>proto3</code></td>
+                <td><button class="btn-secondary btn-sm">查看详情</button></td>
+              </tr>
+              <tr>
+                <td><code>MCP Protocol</code></td>
+                <td><code>2025-03-26</code></td>
+                <td><span class="badge badge-allowed">Active</span></td>
+                <td>2026-03-01</td>
+                <td><code>2024-11-05</code></td>
+                <td><button class="btn-secondary btn-sm">查看详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-hint mt-12">AgentProtocol: ClawManager Agent 注册协议 | ClawManager API: REST 控制面 API | KubeArmor gRPC: protobuf 通信协议 | MCP: Model Context Protocol</div>
+      </div>
+
+      <!-- Panel 2: Agent 协议版本强制执行流程 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager Agent Registration</div>
+            <div class="panel-title">Agent 协议版本强制执行流程</div>
+          </div>
+          <span class="badge badge-enforce">Enforce</span>
+        </div>
+
+        <div class="sub-title">注册请求验证链路</div>
+        <div class="flow-container">
+          <div class="flow-step step-current">Agent 注册请求</div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-current">Bootstrap Token 校验</div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-current">ProtocolVersion 校验</div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step">AgentID 验证</div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-accept">SessionToken 签发</div>
+        </div>
+
+        <div class="flow-container" style="margin-top:8px">
+          <div class="flow-step step-reject">ProtocolVersion != "v1" &#x2192; REJECT</div>
+        </div>
+
+        <div class="code-block mt-12">
+<span class="cm">// instance_agent_service.go:108</span>
+<span class="kw">if</span> strings.TrimSpace(req.ProtocolVersion) != AgentProtocolVersionV1 {
+    <span class="kw">return</span> <span class="kw">nil</span>, fmt.Errorf(<span class="str">"unsupported agent protocol version"</span>)
+}
+
+<span class="cm">// instance_agent_service.go:16</span>
+<span class="kw">const</span> AgentProtocolVersionV1 = <span class="str">"v1"</span>
+
+<span class="cm">// instance_service.go:632 — 环境变量注入</span>
+<span class="str">"CLAWMANAGER_AGENT_PROTOCOL_VERSION"</span>: AgentProtocolVersionV1,
+        </div>
+        <div class="form-hint mt-8">Agent 注册时必须声明 protocol_version="v1"，否则注册请求被拒绝。版本号同时通过环境变量 CLAWMANAGER_AGENT_PROTOCOL_VERSION 注入到 Agent 运行时</div>
+
+        <div class="sub-title mt-16">AgentRegisterRequest 数据结构</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th><th>验证规则</th></tr></thead>
+            <tbody>
+              <tr><td><code>instance_id</code></td><td>int</td><td>required</td><td>实例 ID</td><td>min=1</td></tr>
+              <tr><td><code>agent_id</code></td><td>string</td><td>required</td><td>Agent 唯一标识</td><td>non-empty</td></tr>
+              <tr><td><code>agent_version</code></td><td>string</td><td>required</td><td>Agent 版本号</td><td>non-empty</td></tr>
+              <tr><td><code>protocol_version</code></td><td>string</td><td>required</td><td>协议版本</td><td>must == "v1"</td></tr>
+              <tr><td><code>capabilities</code></td><td>[]string</td><td>optional</td><td>Agent 能力声明</td><td>JSON 序列化</td></tr>
+              <tr><td><code>host_info</code></td><td>map</td><td>optional</td><td>主机信息</td><td>JSON 序列化</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 3: 版本策略 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Version Policy</div>
+            <div class="panel-title">协议版本策略</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active enforce">Enforce</div>
+            <div class="mode-btn observe">Observe</div>
+            <div class="mode-btn off">Off</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">强制协议版本检查</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">注册时必须匹配已注册的协议版本，不匹配则拒绝连接。当前 Agent 仅支持 <code>v1</code>，任何其他版本将被拒绝</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="mode-selector">
+              <div class="mode-btn active enforce">Enforce</div>
+              <div class="mode-btn">Observe</div>
+              <div class="mode-btn">Off</div>
+            </div>
+            <div class="toggle-switch on"></div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">命令类型白名单验证</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">Agent 命令必须通过 <code>isSupportedCommandType</code> 校验，17 种已注册命令类型之外的命令将被拒绝</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">最小版本限制</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">设置各协议族允许的最低版本号，低于此版本的连接请求将被拒绝</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">版本废弃预告</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">当协议版本计划废弃时，提前在响应头中通知 Agent 升级，给出租期时间</div>
+          </div>
+          <div class="toggle-switch"></div>
+        </div>
+
+        <div class="sub-title mt-16">允许的版本列表</div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>协议族</th><th>允许版本</th><th>最低版本</th><th>当前版本</th><th>废弃计划</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>AgentProtocol</code></td>
+                <td><span class="tag">v1</span></td>
+                <td><code>v1</code></td>
+                <td><code>v1</code></td>
+                <td>&#x2014;</td>
+              </tr>
+              <tr>
+                <td><code>ClawManager API</code></td>
+                <td><span class="tag">v1</span></td>
+                <td><code>v1</code></td>
+                <td><code>v1</code></td>
+                <td>&#x2014;</td>
+              </tr>
+              <tr>
+                <td><code>KubeArmor gRPC</code></td>
+                <td><span class="tag">proto3</span></td>
+                <td><code>proto3</code></td>
+                <td><code>proto3</code></td>
+                <td>&#x2014;</td>
+              </tr>
+              <tr>
+                <td><code>MCP Protocol</code></td>
+                <td><span class="tag">2025-03-26</span> <span class="tag">2024-11-05</span></td>
+                <td><code>2024-11-05</code></td>
+                <td><code>2025-03-26</code></td>
+                <td><span class="badge badge-warn">2024-11-05 废弃中</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 4: InstanceCommand 命令类型 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager InstanceCommand</div>
+            <div class="panel-title">命令类型白名单 (isSupportedCommandType)</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">17 种</span>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>命令类型</th><th>分类</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td><code>start_openclaw</code></td><td>电源控制</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>2</td><td><code>stop_openclaw</code></td><td>电源控制</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>3</td><td><code>restart_openclaw</code></td><td>电源控制</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>4</td><td><code>collect_system_info</code></td><td>运维</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>5</td><td><code>apply_config_revision</code></td><td>配置管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>6</td><td><code>reload_config</code></td><td>配置管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>7</td><td><code>health_check</code></td><td>运维</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>8</td><td><code>install_skill</code></td><td>Skill 管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>9</td><td><code>update_skill</code></td><td>Skill 管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>10</td><td><code>uninstall_skill</code></td><td>Skill 管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>11</td><td><code>remove_skill</code></td><td>Skill 管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>12</td><td><code>disable_skill</code></td><td>Skill 管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>13</td><td><code>quarantine_skill</code></td><td>安全控制</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>14</td><td><code>handle_skill_risk</code></td><td>安全控制</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>15</td><td><code>sync_skill_inventory</code></td><td>Skill 管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>16</td><td><code>refresh_skill_inventory</code></td><td>Skill 管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+              <tr><td>17</td><td><code>collect_skill_package</code></td><td>Skill 管理</td><td><span class="badge badge-allowed">Active</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-block mt-12">
+<span class="cm">// instance_command_service.go:289-312</span>
+<span class="kw">func</span> <span class="fn">isSupportedCommandType</span>(commandType <span class="kw">string</span>) <span class="kw">bool</span> {
+    <span class="kw">switch</span> strings.TrimSpace(commandType) {
+    <span class="kw">case</span> InstanceCommandTypeStartOpenClaw,
+        InstanceCommandTypeStopOpenClaw,
+        ...
+        InstanceCommandTypeCollectSkillPackage:
+        <span class="kw">return true</span>
+    <span class="kw">default</span>:
+        <span class="kw">return false</span>   <span class="cm">// &#x2192; "invalid instance command type"</span>
+    }
+}
+        </div>
+      </div>
+
+      <!-- Panel 5: API 版本化路由 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager API Routes</div>
+            <div class="panel-title">API 版本化路由</div>
+          </div>
+          <span class="badge badge-sys">/api/v1</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>路由前缀</th><th>服务组</th><th>版本</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>/api/v1/instances</code></td><td>InstanceHandler</td><td>v1</td><td>实例 CRUD、启动/停止、Agent 代理</td></tr>
+              <tr><td><code>/api/v1/agents</code></td><td>AgentHandler</td><td>v1</td><td>Agent 注册、心跳、命令轮询</td></tr>
+              <tr><td><code>/api/v1/channels</code></td><td>ChannelHandler</td><td>v1</td><td>Channel 管理</td></tr>
+              <tr><td><code>/api/v1/skills</code></td><td>SkillHandler</td><td>v1</td><td>Skill 上传、扫描、版本管理</td></tr>
+              <tr><td><code>/api/v1/bundles</code></td><td>BundleHandler</td><td>v1</td><td>Bundle 编译与管理</td></tr>
+              <tr><td><code>/api/v1/gateway/llm</code></td><td>AI Gateway</td><td>v1</td><td>LLM 代理、风险规则扫描</td></tr>
+              <tr><td><code>/api/v1/ws</code></td><td>WebSocket</td><td>v1</td><td>实时消息推送</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-block mt-12">
+<span class="cm">// main.go:143</span>
+api := r.Group(<span class="str">"/api/v1"</span>)
+
+<span class="cm">// 所有 API 路由统一挂载在 /api/v1 前缀下</span>
+<span class="cm">// 版本升级时引入 /api/v2，保持向后兼容</span>
+        </div>
+      </div>
+
+    </div><!-- /fr42-protocol -->
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- Tab 2: Schema注册                              -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <div class="tab-content" id="fr42-schema">
+
+      <!-- Panel 1: KubeArmor CRD Schema 注册表 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor CRD Schema Registry</div>
+            <div class="panel-title">KubeArmor CRD Schema 注册表</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">OpenAPI v3</span>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Schema 名称</th><th>版本</th><th>字段数</th><th>验证规则数</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>KubeArmorPolicy</code></td>
+                <td><code>v1</code></td>
+                <td>28+</td>
+                <td>16</td>
+                <td><span class="badge badge-allowed">Active</span></td>
+              </tr>
+              <tr>
+                <td><code>KubeArmorHostPolicy</code></td>
+                <td><code>v1</code></td>
+                <td>24+</td>
+                <td>14</td>
+                <td><span class="badge badge-allowed">Active</span></td>
+              </tr>
+              <tr>
+                <td><code>KubeArmorNetworkPolicy</code></td>
+                <td><code>v1</code></td>
+                <td>12+</td>
+                <td>8</td>
+                <td><span class="badge badge-allowed">Active</span></td>
+              </tr>
+              <tr>
+                <td><code>KubeArmorClusterPolicy</code></td>
+                <td><code>v1</code></td>
+                <td>18+</td>
+                <td>10</td>
+                <td><span class="badge badge-allowed">Active</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 2: KubeArmorPolicy 详细 Schema -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmorPolicy Spec</div>
+            <div class="panel-title">KubeArmorPolicy 详细 Schema 与验证规则</div>
+          </div>
+          <span class="badge badge-sys">security.kubearmor.com/v1</span>
+        </div>
+
+        <div class="sub-title">ActionType 枚举 (OpenAPI v3 strict enum)</div>
+        <div class="tag-list mb-12">
+          <span class="tag" style="background:#ecfdf5;color:#059669;font-weight:600">Allow</span>
+          <span class="tag" style="background:#fef3c7;color:#92400e;font-weight:600">Audit</span>
+          <span class="tag" style="background:#fef2f2;color:#dc2626;font-weight:600">Block</span>
+        </div>
+        <div class="form-hint">kubebuilder:validation:Enum=Allow;Audit;Block — 任何其他值将触发 schema 验证失败，策略被标记为 Invalid</div>
+
+        <div class="sub-title mt-16">SeverityType 范围校验</div>
+        <div class="schema-field-row">
+          <div class="sf-name">severity</div>
+          <div class="sf-type">int</div>
+          <div class="sf-constraint">min: 1, max: 10</div>
+          <div class="sf-desc">kubebuilder:validation:Minimum:=1, Maximum:=10 — 超出范围值触发校验失败</div>
+        </div>
+
+        <div class="sub-title mt-16">路径模式校验 (Pattern)</div>
+        <div class="schema-field-row">
+          <div class="sf-name">MatchPathType</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">^\/+.*[^\/]$</div>
+          <div class="sf-desc">必须以 / 开头，不能以 / 结尾；MaxLength=200。示例: <code>/etc/shadow</code>, <code>/usr/bin/passwd</code></div>
+        </div>
+        <div class="schema-field-row">
+          <div class="sf-name">MatchDirectoryType</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">^\/$|^\/.*\/$</div>
+          <div class="sf-desc">必须以 / 开头并以 / 结尾，或仅 /。示例: <code>/etc/</code>, <code>/bin/</code></div>
+        </div>
+        <div class="schema-field-row">
+          <div class="sf-name">MatchSyscallPathType</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">(^\/+.*[^\/]$)|(^\/$|^\/.*\/$)</div>
+          <div class="sf-desc">文件路径或目录路径均合法（Syscall 场景同时接受两种格式）</div>
+        </div>
+        <div class="schema-field-row">
+          <div class="sf-name">MatchBinType</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">^[^\/]+$</div>
+          <div class="sf-desc">不能包含 /，仅接受二进制名称。示例: <code>passwd</code>, <code>bash</code></div>
+        </div>
+
+        <div class="sub-title mt-16">网络协议模式校验</div>
+        <div class="schema-field-row">
+          <div class="sf-name">MatchNetworkProtocolStringType</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">正则枚举</div>
+          <div class="sf-desc">允许值: <code>tcp|TCP|udp|UDP|raw|RAW|icmp|ICMP|icmpv6|ICMPV6|sctp|SCTP|stream|STREAM|dgram|DGRAM|rdm|RDM|seqpacket|SEQPACKET|dccp|DCCP|packet|PACKET|all|ALL</code></div>
+        </div>
+
+        <div class="sub-title mt-16">Capability 模式校验</div>
+        <div class="schema-field-row">
+          <div class="sf-name">MatchCapabilitiesStringType</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">正则枚举</div>
+          <div class="sf-desc">允许值: <code>chown|dac_override|dac_read_search|fowner|fsetid|kill|setgid|setuid|setpcap|linux_immutable|net_bind_service|net_broadcast|net_admin|net_raw|ipc_lock|ipc_owner|sys_module|sys_rawio|sys_chroot|sys_ptrace|sys_pacct|sys_admin|sys_boot|sys_nice|sys_resource|sys_time|sys_tty_config|mknod|lease|audit_write|audit_control|setfcap|mac_override|mac_admin</code> (34 种 Linux capability)</div>
+        </div>
+
+        <div class="sub-title mt-16">Syscall 枚举</div>
+        <div class="schema-field-row">
+          <div class="sf-name">Syscall</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">kubebuilder:validation:Enum</div>
+          <div class="sf-desc">~300 个 x86_64 系统调用名称，涵盖 <code>read</code>, <code>write</code>, <code>open</code>, <code>execve</code>, <code>clone</code>, <code>fork</code>, <code>mmap</code>, <code>socket</code>, <code>connect</code>, <code>bind</code>, <code>bpf</code>, <code>ptrace</code>, <code>mount</code> 等所有 64 位 Linux 系统调用</div>
+        </div>
+
+        <div class="sub-title mt-16">网络策略端口校验 (KubeArmorNetworkPolicy)</div>
+        <div class="schema-field-row">
+          <div class="sf-name">PortType.port</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">Required</div>
+          <div class="sf-desc">端口号（字符串表示）</div>
+        </div>
+        <div class="schema-field-row">
+          <div class="sf-name">PortType.endPort</div>
+          <div class="sf-type">int32</div>
+          <div class="sf-constraint">min:1, max:65535</div>
+          <div class="sf-desc">端口范围结束端口，仅在指定范围时使用</div>
+        </div>
+        <div class="schema-field-row">
+          <div class="sf-name">PortType.protocol</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">Enum</div>
+          <div class="sf-desc">允许值: <code>TCP|UDP|SCTP|tcp|udp|sctp</code></div>
+        </div>
+        <div class="schema-field-row">
+          <div class="sf-name">IPBlock.cidr</div>
+          <div class="sf-type">string</div>
+          <div class="sf-constraint">Required</div>
+          <div class="sf-desc">CIDR 格式 IP 地址块（必填字段），网络策略必须指定 CIDR</div>
+        </div>
+      </div>
+
+      <!-- Panel 3: KubeArmor Protobuf Schema -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Protobuf</div>
+            <div class="panel-title">KubeArmor Protobuf Schema 注册</div>
+          </div>
+          <span class="badge badge-sys">proto3</span>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>Proto 文件</th><th>包名</th><th>核心消息</th><th>枚举</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>kubearmor.proto</code></td>
+                <td><code>feeder</code></td>
+                <td>NonceMessage, Message, Alert, Log, HostLog</td>
+                <td>&#x2014;</td>
+              </tr>
+              <tr>
+                <td><code>policy.proto</code></td>
+                <td><code>feeder</code></td>
+                <td>PolicyStatusRequest, PolicyStatusResponse</td>
+                <td><code>PolicyStatus</code>: Failure=0, Applied=1, Deleted=2, Modified=3, NotExist=4, Invalid=5, NotEnabled=6</td>
+              </tr>
+              <tr>
+                <td><code>state.proto</code></td>
+                <td><code>feeder</code></td>
+                <td>StateRequest, StateResponse</td>
+                <td>&#x2014;</td>
+              </tr>
+              <tr>
+                <td><code>kvm.proto</code></td>
+                <td><code>feeder</code></td>
+                <td>KVM 相关消息</td>
+                <td>&#x2014;</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-title mt-16">PolicyStatus 枚举值</div>
+        <div class="code-block mt-8">
+<span class="cm">// policy.proto:9-16</span>
+<span class="kw">enum</span> <span class="fn">PolicyStatus</span> {
+  <span class="fn">Failure</span>    = <span class="num">0</span>;   <span class="cm">// 策略应用失败</span>
+  <span class="fn">Applied</span>    = <span class="num">1</span>;   <span class="cm">// 策略已生效</span>
+  <span class="fn">Deleted</span>    = <span class="num">2</span>;   <span class="cm">// 策略已删除</span>
+  <span class="fn">Modified</span>   = <span class="num">3</span>;   <span class="cm">// 策略已修改</span>
+  <span class="fn">NotExist</span>   = <span class="num">4</span>;   <span class="cm">// 策略不存在</span>
+  <span class="fn">Invalid</span>    = <span class="num">5</span>;   <span class="cm">// 策略 Schema 无效</span>
+  <span class="fn">NotEnabled</span> = <span class="num">6</span>;   <span class="cm">// 策略未启用</span>
+}
+        </div>
+        <div class="form-hint mt-8">PolicyStatus=Invalid(5) 表示策略的 Schema 校验失败，包括枚举值越界、模式不匹配、必填字段缺失等。FR-42 将此状态作为未知/无效 Schema 告警的触发条件</div>
+      </div>
+
+      <!-- Panel 4: 预设 (Preset) Schema -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Presets</div>
+            <div class="panel-title">预设策略 Schema</div>
+          </div>
+          <span class="badge badge-sys">4 预设</span>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>预设名称</th><th>标识</th><th>说明</th><th>关联 FR</th></tr></thead>
+            <tbody>
+              <tr><td><code>protectEnv</code></td><td>ProtectEnv</td><td>保护进程环境变量不被读取</td><td><span class="tag mitre">MITRE_T1007</span></td></tr>
+              <tr><td><code>filelessExec</code></td><td>FilelessExec</td><td>阻止从内存文件系统执行二进制</td><td><span class="tag mitre">MITRE_T1059</span></td></tr>
+              <tr><td><code>exec</code></td><td>Exec</td><td>控制进程执行</td><td>&#x2014;</td></tr>
+              <tr><td><code>protectProc</code></td><td>ProtectProc</td><td>保护进程访问</td><td><span class="tag nist">NIST_SI-4</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-hint mt-12">PresetName 同样使用 kubebuilder:validation 枚举约束，未知预设名称将触发 schema 校验失败</div>
+      </div>
+
+    </div><!-- /fr42-schema -->
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- Tab 3: 降级检测                                -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <div class="tab-content" id="fr42-downgrade">
+
+      <!-- Panel 1: Schema 合规率 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Schema Compliance</div>
+            <div class="panel-title">Schema 合规率</div>
+          </div>
+          <button class="btn-secondary btn-sm">重新评估</button>
+        </div>
+
+        <div class="flex items-center gap-16">
+          <div class="score-circle score-high">
+            <div class="score-num">94</div>
+            <div class="score-label">合规率 %</div>
+          </div>
+          <div class="grid-4" style="flex:1;gap:12px">
+            <div class="stat-mini">
+              <div class="sm-val" style="color:#059669">1,247</div>
+              <div class="sm-label">总请求</div>
+            </div>
+            <div class="stat-mini">
+              <div class="sm-val" style="color:#059669">1,172</div>
+              <div class="sm-label">版本匹配</div>
+            </div>
+            <div class="stat-mini">
+              <div class="sm-val" style="color:#059669">1,198</div>
+              <div class="sm-label">Schema 合规</div>
+            </div>
+            <div class="stat-mini">
+              <div class="sm-val" style="color:#dc2626">49</div>
+              <div class="sm-label">被拒绝</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: 降级检测规则 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Downgrade Detection Rules</div>
+            <div class="panel-title">降级检测规则</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">4 规则</span>
+          </div>
+        </div>
+
+        <!-- Rule 1 -->
+        <div class="rule-card">
+          <div class="rc-id">DR-001</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="badge badge-critical">Critical</span>
+            <span style="font-size:.87rem;font-weight:700;color:var(--text-h)">协议版本降级</span>
+          </div>
+          <div class="rc-pattern">AgentProtocol: v1 &#x2192; 未知版本 (e.g. "v0", "v2-beta", "")</div>
+          <div class="rc-desc">Agent 注册时声明的 protocol_version 不匹配 AgentProtocolVersionV1="v1"，注册请求被拒绝。检测到使用弱协议或未声明的兼容模式。攻击者可能试图利用旧版协议的已知漏洞或绕过新版协议的安全增强。</div>
+          <div class="tag-list mt-8">
+            <span class="tag mitre">MITRE_T1195</span>
+            <span class="tag nist">NIST_SI-4</span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c">AIA07</span>
+          </div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span style="font-size:.72rem;color:var(--text)">动作: 拒绝注册 + 告警</span>
+          </div>
+        </div>
+
+        <!-- Rule 2 -->
+        <div class="rule-card">
+          <div class="rc-id">DR-002</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="badge badge-high">High</span>
+            <span style="font-size:.87rem;font-weight:700;color:var(--text-h)">Schema 字段缺失/降级</span>
+          </div>
+          <div class="rc-pattern">KubeArmorPolicy: 必填字段缺失 | 枚举值越界 | 模式不匹配</div>
+          <div class="rc-desc">KubeArmor CRD 的 OpenAPI v3 schema 校验失败。包括: ActionType 使用 Allow/Audit/Block 之外的值；severity 超出 1-10 范围；path 不匹配 ^\/+.*[^\/]$ 模式；capability 使用未注册的 Linux capability；protocol 使用未知协议名；syscall 使用未注册的系统调用名。攻击者可能试图利用宽松的 schema 定义注入恶意规则。</div>
+          <div class="tag-list mt-8">
+            <span class="tag mitre">MITRE_T1565</span>
+            <span class="tag nist">NIST_AU-2</span>
+          </div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span style="font-size:.72rem;color:var(--text)">动作: PolicyStatus=Invalid(5) + 告警</span>
+          </div>
+        </div>
+
+        <!-- Rule 3 -->
+        <div class="rule-card">
+          <div class="rc-id">DR-003</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="badge badge-high">High</span>
+            <span style="font-size:.87rem;font-weight:700;color:var(--text-h)">能力指纹降级 (Capability Reduction)</span>
+          </div>
+          <div class="rc-pattern">Agent: capabilities=["cmd_exec","file_rw"] &#x2192; 注册时能力列表缩减或变更</div>
+          <div class="rc-desc">Agent 注册时声明的 capabilities 列表与历史注册记录不一致。能力缩减可能意味着 Agent 被降级运行，能力增加可能意味着权限扩张。两种情况均需记录并验证，与注册时的能力指纹进行比对。未声明的兼容模式或隐式能力继承将被拒绝。</div>
+          <div class="tag-list mt-8">
+            <span class="tag mitre">MITRE_T1562</span>
+            <span class="tag nist">NIST_AC-6</span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c">ASI03</span>
+          </div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+            <span class="badge badge-observe">Observe</span>
+            <span style="font-size:.72rem;color:var(--text)">动作: 告警 + 记录 (待升级为 Enforce)</span>
+          </div>
+        </div>
+
+        <!-- Rule 4 -->
+        <div class="rule-card">
+          <div class="rc-id">DR-004</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="badge badge-medium">Medium</span>
+            <span style="font-size:.87rem;font-weight:700;color:var(--text-h)">API 版本回退</span>
+          </div>
+          <div class="rc-pattern">ClawManager API: /api/v1/ &#x2192; /api/v0/ 或无版本前缀</div>
+          <div class="rc-desc">客户端请求使用旧版或未知 API 版本路径。当前 ClawManager 仅注册 /api/v1 路由，任何非 v1 前缀的请求将返回 404。未来引入 /api/v2 时，需确保旧版 v1 仍有明确废弃策略。未版本化的 API 请求应被识别并告警。</div>
+          <div class="tag-list mt-8">
+            <span class="tag nist">NIST_SI-4</span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c">AIA07</span>
+          </div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span style="font-size:.72rem;color:var(--text)">动作: 404 拒绝 + 告警</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: 未知 Schema 告警配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Unknown Schema Alert</div>
+            <div class="panel-title">未知 Schema 检测告警配置</div>
+          </div>
+          <span class="badge badge-alert">Alert</span>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">未知 Schema 自动告警</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">当 KubeArmor CRD 校验失败（PolicyStatus=Invalid）或收到未注册的 Schema 类型时，自动触发安全告警</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">未知 Schema 自动拒绝</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">在 Enforce 模式下，未知 Schema 请求被自动拒绝并返回错误。Observe 模式下仅记录不拦截</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="mode-selector">
+              <div class="mode-btn active enforce">Enforce</div>
+              <div class="mode-btn">Observe</div>
+            </div>
+            <div class="toggle-switch on"></div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">PolicyStatus.Invalid 实时监控</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">监控 KubeArmor PolicyStatus gRPC 流中的 Invalid(5) 状态事件，实时产生告警</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">未声明兼容模式拦截</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">Agent 或客户端声明了不在允许列表中的协议兼容模式时触发拦截</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+      </div>
+
+      <!-- Panel 4: 验收标准检查 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria</div>
+            <div class="panel-title">验收标准检查</div>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div>
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)">1) 协议版本可固定</div>
+            <div style="font-size:.8rem;color:var(--text);margin-top:2px">AgentProtocolVersionV1="v1" 已在 Agent 注册时强制校验。ClawManager API 统一使用 /api/v1 版本前缀。KubeArmor gRPC 使用 proto3 语法固定。版本允许列表和最低版本配置可编辑。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div>
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)">2) 降级协议请求被拒绝</div>
+            <div style="font-size:.8rem;color:var(--text);margin-top:2px">protocol_version != "v1" 的注册请求返回 "unsupported agent protocol version"。isSupportedCommandType 对 17 种白名单外的命令类型返回 "invalid instance command type"。非 /api/v1 路由返回 404。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div>
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)">3) 未知 schema 触发告警</div>
+            <div style="font-size:.8rem;color:var(--text);margin-top:2px">KubeArmor CRD OpenAPI v3 schema 校验失败时 PolicyStatus=Invalid(5)。未注册的 PresetName、超出范围的 ActionType/SeverityType/Syscall 枚举、路径模式不匹配均触发 schema 拒绝。告警配置已启用。</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /fr42-downgrade -->
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- Tab 4: 拦截日志                                -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <div class="tab-content" id="fr42-log">
+
+      <!-- Stats Bar -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Interception Stats</div>
+            <div class="panel-title">拦截统计</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">筛选</button>
+            <button class="btn-secondary btn-sm">刷新</button>
+          </div>
+        </div>
+
+        <div class="grid-4">
+          <div class="stat-mini">
+            <div class="sm-val">1,247</div>
+            <div class="sm-label">总请求</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#059669">1,172</div>
+            <div class="sm-label">版本匹配</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#059669">1,198</div>
+            <div class="sm-label">Schema 合规</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#dc2626">49</div>
+            <div class="sm-label">被拒绝</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Entries -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Interception Log</div>
+            <div class="panel-title">协议拦截日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+
+        <!-- Log 1: 协议版本拒绝 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:42:18.337</span>
+            <span class="badge badge-rejected">REJECTED</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-sys">ClawManager</span>
+            <span class="badge badge-p1">FR-42</span>
+          </div>
+          <div class="log-body">
+            Agent 注册协议版本不匹配 — 请求 <code>protocol_version="v0.9-beta"</code>，要求 <code>"v1"</code>。Agent <code>agent-suspicious-7a3b</code> 试图使用未注册的协议版本进行注册，注册请求被拒绝。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent Register</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">Bootstrap Token OK</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">ProtocolVersion="v0.9-beta"</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">REJECT: unsupported version</span>
+          </div>
+          <div class="log-detail">
+instance_id: 42 | agent_id: agent-suspicious-7a3b | protocol_version: v0.9-beta<br>
+expected: v1 (AgentProtocolVersionV1) | error: "unsupported agent protocol version"<br>
+source_ip: 10.0.3.112 | rule: DR-001 | action: rejected
+          </div>
+        </div>
+
+        <!-- Log 2: 未知 Schema -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:38:07.124</span>
+            <span class="badge badge-alert">ALERT</span>
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-sys">KubeArmor</span>
+            <span class="badge badge-p1">FR-42</span>
+          </div>
+          <div class="log-body">
+            KubeArmorPolicy Schema 校验失败 — 策略 <code>suspicious-policy-x91</code> 中 <code>action="AllowAll"</code> 不在允许枚举值 <code>[Allow, Audit, Block]</code> 中。PolicyStatus 被标记为 <code>Invalid(5)</code>。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">CRD Admission</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">OpenAPI v3 Schema</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">ActionType enum mismatch</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">Invalid(5)</span>
+          </div>
+          <div class="log-detail">
+namespace: default | policy: suspicious-policy-x91 | kind: KubeArmorPolicy<br>
+field: spec.action | value: "AllowAll" | allowed: [Allow, Audit, Block]<br>
+policy_status: Invalid(5) | rule: DR-002 | action: alert + reject
+          </div>
+        </div>
+
+        <!-- Log 3: 字段校验失败 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:25:44.891</span>
+            <span class="badge badge-alert">ALERT</span>
+            <span class="badge badge-medium">Medium</span>
+            <span class="badge badge-sys">KubeArmor</span>
+            <span class="badge badge-p1">FR-42</span>
+          </div>
+          <div class="log-body">
+            KubeArmorPolicy 路径模式校验失败 — 策略 <code>bad-path-policy</code> 中 <code>path="etc/shadow"</code> 不匹配模式 <code>^\/+.*[^\/]$</code>，路径必须以 <code>/</code> 开头。同时 <code>severity=15</code> 超出范围 [1, 10]。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">CRD Admission</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">MatchPathType pattern</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">^\/+.*[^\/]$ mismatch</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">Invalid(5)</span>
+          </div>
+          <div class="log-detail">
+namespace: production | policy: bad-path-policy | kind: KubeArmorPolicy<br>
+field: spec.file.matchPaths[0].path | value: "etc/shadow" | pattern: ^\/+.*[^\/]$<br>
+field: spec.severity | value: 15 | constraint: min=1, max=10<br>
+policy_status: Invalid(5) | rule: DR-002 | action: alert
+          </div>
+        </div>
+
+        <!-- Log 4: 命令类型拒绝 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:12:33.558</span>
+            <span class="badge badge-rejected">REJECTED</span>
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-sys">ClawManager</span>
+            <span class="badge badge-p1">FR-42</span>
+          </div>
+          <div class="log-body">
+            InstanceCommand 命令类型不在白名单 — 请求创建命令 <code>command_type="execute_shell"</code>，不在 <code>isSupportedCommandType</code> 17 种允许的命令类型中，请求被拒绝。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">Command Create</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">isSupportedCommandType</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">"execute_shell" not found</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">REJECT: invalid type</span>
+          </div>
+          <div class="log-detail">
+instance_id: 7 | command_type: execute_shell | error: "invalid instance command type"<br>
+allowed_types: [start_openclaw, stop_openclaw, restart_openclaw, collect_system_info,<br>
+  apply_config_revision, reload_config, health_check, install_skill, update_skill,<br>
+  uninstall_skill, remove_skill, disable_skill, quarantine_skill, handle_skill_risk,<br>
+  sync_skill_inventory, refresh_skill_inventory, collect_skill_package]<br>
+rule: DR-001 | action: rejected
+          </div>
+        </div>
+
+        <!-- Log 5: PolicyStatus Invalid 事件 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:58:21.775</span>
+            <span class="badge badge-alert">ALERT</span>
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-sys">KubeArmor gRPC</span>
+            <span class="badge badge-p1">FR-42</span>
+          </div>
+          <div class="log-body">
+            PolicyStatus gRPC 流检测到 <code>Invalid(5)</code> 状态 — 策略 <code>network-policy-malformed</code> 的 <code>NetworkProtocol="custom_proto"</code> 不在允许枚举中 <code>[tcp|TCP|udp|UDP|raw|RAW|icmp|ICMP|...]</code>，schema 校验失败。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">gRPC PolicyStream</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">PolicyStatus=Invalid(5)</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">Protocol enum mismatch</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">ALERT</span>
+          </div>
+          <div class="log-detail">
+policy: network-policy-malformed | kind: KubeArmorNetworkPolicy<br>
+field: spec.egress[0].ports[0].protocol | value: "custom_proto"<br>
+allowed: [TCP, UDP, SCTP, tcp, udp, sctp] | proto_file: policy.proto<br>
+policy_status: Invalid(5) | rule: DR-002 | action: alert
+          </div>
+        </div>
+
+        <!-- Log 6: 能力指纹变更 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:45:09.112</span>
+            <span class="badge badge-observed">OBSERVED</span>
+            <span class="badge badge-medium">Medium</span>
+            <span class="badge badge-sys">ClawManager</span>
+            <span class="badge badge-p1">FR-42</span>
+          </div>
+          <div class="log-body">
+            Agent 能力指纹变更 — Agent <code>agent-prod-28a</code> 重新注册时能力列表变更: 原始 <code>["cmd_exec","file_rw","net_access"]</code> &#x2192; 当前 <code>["cmd_exec"]</code>。能力缩减 <code>file_rw, net_access</code> 已移除。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent Re-register</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">Capabilities diff</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">Removed: file_rw, net_access</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#d97706;color:#92400e;background:#fffbeb;font-weight:600">ALERT (Observe)</span>
+          </div>
+          <div class="log-detail">
+agent_id: agent-prod-28a | instance_id: 28 | protocol_version: v1 (OK)<br>
+original_capabilities: ["cmd_exec","file_rw","net_access"]<br>
+current_capabilities: ["cmd_exec"]<br>
+diff: -file_rw, -net_access | rule: DR-003 | action: observed
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /fr42-log -->
+
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <!-- Tab 5: 配置                                    -->
+    <!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+    <div class="tab-content" id="fr42-config">
+
+      <!-- Panel 1: 允许的协议版本 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Allowed Protocol Versions</div>
+            <div class="panel-title">允许的协议版本配置</div>
+          </div>
+          <button class="btn-primary btn-sm">保存配置</button>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">AgentProtocol 允许版本</div>
+            <div class="tag-list mb-8">
+              <span class="tag">v1 <span style="cursor:pointer;color:#dc2626;margin-left:4px">&#x2715;</span></span>
+              <span class="tag" style="border:1px dashed var(--accent-coral);cursor:pointer;color:var(--accent-coral)">+ 添加版本</span>
+            </div>
+            <div class="form-hint">Agent 注册时必须匹配此列表中的版本，否则拒绝连接</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">AgentProtocol 最低版本</div>
+            <input class="form-input" type="text" value="v1" readonly>
+            <div class="form-hint">低于此版本的连接将被拒绝</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">ClawManager API 允许版本</div>
+            <div class="tag-list mb-8">
+              <span class="tag">v1 <span style="cursor:pointer;color:#dc2626;margin-left:4px">&#x2715;</span></span>
+              <span class="tag" style="border:1px dashed var(--accent-coral);cursor:pointer;color:var(--accent-coral)">+ 添加版本</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">ClawManager API 最低版本</div>
+            <input class="form-input" type="text" value="v1" readonly>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">KubeArmor gRPC 允许版本</div>
+            <div class="tag-list mb-8">
+              <span class="tag">proto3 <span style="cursor:pointer;color:#dc2626;margin-left:4px">&#x2715;</span></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">KubeArmor gRPC 最低版本</div>
+            <input class="form-input" type="text" value="proto3" readonly>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">MCP Protocol 允许版本</div>
+            <div class="tag-list mb-8">
+              <span class="tag">2025-03-26 <span style="cursor:pointer;color:#dc2626;margin-left:4px">&#x2715;</span></span>
+              <span class="tag">2024-11-05 <span style="cursor:pointer;color:#d97706;margin-left:4px">deprecated</span></span>
+              <span class="tag" style="border:1px dashed var(--accent-coral);cursor:pointer;color:var(--accent-coral)">+ 添加版本</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">MCP Protocol 最低版本</div>
+            <input class="form-input" type="text" value="2024-11-05">
+            <div class="form-hint">MCP 版本使用日期格式 (YYYY-MM-DD)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Schema 严格度 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Schema Strictness</div>
+            <div class="panel-title">Schema 严格度配置</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">Schema 严格度级别</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">Strict: 所有字段严格校验，未知字段拒绝 | Moderate: 必填字段校验，未知字段告警 | Relaxed: 仅必填字段校验</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active enforce">Strict</div>
+            <div class="mode-btn observe">Moderate</div>
+            <div class="mode-btn off">Relaxed</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">自动拒绝未知 Schema</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">启用后，任何未在 Schema 注册表中声明的 CRD 类型或未知的消息格式将被自动拒绝。关闭时仅产生告警</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">KubeArmor PolicyStatus.Invalid 监控</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">通过 KubeArmor gRPC PolicyStatus 流监控 Invalid(5) 状态事件，实时触发告警</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">枚举越界拦截</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">KubeArmor CRD 枚举字段 (ActionType, SeverityType, Syscall, Capability, Protocol 等) 越界值被自动拦截</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">路径模式校验</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">KubeArmor CRD 路径字段 (MatchPathType, MatchDirectoryType, MatchBinType) 模式校验，不匹配时拒绝</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+      </div>
+
+      <!-- Panel 3: 告警阈值 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Alert Threshold</div>
+            <div class="panel-title">告警阈值配置</div>
+          </div>
+          <button class="btn-primary btn-sm">保存配置</button>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">协议版本拒绝告警阈值</div>
+            <input class="form-input" type="number" value="3">
+            <div class="form-hint">同一 Agent 在 N 分钟内协议版本拒绝次数达到此阈值时触发高级别告警</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Schema 校验失败告警阈值</div>
+            <input class="form-input" type="number" value="5">
+            <div class="form-hint">同一命名空间在 N 分钟内 Schema 校验失败次数达到此阈值时触发高级别告警</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">能力指纹变更告警灵敏度</div>
+            <select class="form-input">
+              <option selected>High — 任何变更告警</option>
+              <option>Medium — 能力缩减告警</option>
+              <option>Low — 仅能力增加告警</option>
+            </select>
+            <div class="form-hint">Agent capabilities 列表变更时的告警灵敏度</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">未知命令类型告警阈值</div>
+            <input class="form-input" type="number" value="1">
+            <div class="form-hint">任何未知 command_type 请求立即触发告警（建议值为 1）</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">告警时间窗口 (分钟)</div>
+            <input class="form-input" type="number" value="5">
+            <div class="form-hint">告警聚合的时间窗口，同一窗口内的相同类型事件聚合为一个告警</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">自动封锁阈值</div>
+            <input class="form-input" type="number" value="10">
+            <div class="form-hint">同一来源在时间窗口内协议降级事件达到此阈值时自动封锁来源 IP</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: 版本废弃策略 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Deprecation Policy</div>
+            <div class="panel-title">版本废弃策略配置</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">版本废弃预告通知</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">当协议版本计划废弃时，在 Agent 心跳响应中包含 Deprecation-Warning 头，提前通知 Agent 升级</div>
+          </div>
+          <div class="toggle-switch"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">废弃版本宽限期 (天)</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">版本标记为废弃后，在宽限期内仍允许使用但产生告警。宽限期结束后强制拒绝</div>
+          </div>
+          <input class="form-input" type="number" value="30" style="width:100px;flex-shrink:0">
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label" style="flex:1">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">当前废弃中版本</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">MCP Protocol 版本 2024-11-05 当前处于废弃中状态，宽限期至 2026-06-01</div>
+          </div>
+          <span class="badge badge-warn">2024-11-05 废弃中</span>
+        </div>
+      </div>
+
+    </div><!-- /fr42-config -->
+
+  </div><!-- /content-area -->
+</div><!-- /page-fr42 -->
+
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PAGE: 协议安全审计                                  -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="page-section" id="page-audit">
+  <div class="subheader">
+    <strong>协议安全审计报告</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-info">FR-40 ~ FR-48</span>
+  </div>
+  <div class="content-area">
+
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Audit Score</div>
+          <div class="panel-title">审计评分</div>
+        </div>
+        <button class="btn-secondary btn-sm">重新评估</button>
+      </div>
+
+      <div class="flex items-center gap-16">
+        <div class="score-circle score-med">
+          <div class="score-num">72</div>
+          <div class="score-label">/ 100</div>
+        </div>
+        <div class="grid-3" style="flex:1;gap:12px">
+          <div class="stat-mini">
+            <div class="sm-val">9</div>
+            <div class="sm-label">FRs 总计</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#dc2626">3</div>
+            <div class="sm-label">P0 优先级</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#d97706">4</div>
+            <div class="sm-label">P1 优先级</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#059669">15</div>
+            <div class="sm-label">检查项通过</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#dc2626">11</div>
+            <div class="sm-label">待修复项</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:var(--text)">26</div>
+            <div class="sm-label">检查项总计</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Compliance Mapping</div>
+          <div class="panel-title">合规对标</div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>合规项</th><th>名称</th><th>关联 FR</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="compliance-tag aia">AIA07</span></td>
+              <td>协议风险</td>
+              <td><span class="tag">FR-40</span> <span class="tag">FR-41</span> <span class="tag" style="background:var(--accent-bg);color:var(--accent-strong)">FR-42</span> <span class="tag">FR-43</span> <span class="tag">FR-44</span></td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag aia">AIA06</span></td>
+              <td>多智能体级联风险</td>
+              <td><span class="tag">FR-45</span> <span class="tag">FR-46</span> <span class="tag">FR-47</span> <span class="tag">FR-48</span></td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag asi">ASI03</span></td>
+              <td>Identity & Privilege Abuse</td>
+              <td><span class="tag">FR-40</span> <span class="tag">FR-41</span> <span class="tag" style="background:var(--accent-bg);color:var(--accent-strong)">FR-42</span> <span class="tag">FR-44</span></td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag asi">ASI07</span></td>
+              <td>Insecure Inter-Agent Comm</td>
+              <td><span class="tag">FR-40</span> <span class="tag">FR-41</span> <span class="tag" style="background:var(--accent-bg);color:var(--accent-strong)">FR-42</span> <span class="tag">FR-43</span> <span class="tag">FR-45</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<script>
+/* ========== SIDEBAR PAGE NAVIGATION ========== */
+document.querySelectorAll('.nav-item').forEach(function(item) {
+  item.addEventListener('click', function() {
+    var page = this.getAttribute('data-page');
+    if (!page) return;
+    document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+    this.classList.add('active');
+    document.querySelectorAll('.page-section').forEach(function(ps) { ps.classList.remove('active'); });
+    var target = document.getElementById('page-' + page);
+    if (target) target.classList.add('active');
+  });
+});
+
+/* ========== TAB SWITCHING ========== */
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var tabId = this.getAttribute('data-tab');
+    var tabGroup = this.parentElement.getAttribute('data-tabgroup');
+    if (!tabId) return;
+    this.parentElement.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    this.classList.add('active');
+    var pageSection = this.closest('.page-section');
+    if (!pageSection) return;
+    pageSection.querySelectorAll('.tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+    var target = document.getElementById(tabId);
+    if (target) target.classList.add('active');
+  });
+});
+
+/* ========== TOGGLE SWITCHES ========== */
+document.querySelectorAll('.toggle-switch').forEach(function(sw) {
+  sw.addEventListener('click', function() {
+    this.classList.toggle('on');
+  });
+});
+
+/* ========== MODE SELECTORS ========== */
+document.querySelectorAll('.mode-selector').forEach(function(selector) {
+  selector.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var classes = this.className;
+      var isEnforce = classes.indexOf('enforce') > -1;
+      var isObserve = classes.indexOf('observe') > -1;
+      selector.querySelectorAll('.mode-btn').forEach(function(b) {
+        b.classList.remove('active', 'enforce', 'observe', 'off');
+      });
+      this.classList.add('active');
+      if (isEnforce) this.classList.add('enforce');
+      else if (isObserve) this.classList.add('observe');
+      else this.classList.add('off');
+    });
+  });
+});
+</script>
+
+</body>
+</html>

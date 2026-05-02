@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-60 代理行为基线建立 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.stat-mini{display:inline-flex;align-items:baseline;gap:4px;font-size:12px;font-weight:600}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.rule-card{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.rule-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.rule-card .rc-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.rule-card .rc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-left:10px}
+.rule-card .rc-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.rule-card .rc-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.log-entry{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-radius:12px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.7);margin-bottom:8px;transition:all .15s}
+.log-entry:hover{background:rgba(255,255,255,0.95);box-shadow:0 2px 8px -4px rgba(72,44,24,0.15)}
+.log-entry .log-time{font-size:11px;color:#8f8681;white-space:nowrap;flex-shrink:0;width:130px}
+.log-entry .log-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.log-entry .log-msg{font-size:12px;color:var(--text-h);line-height:1.6;flex:1}
+.log-entry .log-sev{flex-shrink:0}
+.flow-node{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:12px 18px;font-size:12px;font-weight:600;color:var(--text-h);text-align:center;min-width:130px}
+.flow-node .fn-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#b46c50;margin-bottom:4px}
+.flow-arrow{color:#c4b0a2;font-size:18px;padding:0 6px}
+.profile-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px;margin-bottom:14px}
+.profile-section .ps-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1;display:flex;align-items:center;gap:8px}
+.freq-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.freq-bar .fb-label{width:100px;font-size:11px;font-weight:500;color:var(--text);text-align:right;flex-shrink:0}
+.freq-bar .fb-track{flex:1;height:8px;border-radius:4px;background:#f1e7e1;overflow:hidden}
+.freq-bar .fb-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.freq-bar .fb-val{width:50px;font-size:11px;font-weight:600;color:var(--text-h);flex-shrink:0}
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:40px}
+.mini-chart .mc-bar{width:8px;border-radius:3px 3px 0 0;transition:height .4s ease}
+.metric-compare{display:flex;align-items:center;gap:8px;font-size:12px}
+.metric-compare .mc-baseline{color:#8f8681;font-weight:500;width:70px;text-align:right}
+.metric-compare .mc-arrow{color:#b4a9a0}
+.metric-compare .mc-current{font-weight:700;width:70px}
+.metric-compare .mc-delta{font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px;width:60px;text-align:center}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.10 代理行为完整性与Rogue Agent治理</div>
+    <div class="nav-item active" data-page="fr60"><span>&#x1f4ca; 行为基线建立</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr61"><span>&#x1f6e1;&#xfe0f; Rogue Agent检测</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr62"><span>&#x26d4; 异常自主性拦截</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr63"><span>&#x1f504; 行为漂移持续监控</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr64"><span>&#x1f527; 隔离与恢复机制</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.10 代理行为完整性与Rogue Agent治理</div>
+      <div class="page-title">FR-60 | 代理行为基线建立 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawManager</span>
+      <span class="badge badge-sys">OpenClaw</span>
+      <span class="badge badge-sys">OPA</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步基线</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">基线架构</div>
+      <div class="tab" data-tab="profile">行为画像</div>
+      <div class="tab" data-tab="rules">基线规则</div>
+      <div class="tab" data-tab="monitor">偏离监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 基线架构                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Agent Behavior Baseline System</div>
+        <div class="panel-title">代理行为基线建立系统</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          FR-60 为不同 Agent 建立预期目标、工具使用模式、资源消耗模式和行为边界基线，用于识别长期偏航、异常自主性和行为漂移。基线系统通过持续采集 ClawManager 的 ModelInvocation、InstanceCommand、CostRecord 和 Agent 状态数据，自动生成行为画像并建立可量化的基线参考，当 Agent 行为偏离基线时触发告警。基线策略通过 Open Policy Agent (OPA) 执行，确保基线比较的客观性和可审计性。
+        </p>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="badge badge-critical">长期偏航</span>
+          <span class="badge badge-high">异常自主性</span>
+          <span class="badge badge-medium">行为漂移</span>
+          <span class="badge badge-low">基线偏离</span>
+          <span class="badge badge-sys">ModelInvocation</span>
+          <span class="badge badge-sys">InstanceCommand</span>
+          <span class="badge badge-sys">CostRecord</span>
+          <span class="badge badge-sys">OPA</span>
+        </div>
+      </div>
+
+      <!-- Baseline Architecture Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Baseline Architecture Pipeline</div>
+            <div class="panel-title">基线建立流程架构</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:18px;line-height:1.7">
+          基线系统通过五阶段流水线从原始数据到告警输出：数据采集层汇聚 ClawManager 各数据源的 Agent 行为记录；画像生成层基于统计模型提取工具使用频率、资源消耗范围、命令类型分布和风险模式特征；基线比较层将实时行为与已建立的基线进行 OPA 策略评估；偏离检测层识别显著偏离基线的行为模式；告警层根据偏离严重程度和持续时间触发分级告警。
+        </p>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:16px 0">
+          <div class="flow-node" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe">
+            <div class="fn-label" style="color:#1d4ed8">Data Collection</div>
+            ModelInvocation<br>InstanceCommand<br>CostRecord<br>Agent Status
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa">
+            <div class="fn-label" style="color:#c2410c">Profile Generation</div>
+            工具使用模式<br>资源消耗模式<br>命令频率分布<br>风险模式特征
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#fde68a">
+            <div class="fn-label" style="color:#92400e">Baseline Comparison</div>
+            OPA 策略评估<br>统计显著性检验<br>滑动窗口比较<br>置信度计算
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca">
+            <div class="fn-label" style="color:#b91c1c">Deviation Detection</div>
+            工具偏离检测<br>资源漂移检测<br>风险突变检测<br>边界越界检测
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fef2f2,#fecaca);border-color:#fca5a5">
+            <div class="fn-label" style="color:#991b1b">Alert</div>
+            低/中/高/严重<br>分级告警输出<br>自动响应触发<br>审计日志记录
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Source Details -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Data Source Integration</div>
+            <div class="panel-title">数据采集层 - ClawManager 数据源</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          基线系统的数据采集层深度集成 ClawManager 的核心数据模型，从四个维度全面采集 Agent 行为数据。每个数据源为基线画像提供不同维度的行为特征，确保基线的全面性和准确性。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="border-radius:16px;border:1px solid #f1e7e1;background:#faf7f4;padding:18px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;font-size:16px;color:#1d4ed8">&#x1f4e5;</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-h)">ModelInvocation</div>
+                <div style="font-size:11px;color:#8f8681">模型调用记录</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              采集 TraceID, SessionID, RequestID, UserID, InstanceID, ModelID, PromptTokens, CompletionTokens, TotalTokens, EstimatedCost, ActualCost, Latency 等字段。用于建立 <strong>资源消耗基线</strong>：每次调用的 token 消耗范围、成本分布模式、延迟特征、模型调用频率和会话关联模式。
+            </div>
+            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="tag">Token 分布</span>
+              <span class="tag">成本趋势</span>
+              <span class="tag">延迟特征</span>
+              <span class="tag">调用频率</span>
+            </div>
+          </div>
+          <div style="border-radius:16px;border:1px solid #f1e7e1;background:#faf7f4;padding:18px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fff7ed,#ffedd5);display:flex;align-items:center;justify-content:center;font-size:16px;color:#c2410c">&#x2699;&#xfe0f;</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-h)">InstanceCommand</div>
+                <div style="font-size:11px;color:#8f8681">实例命令记录</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              采集 17 种命令类型，含 IssuedAt&#x2192;DispatchedAt&#x2192;StartedAt&#x2192;FinishedAt 全生命周期时间戳，IssuedBy 发起者，ResultJSON 执行结果。用于建立 <strong>工具使用基线</strong>：命令类型频率分布、命令执行时长模式、命令发起者关联、命令结果模式、生命周期时间偏差。
+            </div>
+            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="tag">命令频率</span>
+              <span class="tag">执行时长</span>
+              <span class="tag">生命周期</span>
+              <span class="tag">结果模式</span>
+            </div>
+          </div>
+          <div style="border-radius:16px;border:1px solid #f1e7e1;background:#faf7f4;padding:18px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;font-size:16px;color:#92400e">&#x1f4b0;</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-h)">CostRecord</div>
+                <div style="font-size:11px;color:#8f8681">成本记录</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              采集 PromptTokens, CompletionTokens, TotalTokens, EstimatedCost, ActualCost 等成本追踪字段。用于建立 <strong>成本基线</strong>：日均/周均成本范围、成本波动模式、预估与实际成本偏差率、成本突增检测阈值、按模型和实例的成本分布。
+            </div>
+            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="tag">日均成本</span>
+              <span class="tag">偏差率</span>
+              <span class="tag">突增检测</span>
+              <span class="tag">分布模式</span>
+            </div>
+          </div>
+          <div style="border-radius:16px;border:1px solid #f1e7e1;background:#faf7f4;padding:18px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#fef2f2,#fee2e2);display:flex;align-items:center;justify-content:center;font-size:16px;color:#b91c1c">&#x1f6e1;&#xfe0f;</div>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-h)">Agent Status + AI Gateway</div>
+                <div style="font-size:11px;color:#8f8681">状态与风险记录</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              InstanceAgent 采集 AgentID, AgentVersion, ProtocolVersion, Status, CapabilitiesJSON, HostInfoJSON, LastHeartbeatAt；InstanceRuntimeStatus 采集 OpenClawStatus, AgentStatus, SummaryJSON, SystemInfoJSON；AI Gateway 采集每次请求的 risk detection 结果、HighestSeverity/HighestAction。用于建立 <strong>风险模式基线</strong> 和 <strong>行为边界基线</strong>。
+            </div>
+            <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="tag">风险等级</span>
+              <span class="tag">能力范围</span>
+              <span class="tag">心跳模式</span>
+              <span class="tag">版本轨迹</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Baseline Profile Contents -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Baseline Profile Schema</div>
+            <div class="panel-title">基线画像内容模型</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          每个 Agent 的基线画像由五类核心数据构成，覆盖从工具使用到行为边界的完整行为特征空间。基线数据通过滑动窗口统计（默认 30 天学习期）生成，置信度随数据点增加而提升。基线更新支持自动和手动两种模式，确保基线能够反映 Agent 的正常行为演变。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px">&#x1f527; 预期命令类型</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">
+              &bull; Agent 正常使用的命令类型集合<br>
+              &bull; 各命令类型的使用频率范围<br>
+              &bull; 命令组合模式（如 start&#x2192;config&#x2192;health）<br>
+              &bull; 异常命令类型识别（如突然出现 stop 命令）<br>
+              &bull; 命令发起者 IssuedBy 的历史分布
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#c2410c;margin-bottom:8px">&#x1f4b0; Token 消耗范围</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">
+              &bull; 每次调用的 PromptTokens 正常范围<br>
+              &bull; CompletionTokens 正常范围<br>
+              &bull; TotalTokens 的 P50/P90/P99 分布<br>
+              &bull; 日均/周均 token 消耗基线<br>
+              &bull; EstimatedCost 与 ActualCost 偏差范围
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">&#x2699;&#xfe0f; 工具调用频率</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">
+              &bull; 每小时/天的工具调用次数基线<br>
+              &bull; 工具调用时间分布模式<br>
+              &bull; 工具调用链路频率排序<br>
+              &bull; 空闲时段与活跃时段区分<br>
+              &bull; 命令执行时长 Latency 基线
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:8px">&#x1f6e1;&#xfe0f; 可接受风险等级</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">
+              &bull; AI Gateway 风险检测匹配的历史分布<br>
+              &bull; HighestSeverity 的正常分布<br>
+              &bull; HighestAction 的正常分布<br>
+              &bull; 风险规则匹配频率基线<br>
+              &bull; ClawAegis LoopGuard/DispatchGuard 触发频率
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:8px">&#x1f4ca; 资源使用模式</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">
+              &bull; Latency 正常范围（P50/P90/P99）<br>
+              &bull; 成本趋势（日均/周均/月均）<br>
+              &bull; OpenClaw 版本与状态关联<br>
+              &bull; 心跳间隔 LastHeartbeatAt 模式<br>
+              &bull; 系统资源 SummaryJSON 特征
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#dc2626;margin-bottom:8px">&#x1f6ab; 行为边界定义</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">
+              &bull; CapabilitiesJSON 定义的允许操作范围<br>
+              &bull; Agent 行为不应超出 Capabilities 声明<br>
+              &bull; OPA 策略定义的硬性边界<br>
+              &bull; 行为偏离基线的容忍阈值<br>
+              &bull; 紧急制动条件定义
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acceptance Criteria -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria</div>
+            <div class="panel-title">FR-60 验收标准</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:6px">AC-60.1 Agent 行为画像可生成</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">系统可为每个注册 Agent 自动生成行为画像，画像包含工具使用模式、资源消耗模式、命令频率分布、风险模式特征和行为边界定义五类核心数据。画像生成基于至少 30 天学习期和 1000+ 数据点。</div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:6px">AC-60.2 画像包含工具使用和资源消耗模式</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">行为画像必须包含 InstanceCommand 历史分析的工具使用频率分布、InstanceCommand 生命周期的执行时长模式、ModelInvocation/CostRecord 的 token 消耗和成本趋势、AI Gateway 的风险检测匹配分布。</div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:#059669;margin-bottom:6px">AC-60.3 偏离基线有告警</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">当 Agent 行为偏离已建立基线时，系统通过 OPA 策略评估触发分级告警。告警包含偏离类型、偏离幅度、基线参考值、当前值、置信度和建议操作。支持 enforce/observe/off 三种运行模式。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 行为画像                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-profile">
+
+      <!-- Agent Profile Header -->
+      <div class="app-panel-warm">
+        <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+          <div class="score-circle score-high">
+            <div class="score-num">94</div>
+            <div class="score-label">置信度</div>
+          </div>
+          <div style="flex:1;min-width:280px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <div style="font-size:1.15rem;font-weight:700;color:var(--text-h)">Agent: claw-agent-prod-01</div>
+              <span class="badge badge-low">基线正常</span>
+            </div>
+            <div style="font-size:12px;color:#8f8681;margin-bottom:10px">
+              AgentID: agt-7f3a2c1d &nbsp;|&nbsp; InstanceID: inst-prod-east-01 &nbsp;|&nbsp; 画像生成: 2026-04-15 &nbsp;|&nbsp; 数据点: 14,832 &nbsp;|&nbsp; 学习期: 30 天
+            </div>
+            <div class="stat-row" style="margin-bottom:0">
+              <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">14,832</div><div class="sc-label">数据点</div></div>
+              <div class="stat-card"><div class="sc-value" style="color:#059669">94%</div><div class="sc-label">置信度</div></div>
+              <div class="stat-card"><div class="sc-value" style="color:#d97706">17</div><div class="sc-label">命令类型</div></div>
+              <div class="stat-card"><div class="sc-value" style="color:#ef4444">0</div><div class="sc-label">偏离次数</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Sections Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px">
+
+        <!-- Tool Usage Pattern -->
+        <div class="profile-section">
+          <div class="ps-title">
+            <span style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#fff7ed,#ffedd5);display:flex;align-items:center;justify-content:center;font-size:13px;color:#c2410c">&#x2699;&#xfe0f;</span>
+            工具使用模式 (InstanceCommand)
+          </div>
+          <p style="font-size:11px;color:var(--text);margin-bottom:12px;line-height:1.7">
+            基于 InstanceCommand 17 种命令类型的历史数据，统计各命令的使用频率分布。命令生命周期追踪 IssuedAt&#x2192;DispatchedAt&#x2192;StartedAt&#x2192;FinishedAt，IssuedBy 记录命令发起者。异常命令类型或频率突变均标记为潜在偏离。
+          </p>
+          <div class="freq-bar">
+            <span class="fb-label">start_openclaw</span>
+            <div class="fb-track"><div class="fb-fill" style="width:85%;background:linear-gradient(90deg,#059669,#10b981)"></div></div>
+            <span class="fb-val">34.2%</span>
+          </div>
+          <div class="freq-bar">
+            <span class="fb-label">update_config</span>
+            <div class="fb-track"><div class="fb-fill" style="width:62%;background:linear-gradient(90deg,#059669,#10b981)"></div></div>
+            <span class="fb-val">24.8%</span>
+          </div>
+          <div class="freq-bar">
+            <span class="fb-label">health_check</span>
+            <div class="fb-track"><div class="fb-fill" style="width:45%;background:linear-gradient(90deg,#d97706,#f59e0b)"></div></div>
+            <span class="fb-val">18.1%</span>
+          </div>
+          <div class="freq-bar">
+            <span class="fb-label">get_status</span>
+            <div class="fb-track"><div class="fb-fill" style="width:30%;background:linear-gradient(90deg,#d97706,#f59e0b)"></div></div>
+            <span class="fb-val">12.0%</span>
+          </div>
+          <div class="freq-bar">
+            <span class="fb-label">stop_openclaw</span>
+            <div class="fb-track"><div class="fb-fill" style="width:12%;background:linear-gradient(90deg,#ef4444,#f87171)"></div></div>
+            <span class="fb-val">4.8%</span>
+          </div>
+          <div class="freq-bar">
+            <span class="fb-label">quarantine_skill</span>
+            <div class="fb-track"><div class="fb-fill" style="width:8%;background:linear-gradient(90deg,#ef4444,#f87171)"></div></div>
+            <span class="fb-val">3.2%</span>
+          </div>
+          <div class="freq-bar">
+            <span class="fb-label">其他 (11种)</span>
+            <div class="fb-track"><div class="fb-fill" style="width:7%;background:linear-gradient(90deg,#8b5cf6,#a78bfa)"></div></div>
+            <span class="fb-val">2.9%</span>
+          </div>
+        </div>
+
+        <!-- Resource Consumption -->
+        <div class="profile-section">
+          <div class="ps-title">
+            <span style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;font-size:13px;color:#92400e">&#x1f4b0;</span>
+            资源消耗模式 (ModelInvocation / CostRecord)
+          </div>
+          <p style="font-size:11px;color:var(--text);margin-bottom:12px;line-height:1.7">
+            基于 ModelInvocation 和 CostRecord 的 Token 消耗与成本数据，统计每次调用的 PromptTokens、CompletionTokens、TotalTokens、EstimatedCost、ActualCost 和 Latency 分布。偏离基线阈值触发资源漂移告警。
+          </p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div style="border-radius:10px;border:1px solid #f1e7e1;padding:12px;background:#faf7f4">
+              <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:6px">PromptTokens</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text-h)">P50: 1,240 &nbsp; P90: 3,580 &nbsp; P99: 8,920</div>
+            </div>
+            <div style="border-radius:10px;border:1px solid #f1e7e1;padding:12px;background:#faf7f4">
+              <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:6px">CompletionTokens</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text-h)">P50: 820 &nbsp; P90: 2,140 &nbsp; P99: 5,680</div>
+            </div>
+            <div style="border-radius:10px;border:1px solid #f1e7e1;padding:12px;background:#faf7f4">
+              <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:6px">Cost (Daily)</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text-h)">Avg: $12.40 &nbsp; Max: $28.60 &nbsp; Min: $6.80</div>
+            </div>
+            <div style="border-radius:10px;border:1px solid #f1e7e1;padding:12px;background:#faf7f4">
+              <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:6px">Latency</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text-h)">P50: 1.2s &nbsp; P90: 3.4s &nbsp; P99: 8.1s</div>
+            </div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">成本趋势 (近 7 天)</div>
+          <div class="mini-chart" style="margin-bottom:8px">
+            <div class="mc-bar" style="height:55%;background:linear-gradient(180deg,#059669,#10b981)"></div>
+            <div class="mc-bar" style="height:62%;background:linear-gradient(180deg,#059669,#10b981)"></div>
+            <div class="mc-bar" style="height:48%;background:linear-gradient(180deg,#059669,#10b981)"></div>
+            <div class="mc-bar" style="height:70%;background:linear-gradient(180deg,#d97706,#f59e0b)"></div>
+            <div class="mc-bar" style="height:58%;background:linear-gradient(180deg,#059669,#10b981)"></div>
+            <div class="mc-bar" style="height:52%;background:linear-gradient(180deg,#059669,#10b981)"></div>
+            <div class="mc-bar" style="height:65%;background:linear-gradient(180deg,#059669,#10b981)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#8f8681">
+            <span>04-25</span><span>04-26</span><span>04-27</span><span>04-28</span><span>04-29</span><span>04-30</span><span>05-01</span>
+          </div>
+        </div>
+
+        <!-- Risk Profile -->
+        <div class="profile-section">
+          <div class="ps-title">
+            <span style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#fef2f2,#fee2e2);display:flex;align-items:center;justify-content:center;font-size:13px;color:#b91c1c">&#x1f6e1;&#xfe0f;</span>
+            风险画像 (AI Gateway)
+          </div>
+          <p style="font-size:11px;color:var(--text);margin-bottom:12px;line-height:1.7">
+            基于 AI Gateway 每次请求的风险检测结果，统计 HighestSeverity 和 HighestAction 的历史分布。风险规则匹配频率偏离基线可能表明 Agent 行为模式发生变化。ClawAegis LoopGuard (ALLOW_COUNT=3, TTL=300s) 和 DispatchGuard 触发记录也纳入风险画像。
+          </p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div style="border-radius:10px;border:1px solid #fecaca;padding:10px;background:#fef2f2">
+              <div style="font-size:10px;font-weight:600;color:#b91c1c;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Critical 匹配</div>
+              <div style="font-size:1.2rem;font-weight:700;color:#b91c1c">0.1%</div>
+              <div style="font-size:10px;color:#8f8681">基线: &le; 0.2%</div>
+            </div>
+            <div style="border-radius:10px;border:1px solid #fed7aa;padding:10px;background:#fff7ed">
+              <div style="font-size:10px;font-weight:600;color:#c2410c;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">High 匹配</div>
+              <div style="font-size:1.2rem;font-weight:700;color:#c2410c">1.8%</div>
+              <div style="font-size:10px;color:#8f8681">基线: &le; 3.0%</div>
+            </div>
+            <div style="border-radius:10px;border:1px solid #fde68a;padding:10px;background:#fffbeb">
+              <div style="font-size:10px;font-weight:600;color:#92400e;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Medium 匹配</div>
+              <div style="font-size:1.2rem;font-weight:700;color:#92400e">8.4%</div>
+              <div style="font-size:10px;color:#8f8681">基线: &le; 12.0%</div>
+            </div>
+            <div style="border-radius:10px;border:1px solid #d1fae5;padding:10px;background:#ecfdf5">
+              <div style="font-size:10px;font-weight:600;color:#065f46;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Low 匹配</div>
+              <div style="font-size:1.2rem;font-weight:700;color:#065f46">22.6%</div>
+              <div style="font-size:10px;color:#8f8681">基线: &le; 30.0%</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text);line-height:1.7;padding:10px 14px;border-radius:10px;background:#faf7f4;border:1px solid #f1e7e1">
+            <strong>ClawAegis 集成</strong>：LoopGuard 触发 0 次/周 (基线 &le;2), DispatchGuard 检测 0 次/周 (基线 &le;1), ExfilGuard 检测 0 次/周 (基线 &le;1)。所有 ClawAegis 守护均在基线范围内。
+          </div>
+        </div>
+
+        <!-- Behavioral Boundaries -->
+        <div class="profile-section">
+          <div class="ps-title">
+            <span style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#eff6ff,#dbeafe);display:flex;align-items:center;justify-content:center;font-size:13px;color:#1d4ed8">&#x1f6ab;</span>
+            行为边界定义
+          </div>
+          <p style="font-size:11px;color:var(--text);margin-bottom:12px;line-height:1.7">
+            行为边界基于 InstanceAgent 的 CapabilitiesJSON 和 OPA 策略定义，限定 Agent 的允许操作范围。超出 Capabilities 声明的行为、违反 OPA 策略的行为、或长期偏离基线的行为均视为边界越界，触发严重告警。
+          </p>
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">允许操作范围 (CapabilitiesJSON)</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span class="tag" style="border-color:#a7f3d0;background:#ecfdf5;color:#065f46">&#x2713; start_openclaw</span>
+              <span class="tag" style="border-color:#a7f3d0;background:#ecfdf5;color:#065f46">&#x2713; stop_openclaw</span>
+              <span class="tag" style="border-color:#a7f3d0;background:#ecfdf5;color:#065f46">&#x2713; update_config</span>
+              <span class="tag" style="border-color:#a7f3d0;background:#ecfdf5;color:#065f46">&#x2713; health_check</span>
+              <span class="tag" style="border-color:#a7f3d0;background:#ecfdf5;color:#065f46">&#x2713; get_status</span>
+              <span class="tag" style="border-color:#fecaca;background:#fef2f2;color:#b91c1c">&#x2717; delete_instance</span>
+              <span class="tag" style="border-color:#fecaca;background:#fef2f2;color:#b91c1c">&#x2717; modify_permissions</span>
+              <span class="tag" style="border-color:#fecaca;background:#fef2f2;color:#b91c1c">&#x2717; access_secrets</span>
+            </div>
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-h);margin-bottom:6px">偏离容忍阈值</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">
+              &bull; 工具使用频率偏离: &le; 15% (观察) / &gt; 15% (告警)<br>
+              &bull; Token 消耗偏离: &le; 20% (观察) / &gt; 20% (告警)<br>
+              &bull; 成本偏离: &le; 25% (观察) / &gt; 25% (告警) / &gt; 50% (严重)<br>
+              &bull; 风险等级偏离: 超出基线分布 2 个标准差 (告警)<br>
+              &bull; 能力越界: 任何超出 Capabilities 的行为 (严重)
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text);line-height:1.7;padding:10px 14px;border-radius:10px;background:#eff6ff;border:1px solid #bfdbfe">
+            <strong>OPA 策略</strong>：<code>agent_baseline_compliance</code> 策略包包含 12 条规则，涵盖工具使用、资源消耗、风险等级、行为边界四大维度。每条规则定义了基线参考值、偏离阈值和触发动作，通过 OPA Rego 引擎实时评估。
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Profiles Data Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Agent Baseline Profiles</div>
+            <div class="panel-title">Agent 基线画像总览</div>
+          </div>
+          <button class="btn-secondary btn-sm">+ 新增画像</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>画像年龄</th>
+                <th>置信度</th>
+                <th>工具模式</th>
+                <th>资源基线</th>
+                <th>最近偏离</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>claw-agent-prod-01</strong><br><span style="font-size:11px;color:#8f8681">agt-7f3a2c1d</span></td>
+                <td>16 天</td>
+                <td><span class="stat-mini" style="color:#059669">94%</span></td>
+                <td><span style="font-size:11px;color:var(--text)">17 类型 / 正常</span></td>
+                <td><span style="font-size:11px;color:var(--text)">$12.40/天 / P90: 3,580 tok</span></td>
+                <td>&mdash;</td>
+                <td><span class="badge badge-low">基线正常</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-prod-02</strong><br><span style="font-size:11px;color:#8f8681">agt-9b1e4f8a</span></td>
+                <td>22 天</td>
+                <td><span class="stat-mini" style="color:#059669">89%</span></td>
+                <td><span style="font-size:11px;color:var(--text)">14 类型 / 正常</span></td>
+                <td><span style="font-size:11px;color:var(--text)">$8.60/天 / P90: 2,840 tok</span></td>
+                <td>2 天前<br><span style="font-size:10px;color:#d97706">工具频率偏离</span></td>
+                <td><span class="badge badge-medium">轻微偏离</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-staging</strong><br><span style="font-size:11px;color:#8f8681">agt-c5d82e3b</span></td>
+                <td>8 天</td>
+                <td><span class="stat-mini" style="color:#d97706">62%</span></td>
+                <td><span style="font-size:11px;color:var(--text)">9 类型 / 学习中</span></td>
+                <td><span style="font-size:11px;color:var(--text)">$3.20/天 / 数据不足</span></td>
+                <td>&mdash;</td>
+                <td><span class="badge badge-observe">学习中</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-dev</strong><br><span style="font-size:11px;color:#8f8681">agt-a2f7b6c9</span></td>
+                <td>30 天</td>
+                <td><span class="stat-mini" style="color:#059669">91%</span></td>
+                <td><span style="font-size:11px;color:var(--text)">15 类型 / 正常</span></td>
+                <td><span style="font-size:11px;color:var(--text)">$5.80/天 / P90: 2,120 tok</span></td>
+                <td>5 天前<br><span style="font-size:10px;color:#ef4444">资源漂移</span></td>
+                <td><span class="badge badge-low">基线正常</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-batch</strong><br><span style="font-size:11px;color:#8f8681">agt-d8e1a4f5</span></td>
+                <td>45 天</td>
+                <td><span class="stat-mini" style="color:#059669">97%</span></td>
+                <td><span style="font-size:11px;color:var(--text)">7 类型 / 正常</span></td>
+                <td><span style="font-size:11px;color:var(--text)">$22.10/天 / P90: 6,840 tok</span></td>
+                <td>&mdash;</td>
+                <td><span class="badge badge-low">基线正常</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-infra</strong><br><span style="font-size:11px;color:#8f8681">agt-f3b9c7d2</span></td>
+                <td>12 天</td>
+                <td><span class="stat-mini" style="color:#ef4444">45%</span></td>
+                <td><span style="font-size:11px;color:var(--text)">11 类型 / 数据不足</span></td>
+                <td><span style="font-size:11px;color:var(--text)">$1.90/天 / 数据不足</span></td>
+                <td>1 天前<br><span style="font-size:10px;color:#ef4444">异常命令</span></td>
+                <td><span class="badge badge-critical">需关注</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 基线规则                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- Overview -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Baseline Deviation Detection Rules</div>
+        <div class="panel-title">基线偏离检测规则</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          基线偏离检测规则定义了四类偏离检测维度：工具使用偏离、资源消耗漂移、风险模式变化和行为边界越界。每条规则包含检测方法、阈值设定、基线参考和触发动作，通过 OPA Rego 策略引擎实时评估。规则支持三种运行模式：enforce（强制执行+阻断）、observe（观察记录）和 off（关闭）。
+        </p>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+          <span style="font-size:12px;font-weight:600;color:var(--text-h)">运行模式</span>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce">强制执行</div>
+            <div class="mode-btn">观察记录</div>
+            <div class="mode-btn">关闭</div>
+          </div>
+          <span class="badge badge-enforce">当前: 强制执行</span>
+        </div>
+      </div>
+
+      <!-- Rule Cards -->
+      <div style="margin-bottom:22px">
+
+        <!-- Rule 1: Tool Usage Deviation -->
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#ef4444"></div>
+          <div class="rc-header">
+            <span class="badge badge-critical">工具偏离</span>
+            <span class="rc-title">工具使用偏离检测</span>
+            <span class="badge badge-sys" style="margin-left:auto">InstanceCommand</span>
+            <span class="badge badge-enforce">强制</span>
+          </div>
+          <div class="rc-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:12px">
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">检测方法</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">对比 InstanceCommand 历史中各命令类型的使用频率与基线频率，计算卡方检验或 KL 散度。检测异常命令类型（基线中未出现的命令）和异常频率突变（偏离基线 &gt; 15%）。</div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">偏离阈值</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; 频率偏离 &gt; 15%: 中度告警<br>
+                  &bull; 频率偏离 &gt; 30%: 高度告警<br>
+                  &bull; 出现基线外命令: 高度告警<br>
+                  &bull; 出现禁止命令: 严重告警
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">基线参考</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; 命令类型频率分布<br>
+                  &bull; 命令组合模式<br>
+                  &bull; IssuedBy 发起者分布<br>
+                  &bull; 17 种命令类型基线
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">触发动作</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; 中度: 记录 + 通知<br>
+                  &bull; 高度: 告警 + 人工确认<br>
+                  &bull; 严重: 阻断 + 隔离<br>
+                  &bull; 所有: OPA 审计日志
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7;padding:10px 14px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca">
+              <strong>OPA Rego 规则</strong>：<code>baseline_tool_deviation[agent_id]</code> &mdash; 当 Agent 在滑动窗口（默认 1 小时）内的命令频率分布与基线的 KL 散度超过 0.15 时触发。基线外命令直接触发 <code>baseline_tool_outlier</code>，禁止命令触发 <code>baseline_boundary_breach</code>。
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule 2: Resource Consumption Drift -->
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#f59e0b"></div>
+          <div class="rc-header">
+            <span class="badge badge-high">资源漂移</span>
+            <span class="rc-title">资源消耗漂移检测</span>
+            <span class="badge badge-sys" style="margin-left:auto">ModelInvocation / CostRecord</span>
+            <span class="badge badge-enforce">强制</span>
+          </div>
+          <div class="rc-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:12px">
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">检测方法</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">对比 ModelInvocation 中 PromptTokens/CompletionTokens/TotalTokens 和 CostRecord 中 EstimatedCost/ActualCost 的实时值与基线分布。检测单次调用偏离和累计趋势漂移。</div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">偏离阈值</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; 单次 Token 偏离 &gt; P99: 中度<br>
+                  &bull; 日均成本偏离 &gt; 25%: 高度<br>
+                  &bull; 日均成本偏离 &gt; 50%: 严重<br>
+                  &bull; Latency 偏离 &gt; 3x P99: 高度
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">基线参考</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; Token P50/P90/P99 分布<br>
+                  &bull; 日均/周均成本基线<br>
+                  &bull; Latency P50/P90/P99<br>
+                  &bull; Estimated/Actual 偏差率
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">触发动作</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; 中度: 记录 + 通知<br>
+                  &bull; 高度: 告警 + 暂停新请求<br>
+                  &bull; 严重: 告警 + 限流 + 人工确认<br>
+                  &bull; 所有: 成本审计日志
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7;padding:10px 14px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a">
+              <strong>OPA Rego 规则</strong>：<code>baseline_resource_drift[agent_id]</code> &mdash; 当 Agent 日均成本超过基线 25% 时触发。Token 单次超 P99 触发 <code>baseline_token_spike</code>，成本超 50% 触发 <code>baseline_cost_critical</code>。ClawManager AI Gateway 的成本分析模块提供实时数据源。
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule 3: Risk Pattern Change -->
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#d97706"></div>
+          <div class="rc-header">
+            <span class="badge badge-medium">风险变化</span>
+            <span class="rc-title">风险模式变化检测</span>
+            <span class="badge badge-sys" style="margin-left:auto">AI Gateway + ClawAegis</span>
+            <span class="badge badge-observe">观察</span>
+          </div>
+          <div class="rc-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:12px">
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">检测方法</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">监控 AI Gateway 每次请求的 risk detection 结果变化，以及 ClawAegis LoopGuard (ALLOW_COUNT=3, TTL=300s)、DispatchGuard (4 模式组) 和 ExfilGuard (source/transform/sink 信号) 的触发频率变化。</div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">偏离阈值</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; Critical 匹配率 &gt; 基线 2x: 高度<br>
+                  &bull; High 匹配率 &gt; 基线 2x: 中度<br>
+                  &bull; LoopGuard 触发 &gt; 基线: 中度<br>
+                  &bull; 新风险规则首次匹配: 中度
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">基线参考</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; HighestSeverity 分布<br>
+                  &bull; HighestAction 分布<br>
+                  &bull; ClawAegis 守护触发频率<br>
+                  &bull; 风险规则匹配频率
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">触发动作</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; 中度: 记录 + 通知<br>
+                  &bull; 高度: 告警 + 加强监控<br>
+                  &bull; 新风险规则: 标记 + 审查<br>
+                  &bull; 所有: 风险审计日志
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7;padding:10px 14px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a">
+              <strong>OPA Rego 规则</strong>：<code>baseline_risk_deviation[agent_id]</code> &mdash; 当 Agent 在 24 小时内的风险匹配率超出基线 2 个标准差时触发。ClawAegis LoopGuard 触发超基线触发 <code>baseline_loop_guard_anomaly</code>，DispatchGuard 新模式组触发 <code>baseline_dispatch_pattern_change</code>。
+            </div>
+          </div>
+        </div>
+
+        <!-- Rule 4: Behavioral Boundary Breach -->
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#dc2626"></div>
+          <div class="rc-header">
+            <span class="badge badge-critical">边界越界</span>
+            <span class="rc-title">行为边界越界检测</span>
+            <span class="badge badge-sys" style="margin-left:auto">CapabilitiesJSON + OPA</span>
+            <span class="badge badge-enforce">强制</span>
+          </div>
+          <div class="rc-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:12px">
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">检测方法</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">将 Agent 实际行为与 InstanceAgent CapabilitiesJSON 定义的允许操作范围进行对比。检测超出 Capabilities 声明的行为、违反 OPA 硬性策略的行为、以及长期持续偏离基线的行为模式。</div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">偏离阈值</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; 超出 Capabilities: 严重<br>
+                  &bull; 违反 OPA 策略: 严重<br>
+                  &bull; 持续偏离基线 &gt; 7 天: 高度<br>
+                  &bull; 偏离加速趋势: 高度
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">基线参考</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; CapabilitiesJSON 允许操作<br>
+                  &bull; OPA 策略定义边界<br>
+                  &bull; 历史行为范围<br>
+                  &bull; 偏离持续时间记录
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681;margin-bottom:4px">触发动作</div>
+                <div style="font-size:12px;color:var(--text-h);line-height:1.6">
+                  &bull; 严重: 立即阻断 + 隔离<br>
+                  &bull; 高度: 告警 + 限流 + 审查<br>
+                  &bull; 所有: 安全事件记录<br>
+                  &bull; 严重: 触发 FR-62 隔离
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7;padding:10px 14px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca">
+              <strong>OPA Rego 规则</strong>：<code>baseline_boundary_breach[agent_id]</code> &mdash; 当 Agent 行为超出 CapabilitiesJSON 声明范围时立即触发。违反 OPA <code>agent_hard_boundary</code> 策略直接触发隔离。持续偏离 &gt; 7 天触发 <code>baseline_persistent_drift</code>，联动 FR-61 Rogue Agent 检测。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toggle Controls -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Baseline Monitoring Control</div>
+            <div class="panel-title">基线监控全局控制</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用基线监控</div>
+            <div class="desc">对所有 Agent 启用行为基线建立和偏离检测，数据来源: ModelInvocation + InstanceCommand + CostRecord + AI Gateway</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce">强制执行</div>
+              <div class="mode-btn">观察记录</div>
+              <div class="mode-btn">关闭</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">工具使用偏离告警</div>
+            <div class="desc">当 InstanceCommand 命令频率分布偏离基线时触发告警，检测异常命令类型和频率突变</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce">强制执行</div>
+              <div class="mode-btn">观察记录</div>
+              <div class="mode-btn">关闭</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">资源消耗漂移告警</div>
+            <div class="desc">当 ModelInvocation/CostRecord 的 Token 消耗或成本偏离基线时触发告警</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce">强制执行</div>
+              <div class="mode-btn">观察记录</div>
+              <div class="mode-btn">关闭</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">风险模式变化告警</div>
+            <div class="desc">当 AI Gateway 风险检测匹配率或 ClawAegis 守护触发频率偏离基线时触发告警</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="mode-selector">
+              <div class="mode-btn">强制执行</div>
+              <div class="mode-btn active-observe">观察记录</div>
+              <div class="mode-btn">关闭</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">行为边界越界告警</div>
+            <div class="desc">当 Agent 行为超出 CapabilitiesJSON 声明或违反 OPA 策略时立即触发严重告警</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce">强制执行</div>
+              <div class="mode-btn">观察记录</div>
+              <div class="mode-btn">关闭</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 偏离监控                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- Score + Stats -->
+      <div class="app-panel-warm">
+        <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+          <div class="score-circle score-high">
+            <div class="score-num">87%</div>
+            <div class="score-label">基线合规率</div>
+          </div>
+          <div style="flex:1;min-width:280px">
+            <div style="font-size:1.05rem;font-weight:700;color:var(--text-h);margin-bottom:4px">基线合规率概览</div>
+            <div style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">
+              当前共 6 个 Agent 纳入基线监控，87% 的 Agent 行为处于基线范围内。1 个 Agent (claw-agent-infra) 置信度不足需补充数据，1 个 Agent (claw-agent-prod-02) 存在轻微工具频率偏离。过去 24 小时新增 3 条偏离记录，无严重偏离事件。
+            </div>
+            <div class="stat-row" style="margin-bottom:0">
+              <div class="stat-card"><div class="sc-value" style="color:var(--text-h)">6</div><div class="sc-label">监控 Agent</div></div>
+              <div class="stat-card"><div class="sc-value" style="color:#059669">4</div><div class="sc-label">基线内</div></div>
+              <div class="stat-card"><div class="sc-value" style="color:#d97706">1</div><div class="sc-label">偏离中</div></div>
+              <div class="stat-card"><div class="sc-value" style="color:#ef4444">1</div><div class="sc-label">需关注</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deviation Log Entries -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Baseline Deviation Events</div>
+            <div class="panel-title">基线偏离事件流</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span class="badge badge-sys">实时</span>
+            <button class="btn-secondary btn-sm">&#x1f50d; 筛选</button>
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-time">2026-05-01 14:32:18</div>
+          <div class="log-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e">&#x26a0;</div>
+          <div class="log-msg">
+            <strong>工具使用偏离检测</strong> &mdash; Agent <code>claw-agent-prod-02</code> 的 <code>stop_openclaw</code> 命令频率在过去 1 小时内上升至 12.4%（基线: 4.8%），偏离幅度 +158%。命令发起者 <code>auto-scaler@system</code> 不在 IssuedBy 基线分布中。InstanceCommand 生命周期追踪显示 IssuedAt&#x2192;DispatchedAt 间隔异常缩短（12ms vs 基线 180ms）。
+          </div>
+          <div class="log-sev"><span class="badge badge-medium">中度</span></div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-time">2026-05-01 11:07:44</div>
+          <div class="log-icon" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);color:#c2410c">&#x1f4b0;</div>
+          <div class="log-msg">
+            <strong>资源消耗漂移告警</strong> &mdash; Agent <code>claw-agent-dev</code> 的 ModelInvocation 记录显示，过去 4 小时 TotalTokens 均值达到 18,400（基线 P90: 8,920），偏离基线 P99 值。CostRecord 记录 ActualCost 偏离 EstimatedCost 达 42%（基线偏差: &le;15%）。Latency P90 从 3.4s 升至 7.8s。
+          </div>
+          <div class="log-sev"><span class="badge badge-high">高度</span></div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-time">2026-05-01 09:15:22</div>
+          <div class="log-icon" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8">&#x1f50d;</div>
+          <div class="log-msg">
+            <strong>新行为模式识别</strong> &mdash; Agent <code>claw-agent-prod-01</code> 出现新的命令组合模式: <code>health_check</code> &#x2192; <code>get_status</code> &#x2192; <code>update_config</code>，此组合在基线中未出现。InstanceCommand 生命周期显示三个命令在 5 秒内连续执行（基线间隔: 30-120s）。AI Gateway 风险检测未触发。标记为观察，持续 24 小时后评估。
+          </div>
+          <div class="log-sev"><span class="badge badge-low">低度</span></div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 16:42:09</div>
+          <div class="log-icon" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#059669">&#x2705;</div>
+          <div class="log-msg">
+            <strong>基线更新完成</strong> &mdash; Agent <code>claw-agent-batch</code> 的基线画像已更新。学习期新增 7 天数据（1,240 个数据点），工具使用频率分布微调（<code>health_check</code> 从 18.1% 更新为 19.4%），资源消耗基线保持稳定。置信度从 95% 更新为 97%。更新已通过 OPA 策略验证，审计日志已记录。
+          </div>
+          <div class="log-sev"><span class="badge badge-low">信息</span></div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 08:21:55</div>
+          <div class="log-icon" style="background:linear-gradient(135deg,#fef2f2,#fee2e2);color:#b91c1c">&#x1f6a8;</div>
+          <div class="log-msg">
+            <strong>严重偏离需干预</strong> &mdash; Agent <code>claw-agent-infra</code> 在 InstanceCommand 中出现 <code>delete_instance</code> 命令，此命令不在 CapabilitiesJSON 允许范围内。OPA <code>baseline_boundary_breach</code> 规则触发，命令已阻断。AgentID: agt-f3b9c7d2，AgentVersion: 2.1.4，ProtocolVersion: 1.3。已联动 FR-62 异常自主性拦截机制。
+          </div>
+          <div class="log-sev"><span class="badge badge-critical">严重</span></div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-time">2026-04-29 14:58:33</div>
+          <div class="log-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e">&#x1f6e1;&#xfe0f;</div>
+          <div class="log-msg">
+            <strong>风险模式变化</strong> &mdash; Agent <code>claw-agent-prod-02</code> 的 AI Gateway 风险检测显示 HighestSeverity=high 的匹配率从 1.8% 上升至 3.6%（基线 &le;3.0%），超出基线 2 个标准差。ClawAegis DispatchGuard 检测到 <code>repeated-identical-calls</code> 模式组触发 1 次（基线: 0 次/周）。LoopGuard 未触发。
+          </div>
+          <div class="log-sev"><span class="badge badge-medium">中度</span></div>
+        </div>
+      </div>
+
+      <!-- Deviation Data Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Active Deviations</div>
+            <div class="panel-title">活跃偏离记录</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x1f4e5; 导出数据</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>偏离类型</th>
+                <th>偏离幅度</th>
+                <th>基线值</th>
+                <th>当前值</th>
+                <th>严重性</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>claw-agent-infra</strong></td>
+                <td>行为边界越界</td>
+                <td><span style="font-weight:700;color:#dc2626">超出 Capabilities</span></td>
+                <td>N/A (禁止命令)</td>
+                <td><code>delete_instance</code></td>
+                <td><span class="badge badge-critical">严重</span></td>
+                <td><span class="badge badge-enforce">已阻断</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-dev</strong></td>
+                <td>资源消耗漂移</td>
+                <td><span style="font-weight:700;color:#c2410c">+106%</span></td>
+                <td>P90: 8,920 tok</td>
+                <td>18,400 tok</td>
+                <td><span class="badge badge-high">高度</span></td>
+                <td><span class="badge badge-observe">观察中</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-prod-02</strong></td>
+                <td>工具使用偏离</td>
+                <td><span style="font-weight:700;color:#d97706">+158%</span></td>
+                <td>4.8% (stop_openclaw)</td>
+                <td>12.4%</td>
+                <td><span class="badge badge-medium">中度</span></td>
+                <td><span class="badge badge-observe">观察中</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-prod-02</strong></td>
+                <td>风险模式变化</td>
+                <td><span style="font-weight:700;color:#d97706">+100%</span></td>
+                <td>High: 1.8%</td>
+                <td>3.6%</td>
+                <td><span class="badge badge-medium">中度</span></td>
+                <td><span class="badge badge-observe">观察中</span></td>
+              </tr>
+              <tr>
+                <td><strong>claw-agent-prod-01</strong></td>
+                <td>新行为模式</td>
+                <td><span style="font-weight:700;color:#059669">基线外</span></td>
+                <td>无此组合</td>
+                <td>3 命令连锁</td>
+                <td><span class="badge badge-low">低度</span></td>
+                <td><span class="badge badge-observe">观察 24h</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Baseline Learning Settings -->
+        <div class="config-section">
+          <div class="cs-title">基线学习设置</div>
+          <div class="form-group">
+            <label class="form-label">学习期时长</label>
+            <select class="form-select" style="width:100%">
+              <option>14 天</option>
+              <option selected>30 天</option>
+              <option>60 天</option>
+              <option>90 天</option>
+              <option>自定义...</option>
+            </select>
+            <div class="form-hint">新 Agent 基线画像的学习期，学习期内仅观察不告警</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">最少数据点要求</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="number" class="form-input" value="1000" style="width:120px" min="100" max="100000">
+              <span style="font-size:12px;color:var(--text)">个数据点</span>
+            </div>
+            <div class="form-hint">低于此数据量的画像标记为"置信度不足"，不触发强制告警</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">基线更新频率</label>
+            <select class="form-select" style="width:100%">
+              <option>每天</option>
+              <option selected>每周</option>
+              <option>每两周</option>
+              <option>每月</option>
+            </select>
+            <div class="form-hint">基线画像定期更新的频率，更新时重新计算统计分布</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">画像保留期限</label>
+            <select class="form-select" style="width:100%">
+              <option>90 天</option>
+              <option selected>180 天</option>
+              <option>365 天</option>
+              <option>永久保留</option>
+            </select>
+            <div class="form-hint">历史基线画像的保留期限，用于趋势分析和审计</div>
+          </div>
+        </div>
+
+        <!-- Deviation Thresholds -->
+        <div class="config-section">
+          <div class="cs-title">偏离阈值配置</div>
+          <div class="form-group">
+            <label class="form-label">工具使用频率偏离阈值</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" min="5" max="50" value="15" style="flex:1;accent-color:#ef6b4a">
+              <span style="font-size:12px;font-weight:600;color:var(--text-h);width:40px">15%</span>
+            </div>
+            <div class="form-hint">InstanceCommand 命令频率偏离基线超过此值触发告警</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Token 消耗偏离阈值</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" min="5" max="50" value="20" style="flex:1;accent-color:#ef6b4a">
+              <span style="font-size:12px;font-weight:600;color:var(--text-h);width:40px">20%</span>
+            </div>
+            <div class="form-hint">ModelInvocation Token 消耗偏离基线 P99 超过此值触发告警</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">成本偏离阈值（中度）</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" min="10" max="60" value="25" style="flex:1;accent-color:#ef6b4a">
+              <span style="font-size:12px;font-weight:600;color:var(--text-h);width:40px">25%</span>
+            </div>
+            <div class="form-hint">CostRecord 日均成本偏离基线超过此值触发中度告警</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">成本偏离阈值（严重）</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" min="30" max="100" value="50" style="flex:1;accent-color:#ef4444">
+              <span style="font-size:12px;font-weight:600;color:var(--text-h);width:40px">50%</span>
+            </div>
+            <div class="form-hint">CostRecord 日均成本偏离基线超过此值触发严重告警</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">风险等级偏离标准差倍数</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="number" class="form-input" value="2" style="width:80px" min="1" max="5" step="0.5">
+              <span style="font-size:12px;color:var(--text)">倍标准差</span>
+            </div>
+            <div class="form-hint">AI Gateway 风险匹配率超出基线 N 个标准差时触发告警</div>
+          </div>
+        </div>
+
+        <!-- Alert Sensitivity -->
+        <div class="config-section">
+          <div class="cs-title">告警灵敏度</div>
+          <div class="form-group">
+            <label class="form-label">告警灵敏度等级</label>
+            <select class="form-select" style="width:100%">
+              <option>低（仅严重）</option>
+              <option selected>中（中度及以上）</option>
+              <option>高（低度及以上）</option>
+              <option>自定义...</option>
+            </select>
+            <div class="form-hint">低于此等级的偏离事件仅记录不触发通知</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">偏离持续时间阈值</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="number" class="form-input" value="1" style="width:80px" min="1" max="168">
+              <span style="font-size:12px;color:var(--text)">小时</span>
+            </div>
+            <div class="form-hint">偏离持续超过此时间才升级告警等级，避免瞬时波动误报</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">瞬时偏离过滤</div>
+              <div class="desc">过滤持续时间 &lt; 5 分钟的瞬时偏离，降低误报率</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">偏离趋势加速检测</div>
+              <div class="desc">当偏离幅度持续加速增长时提前触发告警</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">学习期静默</div>
+              <div class="desc">Agent 学习期内仅记录不触发告警通知</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <!-- OPA & Data Source Config -->
+        <div class="config-section">
+          <div class="cs-title">OPA 策略与数据源</div>
+          <div class="form-group">
+            <label class="form-label">OPA 策略端点</label>
+            <input type="text" class="form-input" value="https://opa.internal:8181/v1/policies/agent_baseline" readonly>
+            <div class="form-hint">Open Policy Agent 策略服务端点，基线规则通过 OPA Rego 引擎评估</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ModelInvocation 数据源</label>
+            <select class="form-select" style="width:100%">
+              <option selected>ClawManager AI Gateway (实时)</option>
+              <option>ClawManager 数据库 (批量)</option>
+              <option>自定义 Webhook</option>
+            </select>
+            <div class="form-hint">ModelInvocation 数据的采集源，实时模式延迟 &lt; 5s，批量模式延迟 &le; 5min</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CostRecord 聚合规则</label>
+            <select class="form-select" style="width:100%">
+              <option selected>按 InstanceID 小时聚合</option>
+              <option>按 InstanceID 天聚合</option>
+              <option>按 AgentID 小时聚合</option>
+              <option>按 AgentID 天聚合</option>
+            </select>
+            <div class="form-hint">CostRecord 数据的聚合粒度，影响成本基线的计算精度和检测延迟</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">自动基线重学习计划</label>
+            <select class="form-select" style="width:100%">
+              <option>关闭</option>
+              <option selected>每月自动重学习</option>
+              <option>每季度自动重学习</option>
+              <option>Agent 版本更新时触发</option>
+            </select>
+            <div class="form-hint">定期自动重学习基线，适应 Agent 的正常行为演变。重学习需通过 OPA 策略验证</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">Agent 版本变更自动重学习</div>
+              <div class="desc">当 InstanceAgent.AgentVersion 变更时自动触发基线重学习</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">Capabilities 变更自动重学习</div>
+              <div class="desc">当 InstanceAgent.CapabilitiesJSON 变更时自动触发行为边界重定义</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Additional Config: ClawAegis Integration -->
+      <div class="app-panel" style="margin-top:22px">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Integration</div>
+            <div class="panel-title">ClawAegis 守护集成配置</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          基线系统与 ClawAegis 的三个守护模块深度集成：Loop Guard、Dispatch Guard 和 Exfiltration Guard。每个守护模块的触发频率和检测模式纳入风险基线画像，偏离基线的触发模式变化自动联动风险模式变化检测规则。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">Loop Guard</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7">
+              &bull; ALLOW_COUNT: <code>3</code><br>
+              &bull; TTL_MS: <code>300000</code> (5 分钟)<br>
+              &bull; 跟踪键: <code>sessionKey|runId|stableArgsKey</code><br>
+              &bull; 基线触发频率: &le; 2 次/周<br>
+              &bull; 偏离检测: 超出基线触发 <code>baseline_loop_guard_anomaly</code>
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">Dispatch Guard</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7">
+              &bull; 模式组: 4 组检测模式<br>
+              &bull; 检测维度: bypass-tool-call, destructive-intent, repeated-identical-calls, encoded-command<br>
+              &bull; 基线触发频率: &le; 1 次/周<br>
+              &bull; 新模式组出现: 触发 <code>baseline_dispatch_pattern_change</code>
+            </div>
+          </div>
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">Exfiltration Guard</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7">
+              &bull; 信号: sourceSignals, transformSignals, sinkSignals<br>
+              &bull; 链路模式: encoded-secret-outbound-chain, sensitive-source-transform-sink-chain<br>
+              &bull; 基线触发频率: &le; 1 次/周<br>
+              &bull; 新外泄链路: 触发 <code>baseline_exfil_chain_change</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<script>
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    const target=document.getElementById('tab-'+tab.dataset.tab);
+    if(target) target.classList.add('active');
+  });
+});
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+document.querySelectorAll('.mode-selector').forEach(sel=>{
+  sel.querySelectorAll('.mode-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      sel.querySelectorAll('.mode-btn').forEach(b=>{
+        b.className='mode-btn';
+      });
+      const mode=btn.textContent.trim();
+      if(mode==='强制执行') btn.classList.add('active-enforce');
+      else if(mode==='观察记录') btn.classList.add('active-observe');
+      else if(mode==='关闭') btn.classList.add('active-off');
+    });
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-67 审计日志加密签名与防篡改 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.badge-active{background:#d1fae5;color:#065f46}.badge-expiring{background:#fef3c7;color:#92400e}.badge-expired{background:#fee2e2;color:#b91c1c}.badge-revoked{background:#e5e7eb;color:#6b7280}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.stat-mini{display:inline-flex;align-items:baseline;gap:4px;font-size:12px;font-weight:600}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.rule-card{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;margin-bottom:14px;transition:all .2s;position:relative;overflow:hidden}
+.rule-card:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.rule-card .rc-stripe{position:absolute;left:0;top:0;bottom:0;width:4px}
+.rule-card .rc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-left:10px}
+.rule-card .rc-title{font-size:14px;font-weight:700;color:var(--text-h)}
+.rule-card .rc-body{font-size:12px;color:var(--text);line-height:1.7;padding-left:10px}
+.log-entry{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-radius:12px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.7);margin-bottom:8px;transition:all .15s}
+.log-entry:hover{background:rgba(255,255,255,0.95);box-shadow:0 2px 8px -4px rgba(72,44,24,0.15)}
+.log-entry .log-time{font-size:11px;color:#8f8681;white-space:nowrap;flex-shrink:0;width:130px}
+.log-entry .log-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.log-entry .log-msg{font-size:12px;color:var(--text-h);line-height:1.6;flex:1}
+.log-entry .log-sev{flex-shrink:0}
+.flow-node{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:12px 18px;font-size:12px;font-weight:600;color:var(--text-h);text-align:center;min-width:130px}
+.flow-node .fn-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#b46c50;margin-bottom:4px}
+.flow-arrow{color:#c4b0a2;font-size:18px;padding:0 6px}
+.code-block{border-radius:12px;border:1px solid #e5d9d1;background:#1e1e2e;color:#cdd6f4;padding:14px 18px;font-size:12px;font-family:"SF Mono","Fira Code",monospace;line-height:1.7;overflow-x:auto;margin:10px 0}
+.code-block .ck{color:#cba6f7}.code-block .cs{color:#a6e3a1}.code-block .cv{color:#f38ba8}.code-block .cc{color:#6c7086;font-style:italic}.code-block .cn{color:#fab387}
+.layer-card{border-radius:18px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+.layer-card .layer-num{position:absolute;right:16px;top:12px;font-size:2.5rem;font-weight:800;color:rgba(180,108,80,0.12);line-height:1}
+.layer-card .lc-title{font-size:14px;font-weight:700;color:var(--text-h);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.layer-card .lc-body{font-size:12px;color:var(--text);line-height:1.7}
+.fingerprint-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.7);margin-bottom:6px;font-size:12px}
+.fingerprint-row .fp-file{font-weight:600;color:var(--text-h);width:200px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fingerprint-row .fp-hash{font-family:"SF Mono","Fira Code",monospace;font-size:11px;color:#6e6763;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fingerprint-row .fp-status{flex-shrink:0}
+.cert-chain{display:flex;flex-direction:column;gap:4px;padding:8px 0}
+.cert-chain .cert-level{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85)}
+.cert-chain .cert-level .cl-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.cert-chain .cert-level .cl-info{flex:1}
+.cert-chain .cert-level .cl-name{font-size:13px;font-weight:700;color:var(--text-h)}
+.cert-chain .cert-level .cl-detail{font-size:11px;color:#8f8681}
+.cert-chain .cert-connector{width:2px;height:16px;background:#d4c4b8;margin-left:34px}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.11 审计追踪与运营治理</div>
+    <div class="nav-item active" data-page="fr67"><span>&#x1f510; 日志加密签名与防篡改</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr68"><span>&#x1f50d; 持续合规审计与偏差修复</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr69"><span>&#x1f4cb; 审计日志关联与追溯</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr70"><span>&#x1f4ca; 安全度量与运营看板</span><span class="fr-badge">P2</span></div>
+    <div class="nav-item" data-page="fr71"><span>&#x1f4e8; 安全事件上报与通报</span><span class="fr-badge">P2</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 安全事件日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 安全审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.11 审计追踪与运营治理</div>
+      <div class="page-title">FR-67 | 审计日志加密签名与防篡改 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">ClawAegis</span>
+      <span class="badge badge-sys">KSecure</span>
+      <span class="badge badge-sys">KubeArmor</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 刷新签名状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出审计报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">防篡改架构</div>
+      <div class="tab" data-tab="rules">签名规则</div>
+      <div class="tab" data-tab="keys">密钥管理</div>
+      <div class="tab" data-tab="detect">篡改检测</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 防篡改架构                                              -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Audit Log Cryptographic Signing &amp; Tamper Protection</div>
+        <div class="panel-title">审计日志加密签名与防篡改系统</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          FR-67 对关键审计日志进行加密、签名和不可抵赖保护，防止攻击者通过删除或篡改日志来掩盖入侵痕迹。系统采用三层防护架构：加密层确保日志在存储时不被泄露，签名层通过数字签名保证每条日志的完整性和来源可信，篡改检测层在读取时验证哈希指纹以发现任何篡改行为。ClawAegis 的 SelfIntegrityRecord 机制为日志完整性提供了指纹基线模型，KubeArmor 的 IMA（Integrity Measurement Architecture）通过 BPF LSM hook bprm_check_security 实现文件级完整性度量，KubeArmor PKI 体系提供完整的 CA 证书签发和密钥管理基础设施。
+        </p>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="badge badge-critical">数字签名</span>
+          <span class="badge badge-high">篡改检测</span>
+          <span class="badge badge-medium">不可抵赖</span>
+          <span class="badge badge-low">加密存储</span>
+          <span class="badge badge-sys">SelfIntegrityRecord</span>
+          <span class="badge badge-sys">IMA bprm_check</span>
+          <span class="badge badge-sys">PKI RSA-4096</span>
+        </div>
+      </div>
+
+      <!-- Three-Layer Architecture -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Three-Layer Log Protection Architecture</div>
+            <div class="panel-title">三层日志防护架构</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:18px;line-height:1.7">
+          审计日志的防篡改保护建立在三个互补的安全层之上：第一层是静态加密（Encryption at Rest），确保日志文件在磁盘上以加密形式存储，攻击者即使获得原始磁盘也无法读取明文日志；第二层是数字签名（Digital Signature），每条关键日志条目在写入时使用私钥签名，验证方可通过公钥确认日志来源和完整性；第三层是篡改检测（Tamper Detection），基于 ClawAegis SelfIntegrityRecord 的指纹模型，对日志文件计算 SHA-256 哈希并在读取时比对，任何篡改都会导致哈希不匹配从而被检测。
+        </p>
+
+        <!-- Layer 1 -->
+        <div class="layer-card">
+          <div class="layer-num">1</div>
+          <div class="lc-title"><span style="font-size:18px">&#x1f512;</span> 加密层 — Encryption at Rest</div>
+          <div class="lc-body">
+            <p>日志文件在持久化到磁盘前进行 AES-256-GCM 加密。加密密钥通过 KSecure SecLog 的结构化日志通道传递，确保日志从产生到存储全链路加密。KSecure SecLog 结构化格式包含 time、action、path、operation、severity 等字段，加密后仍保留时间索引以支持范围查询。</p>
+            <div class="code-block">
+<span class="cc">// KSecure SecLog 结构化日志格式</span>
+<span class="ck">type</span> <span class="cn">SecLog</span> {
+  Time    <span class="cs">string</span>   <span class="cc">// "2026-04-30 14:23:01.000000"</span>
+  LogType <span class="cs">string</span>   <span class="cc">// "Audit" | "Security" | "System"</span>
+  Action  <span class="cs">string</span>   <span class="cc">// "block" | "audit" | "allow"</span>
+  HostName <span class="cs">string</span>  <span class="cc">// 主机标识</span>
+  Source  <span class="cs">string</span>   <span class="cc">// 事件源进程</span>
+  Path    <span class="cs">string</span>   <span class="cc">// 目标文件/资源路径</span>
+  Operation <span class="cs">string</span> <span class="cc">// "read" | "write" | "exec" | "connect"</span>
+  PID/PPID/UID <span class="cs">uint32</span> <span class="cc">// 进程上下文</span>
+  Severity <span class="cs">string</span>  <span class="cc">// "critical" | "high" | "medium" | "low"</span>
+  Tags    []<span class="cs">string</span> <span class="cc">// 附加标签</span>
+  Message <span class="cs">string</span>   <span class="cc">// 人类可读描述</span>
+}
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 2 -->
+        <div class="layer-card">
+          <div class="layer-num">2</div>
+          <div class="lc-title"><span style="font-size:18px">&#x270d;&#xfe0f;</span> 签名层 — Digital Signature</div>
+          <div class="lc-body">
+            <p>关键日志条目在写入时使用 KubeArmor PKI 体系签发的签名密钥进行数字签名。KubeArmor 的 CertLoader 实现了三种证书加载策略：SelfSignedCertLoader（自签名，适用于单节点）、ExternalCertLoader（外部CA，适用于企业PKI）、K8sCertLoader（Kubernetes Secret，适用于集群部署）。签名算法默认 RSA-SHA256，密钥长度 RSA-2048 用于签名密钥，CA 根密钥使用 RSA-4096。每条签名的日志包含签名字段和证书链，验证方可追溯到可信 CA 根证书。</p>
+            <div class="code-block">
+<span class="cc">// KubeArmor CertLoader 接口定义</span>
+<span class="ck">type</span> <span class="cn">CertLoader</span> <span class="ck">interface</span> {
+  GetCertificateAndCaPool() (*tls.Certificate, *x509.CertPool, <span class="cs">error</span>)
+}
+
+<span class="cc">// 三种实现：</span>
+<span class="cc">// 1. SelfSignedCertLoader - 自签名模式（CA + 签名密钥）</span>
+<span class="cc">// 2. ExternalCertLoader  - 外部PKI模式（预置CA证书）</span>
+<span class="cc">// 3. K8sCertLoader       - K8s Secret模式（从Secret读取）</span>
+
+<span class="ck">type</span> <span class="cn">DefaultKubeArmorCAConfig</span> = CertConfig{
+  CN:           <span class="cv">"kubearmor"</span>,
+  Organization: <span class="cv">"kubearmor"</span>,
+  IsCa:         <span class="ck">true</span>,
+  KeyUsage:     KeyEncipherment | DigitalSignature | CertSign | CRLSign,
+}
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 3 -->
+        <div class="layer-card">
+          <div class="layer-num">3</div>
+          <div class="lc-title"><span style="font-size:18px">&#x1f6e1;&#xfe0f;</span> 篡改检测层 — Tamper Detection</div>
+          <div class="lc-body">
+            <p>篡改检测基于两层指纹体系：ClawAegis SelfIntegrityRecord 提供应用级文件完整性基线，对日志文件及其元数据计算 SHA-256 哈希并持久化到 self-integrity.json；KubeArmor IMA 提供内核级完整性度量，通过 BPF LSM hook bprm_check_security 在可执行文件加载时计算文件哈希，存入 BPF LRU HashMap（kubearmor_ima_hash_map，容量 10240 条目）。两者的指纹数据互补：SelfIntegrityRecord 关注日志文件的完整性和防护路径覆盖，IMA 关注系统可执行文件和关键二进制的运行时完整性。当任一层的哈希比对失败时，立即触发告警并冻结受影响的日志段。</p>
+            <div class="code-block">
+<span class="cc">// ClawAegis SelfIntegrityRecord 类型定义</span>
+<span class="ck">type</span> <span class="cn">SelfIntegrityRecord</span> = {
+  pluginId:       <span class="cs">string</span>,              <span class="cc">// "claw-aegis"</span>
+  stateDir:       <span class="cs">string</span>,              <span class="cc">// 插件状态目录</span>
+  rootDir?:       <span class="cs">string</span>,              <span class="cc">// 根目录</span>
+  rootRealPath?:  <span class="cs">string</span>,              <span class="cc">// 解析后的真实路径</span>
+  protectedRoots: <span class="cs">string</span>[],             <span class="cc">// 受保护的根路径列表</span>
+  fingerprints:   Record&lt;<span class="cs">string</span>, <span class="cs">string</span>&gt;, <span class="cc">// 文件路径 → SHA-256 哈希</span>
+  updatedAt:      <span class="cs">number</span>,              <span class="cc">// 最后更新时间戳</span>
+}
+
+<span class="cc">// KubeArmor IMA BPF 数据结构</span>
+<span class="ck">struct</span> <span class="cn">ima_hash</span> {
+    u8 digest[<span class="cv">32</span>];    <span class="cc">// SHA-256 摘要</span>
+};
+<span class="cc">// BPF Map: kubearmor_ima_hash_map (LRU_HASH, max=10240)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Architecture Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Log Protection Pipeline</div>
+            <div class="panel-title">日志保护流水线</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          日志从产生到验证的完整保护流水线：安全事件产生结构化日志，通过 SecLog 通道进入加密签名管线，加密后写入存储，同时计算 SHA-256 指纹存入 SelfIntegrityRecord。读取时先验证指纹再解密，任何环节的篡改都会被检测。
+        </p>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:16px 0">
+          <div class="flow-node" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe">
+            <div class="fn-label" style="color:#1d4ed8">Event Source</div>
+            KSecure SecLog<br>KubeArmor Log<br>ClawAegis Defense
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa">
+            <div class="fn-label" style="color:#c2410c">Signing</div>
+            RSA-SHA256<br>PKI CertChain<br>Timestamp
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#bbf7d0">
+            <div class="fn-label" style="color:#15803d">Encryption</div>
+            AES-256-GCM<br>Key Vault<br>Ciphertext
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fdf4ff,#fae8ff);border-color:#e9d5ff">
+            <div class="fn-label" style="color:#7e22ce">Integrity</div>
+            SHA-256 Hash<br>SelfIntegrity<br>IMA Digest
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fef2f2,#fecaca);border-color:#fca5a5">
+            <div class="fn-label" style="color:#b91c1c">Storage</div>
+            Encrypted Log<br>Fingerprint DB<br>Evidence Lock
+          </div>
+        </div>
+      </div>
+
+      <!-- ClawAegis Protected Paths -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Self-Integrity Protection Model</div>
+            <div class="panel-title">ClawAegis 自完整性保护模型</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          ClawAegis 的 SelfIntegrityRecord 是日志防篡改的核心模型。它在插件启动时对 SELF_INTEGRITY_FILES 列表中定义的源文件（包括插件代码、配置文件和日志文件）计算 SHA-256 哈希，将指纹存入 self-integrity.json 持久化文件。运行时每次读取受保护文件前都会重新计算哈希并与存储的指纹比对，如果发现不匹配则说明文件已被篡改。该模型同时保护插件状态目录（包含日志存储路径）免受未授权修改。protectedPaths 配置扩展了保护范围，确保攻击者无法通过修改日志文件或其存储目录来销毁入侵证据。
+        </p>
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:280px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">SelfIntegrityRecord 指纹存储</div>
+            <div class="fingerprint-row">
+              <span class="fp-file">src/handlers.ts</span>
+              <span class="fp-hash">a3f8c2e1d4b5...</span>
+              <span class="fp-status"><span class="badge badge-low">&#x2713; 匹配</span></span>
+            </div>
+            <div class="fingerprint-row">
+              <span class="fp-file">src/security-strategies.ts</span>
+              <span class="fp-hash">7b9e4f2c8a1d...</span>
+              <span class="fp-status"><span class="badge badge-low">&#x2713; 匹配</span></span>
+            </div>
+            <div class="fingerprint-row">
+              <span class="fp-file">src/state.ts</span>
+              <span class="fp-hash">e5d3a1b7c9f2...</span>
+              <span class="fp-status"><span class="badge badge-low">&#x2713; 匹配</span></span>
+            </div>
+            <div class="fingerprint-row">
+              <span class="fp-file">src/config.ts</span>
+              <span class="fp-hash">2c8f4e6a1b3d...</span>
+              <span class="fp-status"><span class="badge badge-low">&#x2713; 匹配</span></span>
+            </div>
+            <div class="fingerprint-row">
+              <span class="fp-file">defense-events.jsonl</span>
+              <span class="fp-hash">f1a3c5e7b9d2...</span>
+              <span class="fp-status"><span class="badge badge-low">&#x2713; 匹配</span></span>
+            </div>
+            <div class="fingerprint-row">
+              <span class="fp-file">skill-scan-events.jsonl</span>
+              <span class="fp-hash">4d6b8a2c0e5f...</span>
+              <span class="fp-status"><span class="badge badge-low">&#x2713; 匹配</span></span>
+            </div>
+          </div>
+          <div style="flex:1;min-width:280px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">Protected Paths 配置</div>
+            <div class="tag-list">
+              <div class="tag">&#x1f4c1; ~/.openclaw/state/</div>
+              <div class="tag">&#x1f4c1; ~/.openclaw/plugins/</div>
+              <div class="tag">&#x1f4c1; extensions/</div>
+              <div class="tag">&#x1f4c1; ~/.openclaw/skills/</div>
+              <div class="tag">&#x1f4c2; openclaw.json</div>
+              <div class="tag">&#x1f4c2; self-integrity.json</div>
+              <div class="tag">&#x1f4c2; trusted-skills.json</div>
+              <div class="tag">&#x1f4c2; defense-events.jsonl</div>
+              <div class="tag">&#x1f4c2; skill-scan-events.jsonl</div>
+            </div>
+            <p style="font-size:11px;color:#8f8681;margin-top:12px;line-height:1.6">
+              protectedPaths 配置项允许管理员添加额外的受保护路径。ClawAegis 的 selfProtectionMode 支持 enforce（阻止篡改）、observe（仅记录）和 off 三种运行模式。当日志文件所在的插件状态目录被列入保护路径后，任何试图删除或修改日志文件的操作都会被拦截。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- KubeArmor IMA -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor IMA Integration</div>
+            <div class="panel-title">KubeArmor IMA 内核级完整性度量</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          KubeArmor 的 IMA（Integrity Measurement Architecture）集成通过 BPF LSM hook 在内核层面提供文件完整性度量。当可执行文件通过 execve 系统调用加载时，bprm_check_security hook 被触发，bpf_ima_file_hash() 函数计算目标文件的 SHA-256 哈希并存入 BPF LRU HashMap。这个机制确保了系统关键二进制文件（如 /bin/、/sbin/、/usr/bin/ 下的程序）的完整性可以在运行时被验证，与 ClawAegis 的应用级完整性保护形成互补。HashContext 包含 ProcessHash、ParentHash、ResourceHash 和 HashAlgo 字段，为每条安全事件提供完整的哈希上下文。
+        </p>
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <div style="flex:1;min-width:300px">
+            <div class="code-block">
+<span class="cc">// IMA BPF LSM Hook</span>
+<span class="ck">SEC</span>(<span class="cv">"lsm/bprm_check_security"</span>)
+<span class="ck">int</span> <span class="cn">ImaBprmCheckSecurity</span>(<span class="ck">struct</span> linux_binprm *bprm) {
+  <span class="cc">// 计算可执行文件哈希</span>
+  u8 digest[<span class="cv">32</span>];
+  bpf_ima_file_hash(bprm->file, digest);
+  <span class="cc">// 存入 BPF Map</span>
+  u32 pid = bpf_get_current_pid_tgid();
+  bpf_map_update_elem(&kubearmor_ima_hash_map,
+                       &pid, &digest, BPF_ANY);
+  <span class="ck">return</span> <span class="cv">0</span>;
+}
+            </div>
+          </div>
+          <div style="flex:1;min-width:300px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">IMA 哈希上下文字段</div>
+            <table class="data-table">
+              <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td style="font-weight:600">ProcessHash</td><td style="font-family:monospace;font-size:11px">string</td><td>当前进程可执行文件 SHA-256</td></tr>
+                <tr><td style="font-weight:600">ParentHash</td><td style="font-family:monospace;font-size:11px">string</td><td>父进程可执行文件 SHA-256</td></tr>
+                <tr><td style="font-weight:600">ResourceHash</td><td style="font-family:monospace;font-size:11px">string</td><td>访问资源文件 SHA-256</td></tr>
+                <tr><td style="font-weight:600">HashAlgo</td><td style="font-family:monospace;font-size:11px">string</td><td>哈希算法（SHA-256/SHA-1）</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 签名规则                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- Rule Cards -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Log Signing &amp; Tamper Detection Rules</div>
+        <div class="panel-title">日志签名与篡改检测规则</div>
+        <p style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.7">
+          签名规则定义了哪些日志条目必须进行数字签名、何时触发完整性验证以及检测到篡改时的响应策略。所有规则支持三种运行模式：enforce（强制执行，阻止未签名日志写入）、observe（观察模式，仅记录未签名事件）和 off（禁用）。
+        </p>
+      </div>
+
+      <!-- Rule Card 1: Critical Log Signing -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:#dc2626"></div>
+        <div class="rc-header">
+          <span class="badge badge-critical">Critical</span>
+          <span class="rc-title">关键日志强制签名</span>
+          <div class="mode-selector">
+            <button class="mode-btn active-enforce">enforce</button>
+            <button class="mode-btn">observe</button>
+            <button class="mode-btn">off</button>
+          </div>
+        </div>
+        <div class="rc-body">
+          <p style="margin-bottom:10px">以下类别的日志条目在写入时必须使用 KubeArmor PKI 签发的签名密钥进行数字签名，未签名的条目将被拒绝写入。签名包含完整的证书链，可追溯到可信 CA 根证书（CN=kubearmor, O=kubearmor, RSA-4096），实现不可抵赖保护。</p>
+          <table class="data-table" style="margin-top:10px">
+            <thead><tr><th>日志类别</th><th>来源</th><th>签名要求</th><th>签名算法</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600">安全事件日志</td><td>KSecure SecLog</td><td><span class="badge badge-critical">必须签名</span></td><td>RSA-SHA256</td></tr>
+              <tr><td style="font-weight:600">策略执行日志</td><td>KubeArmor Log</td><td><span class="badge badge-critical">必须签名</span></td><td>RSA-SHA256</td></tr>
+              <tr><td style="font-weight:600">防御事件日志</td><td>ClawAegis defense-events.jsonl</td><td><span class="badge badge-critical">必须签名</span></td><td>RSA-SHA256</td></tr>
+              <tr><td style="font-weight:600">权限变更日志</td><td>ClawManager RBAC</td><td><span class="badge badge-critical">必须签名</span></td><td>RSA-SHA256</td></tr>
+              <tr><td style="font-weight:600">实例操作日志</td><td>ClawManager Instance</td><td><span class="badge badge-high">建议签名</span></td><td>RSA-SHA256</td></tr>
+              <tr><td style="font-weight:600">技能扫描日志</td><td>ClawAegis skill-scan-events.jsonl</td><td><span class="badge badge-medium">建议签名</span></td><td>ECDSA-P256</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Rule Card 2: Integrity Verification -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:#d97706"></div>
+        <div class="rc-header">
+          <span class="badge badge-high">High</span>
+          <span class="rc-title">完整性周期验证</span>
+          <div class="mode-selector">
+            <button class="mode-btn active-enforce">enforce</button>
+            <button class="mode-btn">observe</button>
+            <button class="mode-btn">off</button>
+          </div>
+        </div>
+        <div class="rc-body">
+          <p style="margin-bottom:10px">基于 ClawAegis SelfIntegrityRecord 指纹模型，定期对日志文件和关键配置计算 SHA-256 哈希并与存储的指纹基线比对。验证周期可配置，默认每 5 分钟执行一次全量验证。IMA BPF LSM hook 提供实时内核级验证补充。指纹数据持久化到 self-integrity.json，使用原子写入（write-to-temp + rename）确保指纹文件本身的完整性。</p>
+          <table class="data-table" style="margin-top:10px">
+            <thead><tr><th>验证对象</th><th>验证方式</th><th>验证周期</th><th>指纹存储</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600">日志文件</td><td>SelfIntegrityRecord SHA-256</td><td>5 min</td><td>self-integrity.json</td></tr>
+              <tr><td style="font-weight:600">系统二进制</td><td>IMA bprm_check_security</td><td>实时</td><td>kubearmor_ima_hash_map</td></tr>
+              <tr><td style="font-weight:600">插件代码</td><td>SelfIntegrityRecord SHA-256</td><td>启动时 + 5 min</td><td>self-integrity.json</td></tr>
+              <tr><td style="font-weight:600">配置文件</td><td>SelfIntegrityRecord SHA-256</td><td>10 min</td><td>self-integrity.json</td></tr>
+              <tr><td style="font-weight:600">签名证书</td><td>PKI 证书链验证</td><td>30 min</td><td>K8s Secret / 文件</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Rule Card 3: Tamper Alert -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:#dc2626"></div>
+        <div class="rc-header">
+          <span class="badge badge-critical">Critical</span>
+          <span class="rc-title">篡改告警与证据保全</span>
+          <div class="mode-selector">
+            <button class="mode-btn active-enforce">enforce</button>
+            <button class="mode-btn">observe</button>
+            <button class="mode-btn">off</button>
+          </div>
+        </div>
+        <div class="rc-body">
+          <p style="margin-bottom:10px">当哈希比对发现不匹配或签名验证失败时，立即触发篡改告警。系统在告警同时启动证据保全程序：冻结受影响的日志段、将当前内存中的日志快照写入只读证据区、通过 syslog 转发告警到外部 SIEM 系统。篡改响应策略支持三种模式：alert（仅告警）、freeze（冻结受影响日志段）、quarantine（隔离整个日志存储并切换到备份存储）。</p>
+          <table class="data-table" style="margin-top:10px">
+            <thead><tr><th>触发条件</th><th>严重级别</th><th>响应动作</th><th>通知渠道</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600">SHA-256 哈希不匹配</td><td><span class="badge badge-critical">Critical</span></td><td>冻结日志段 + 证据保全</td><td>syslog + 邮件 + Webhook</td></tr>
+              <tr><td style="font-weight:600">数字签名验证失败</td><td><span class="badge badge-critical">Critical</span></td><td>拒绝日志读取 + 告警</td><td>syslog + 邮件</td></tr>
+              <tr><td style="font-weight:600">证书过期/吊销</td><td><span class="badge badge-high">High</span></td><td>切换到备用密钥 + 告警</td><td>邮件 + Webhook</td></tr>
+              <tr><td style="font-weight:600">日志文件被删除</td><td><span class="badge badge-critical">Critical</span></td><td>隔离存储 + 恢复备份</td><td>syslog + 邮件 + PagerDuty</td></tr>
+              <tr><td style="font-weight:600">IMA 度量值变更</td><td><span class="badge badge-high">High</span></td><td>标记进程不可信 + 告警</td><td>syslog + 邮件</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Toggles -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Global Rule Toggles</div>
+            <div class="panel-title">全局规则开关</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">强制日志签名（Enforce Log Signing）</div>
+            <div class="desc">启用后所有关键日志条目必须包含有效数字签名，未签名条目将被拒绝写入审计存储</div>
+          </div>
+          <div class="mode-selector">
+            <button class="mode-btn active-enforce">enforce</button>
+            <button class="mode-btn">observe</button>
+            <button class="mode-btn">off</button>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">自动篡改检测（Auto-detect Tampering）</div>
+            <div class="desc">启用后系统自动对日志文件执行周期性 SHA-256 哈希比对和签名验证，检测任何篡改行为</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-tamper" checked>
+            <label class="toggle-slider" for="toggle-tamper"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">不可抵赖保护（Non-repudiation）</div>
+            <div class="desc">启用后签名日志包含完整证书链和时间戳，签名者无法否认其签发的日志条目</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-nonrep" checked>
+            <label class="toggle-slider" for="toggle-nonrep"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">IMA 实时完整性度量（IMA Real-time Measurement）</div>
+            <div class="desc">启用 KubeArmor IMA BPF LSM hook，在可执行文件加载时实时计算哈希并存入 BPF Map</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-ima" checked>
+            <label class="toggle-slider" for="toggle-ima"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">syslog 告警转发（syslog Forwarding）</div>
+            <div class="desc">检测到篡改时自动通过 syslog 协议转发告警到外部 SIEM 系统，确保告警不被本地销毁</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-syslog" checked>
+            <label class="toggle-slider" for="toggle-syslog"></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 密钥管理                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-keys">
+
+      <!-- PKI Hierarchy -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">KubeArmor PKI Hierarchy for Log Signing</div>
+        <div class="panel-title">KubeArmor PKI 日志签名层级体系</div>
+        <p style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.7">
+          日志签名使用 KubeArmor PKI 体系管理的证书链。根 CA 证书（RSA-4096，CN=kubearmor, O=kubearmor）是信任锚点，负责签发中间签名密钥。CertLoader 接口提供三种证书加载策略适配不同部署环境：SelfSignedCertLoader 适合单节点测试，ExternalCertLoader 适合企业 PKI 集成，K8sCertLoader 从 Kubernetes Secret 读取证书适合生产集群。
+        </p>
+      </div>
+
+      <!-- Certificate Chain Visual -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Certificate Chain</div>
+            <div class="panel-title">证书信任链</div>
+          </div>
+        </div>
+        <div class="cert-chain">
+          <div class="cert-level" style="border-left:4px solid #7e22ce">
+            <div class="cl-icon" style="background:#f3e8ff;color:#7e22ce">&#x1f3db;</div>
+            <div class="cl-info">
+              <div class="cl-name">Root CA — kubearmor-ca</div>
+              <div class="cl-detail">CN=kubearmor | O=kubearmor | RSA-4096 | KeyUsage: CertSign, CRLSign | IsCA: true</div>
+            </div>
+            <span class="badge badge-active">&#x2713; Active</span>
+          </div>
+          <div class="cert-connector"></div>
+          <div class="cert-level" style="border-left:4px solid #dc2626">
+            <div class="cl-icon" style="background:#fef2f2;color:#dc2626">&#x1f511;</div>
+            <div class="cl-info">
+              <div class="cl-name">Signing Key — log-signer-2026-01</div>
+              <div class="cl-detail">CN=kubearmor | O=kubearmor | RSA-2048 | KeyUsage: DigitalSignature | ExtKeyUsage: ServerAuth</div>
+            </div>
+            <span class="badge badge-expiring">&#x26A0; 30d to expire</span>
+          </div>
+          <div class="cert-connector"></div>
+          <div class="cert-level" style="border-left:4px solid #059669">
+            <div class="cl-icon" style="background:#ecfdf5;color:#059669">&#x1f4dd;</div>
+            <div class="cl-info">
+              <div class="cl-name">Log Signatures — Per-entry signatures</div>
+              <div class="cl-detail">每条关键日志包含独立签名 + 证书链引用 | Algorithm: RSA-SHA256 | Timestamp: RFC3339</div>
+            </div>
+            <span class="badge badge-active">&#x2713; Verified</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CertLoader Implementations -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">CertLoader Implementations</div>
+            <div class="panel-title">证书加载策略</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>实现</th><th>部署场景</th><th>CA来源</th><th>密钥存储</th><th>证书轮换</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">SelfSignedCertLoader</td>
+              <td>单节点 / 测试环境</td>
+              <td>本地自签名 CA (ca.crt + ca.key)</td>
+              <td>文件系统路径</td>
+              <td>手动轮换</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">ExternalCertLoader</td>
+              <td>企业 PKI 集成</td>
+              <td>外部 CA (仅 ca.crt)</td>
+              <td>预置证书文件</td>
+              <td>CA 管理系统</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">K8sCertLoader</td>
+              <td>Kubernetes 集群</td>
+              <td>K8s Secret (tls.crt + tls.key)</td>
+              <td>Kubernetes Secret</td>
+              <td>cert-manager 自动轮换</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Key Inventory -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Key Inventory</div>
+            <div class="panel-title">密钥清单</div>
+          </div>
+          <button class="btn-secondary btn-sm">+ 生成新密钥</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Key ID</th><th>类型</th><th>算法</th><th>创建时间</th><th>过期时间</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">ka-ca-root-001</td>
+              <td>Root CA</td>
+              <td>RSA-4096</td>
+              <td>2026-01-15</td>
+              <td>2036-01-15</td>
+              <td><span class="badge badge-active">&#x2713; Active</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">ka-sign-log-2026a</td>
+              <td>Signing Key</td>
+              <td>RSA-2048</td>
+              <td>2026-01-15</td>
+              <td>2026-07-15</td>
+              <td><span class="badge badge-expiring">&#x26A0; 30d</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">ka-sign-log-2026b</td>
+              <td>Signing Key (next)</td>
+              <td>RSA-2048</td>
+              <td>2026-04-20</td>
+              <td>2026-10-20</td>
+              <td><span class="badge badge-active">&#x2713; Standby</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">ka-enc-aes-001</td>
+              <td>Encryption Key</td>
+              <td>AES-256-GCM</td>
+              <td>2026-01-15</td>
+              <td>2027-01-15</td>
+              <td><span class="badge badge-active">&#x2713; Active</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">ka-sign-ecdsa-001</td>
+              <td>Signing Key (ECDSA)</td>
+              <td>ECDSA-P256</td>
+              <td>2026-03-01</td>
+              <td>2026-09-01</td>
+              <td><span class="badge badge-active">&#x2713; Active</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">ka-ca-root-000</td>
+              <td>Root CA (prev)</td>
+              <td>RSA-4096</td>
+              <td>2025-01-10</td>
+              <td>2026-04-30</td>
+              <td><span class="badge badge-expired">&#x2717; Expired</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Rotation Schedule -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Certificate Rotation Schedule</div>
+            <div class="panel-title">证书轮换计划</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          密钥轮换遵循最小中断原则：新密钥在旧密钥过期前 30 天生成并设为 Standby 状态，过期前 7 天自动切换为 Active。旧密钥在过期后仍可用于验证历史签名（只读），但不能用于新签名。Root CA 密钥轮换周期为 10 年，签名密钥为 6 个月，加密密钥为 1 年。K8sCertLoader 模式下可通过 cert-manager 实现全自动轮换。
+        </p>
+        <div class="stat-row">
+          <div class="stat-card" style="border-color:#bbf7d0">
+            <div class="sc-value" style="color:#059669">3</div>
+            <div class="sc-label">活跃密钥</div>
+          </div>
+          <div class="stat-card" style="border-color:#fed7aa">
+            <div class="sc-value" style="color:#c2410c">1</div>
+            <div class="sc-label">即将过期</div>
+          </div>
+          <div class="stat-card" style="border-color:#fecaca">
+            <div class="sc-value" style="color:#b91c1c">1</div>
+            <div class="sc-label">已过期</div>
+          </div>
+          <div class="stat-card" style="border-color:#e9d5ff">
+            <div class="sc-value" style="color:#7e22ce">7d</div>
+            <div class="sc-label">下次轮换</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SelfIntegrityRecord Applied to Logs -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">SelfIntegrityRecord Applied to Log Files</div>
+            <div class="panel-title">SelfIntegrityRecord 日志指纹模型</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          将 ClawAegis SelfIntegrityRecord 的指纹模型应用于日志文件保护。日志文件纳入 SELF_INTEGRITY_FILES 列表后，其 SHA-256 哈希会被记录在 self-integrity.json 中。每次读取或验证时重新计算哈希并与存储的指纹比对。指纹文件使用原子写入（write-to-temp + rename）确保自身完整性。protectedRoots 包含日志存储目录，确保攻击者无法删除或移动日志文件。
+        </p>
+        <div class="code-block">
+<span class="cc">// 应用于日志的 SelfIntegrityRecord 示例</span>
+{
+  <span class="cv">"pluginId"</span>: <span class="cs">"claw-aegis"</span>,
+  <span class="cv">"stateDir"</span>: <span class="cs">"/home/user/.openclaw/state/plugins/claw-aegis"</span>,
+  <span class="cv">"protectedRoots"</span>: [
+    <span class="cs">"/home/user/.openclaw/state/plugins/claw-aegis"</span>,
+    <span class="cs">"/home/user/.openclaw/state"</span>
+  ],
+  <span class="cv">"fingerprints"</span>: {
+    <span class="cs">"defense-events.jsonl"</span>: <span class="cs">"a3f8c2e1d4b567890abcdef1234567890..."</span>,
+    <span class="cs">"skill-scan-events.jsonl"</span>: <span class="cs">"f1a3c5e7b9d24680acegik13579bdf..."</span>,
+    <span class="cs">"self-integrity.json"</span>: <span class="cs">"2c8f4e6a1b3d5790bdfhj02468acegi..."</span>,
+    <span class="cs">"trusted-skills.json"</span>: <span class="cs">"7b9e4f2c8a1d3579bdfhj13579acegi..."</span>
+  },
+  <span class="cv">"updatedAt"</span>: <span class="cn">1746012000000</span>
+}
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 篡改检测                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-detect">
+
+      <!-- Score Circle + Stats -->
+      <div class="app-panel-warm">
+        <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+          <div class="score-circle score-high">
+            <div class="score-num">98.7%</div>
+            <div class="score-label">日志完整性</div>
+          </div>
+          <div style="flex:1;min-width:260px">
+            <div class="panel-eyebrow">Log Integrity Score</div>
+            <div class="panel-title">日志完整性评分</div>
+            <p style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.7">
+              综合评估所有受保护日志文件的完整性状态。评分基于签名验证通过率、指纹匹配率和篡改事件数量。当前 98.7% 的评分表明 1 条日志在最近 24 小时内检测到哈希不匹配，已自动冻结并保全证据。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card" style="border-color:#bbf7d0">
+          <div class="sc-value" style="color:#059669">1,847</div>
+          <div class="sc-label">已签名日志</div>
+        </div>
+        <div class="stat-card" style="border-color:#bbf7d0">
+          <div class="sc-value" style="color:#059669">1,846</div>
+          <div class="sc-label">签名验证通过</div>
+        </div>
+        <div class="stat-card" style="border-color:#fecaca">
+          <div class="sc-value" style="color:#b91c1c">1</div>
+          <div class="sc-label">签名验证失败</div>
+        </div>
+        <div class="stat-card" style="border-color:#fed7aa">
+          <div class="sc-value" style="color:#c2410c">3</div>
+          <div class="sc-label">指纹不匹配</div>
+        </div>
+        <div class="stat-card" style="border-color:#e9d5ff">
+          <div class="sc-value" style="color:#7e22ce">12</div>
+          <div class="sc-label">密钥轮换</div>
+        </div>
+      </div>
+
+      <!-- Recent Events -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Recent Integrity Events</div>
+            <div class="panel-title">最近完整性事件</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x1f50d; 查看全部</button>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 14:23:01</div>
+          <div class="log-icon" style="background:#ecfdf5;color:#059669">&#x2713;</div>
+          <div class="log-msg">完整性验证通过 — defense-events.jsonl SHA-256 匹配，签名验证通过，证书链有效</div>
+          <div class="log-sev"><span class="badge badge-low">pass</span></div>
+        </div>
+        <div class="log-entry" style="border-color:#fecaca">
+          <div class="log-time">2026-04-30 14:18:47</div>
+          <div class="log-icon" style="background:#fef2f2;color:#b91c1c">&#x26A0;</div>
+          <div class="log-msg">篡改检测 — skill-scan-events.jsonl SHA-256 不匹配！预期 a3f8c2e1d4b5... 实际 9x7k3m5p1q2w...，已冻结日志段并启动证据保全</div>
+          <div class="log-sev"><span class="badge badge-critical">CRITICAL</span></div>
+        </div>
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 14:15:00</div>
+          <div class="log-icon" style="background:#ecfdf5;color:#059669">&#x2713;</div>
+          <div class="log-msg">周期完整性验证完成 — 全量 24 个受保护文件哈希比对通过，0 个不匹配</div>
+          <div class="log-sev"><span class="badge badge-low">pass</span></div>
+        </div>
+        <div class="log-entry" style="border-color:#fed7aa">
+          <div class="log-time">2026-04-30 13:45:22</div>
+          <div class="log-icon" style="background:#fffbeb;color:#d97706">&#x26A0;</div>
+          <div class="log-msg">签名验证失败 — 日志条目 #1847 签名无法验证，签名者证书 ka-sign-log-2026a 可能已损坏</div>
+          <div class="log-sev"><span class="badge badge-high">HIGH</span></div>
+        </div>
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 12:00:00</div>
+          <div class="log-icon" style="background:#ecfdf5;color:#059669">&#x21bb;</div>
+          <div class="log-msg">密钥轮换完成 — 签名密钥从 ka-sign-log-2026a 切换到 ka-sign-log-2026b，旧密钥保留用于验证</div>
+          <div class="log-sev"><span class="badge badge-low">info</span></div>
+        </div>
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 11:30:15</div>
+          <div class="log-icon" style="background:#eff6ff;color:#1d4ed8">&#x1f6e1;</div>
+          <div class="log-msg">SelfIntegrityRecord 自检触发 — 重新计算 SELF_INTEGRITY_FILES 列表中 6 个源文件的 SHA-256 哈希，更新 self-integrity.json</div>
+          <div class="log-sev"><span class="badge badge-low">info</span></div>
+        </div>
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 10:22:33</div>
+          <div class="log-icon" style="background:#ecfdf5;color:#059669">&#x2713;</div>
+          <div class="log-msg">IMA 度量验证通过 — /usr/bin/kubearmor, /usr/bin/ksecure, /bin/bash 进程哈希与基线匹配</div>
+          <div class="log-sev"><span class="badge badge-low">pass</span></div>
+        </div>
+      </div>
+
+      <!-- Integrity Check Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Integrity Verification History</div>
+            <div class="panel-title">完整性验证历史</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>验证时间</th><th>验证类型</th><th>目标文件</th><th>预期哈希</th><th>实际哈希</th><th>结果</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>2026-04-30 14:23:01</td>
+              <td>SelfIntegrity</td>
+              <td style="font-weight:600">defense-events.jsonl</td>
+              <td style="font-family:monospace;font-size:11px">a3f8c2e1d4b5...</td>
+              <td style="font-family:monospace;font-size:11px">a3f8c2e1d4b5...</td>
+              <td><span class="badge badge-low">&#x2713; 匹配</span></td>
+            </tr>
+            <tr>
+              <td>2026-04-30 14:18:47</td>
+              <td>SelfIntegrity</td>
+              <td style="font-weight:600;color:#b91c1c">skill-scan-events.jsonl</td>
+              <td style="font-family:monospace;font-size:11px">a3f8c2e1d4b5...</td>
+              <td style="font-family:monospace;font-size:11px;color:#b91c1c">9x7k3m5p1q2w...</td>
+              <td><span class="badge badge-critical">&#x2717; 不匹配</span></td>
+            </tr>
+            <tr>
+              <td>2026-04-30 14:15:00</td>
+              <td>Full Scan</td>
+              <td style="font-weight:600">24 files (全量)</td>
+              <td colspan="2" style="font-size:12px;color:#8f8681">— 全量验证 —</td>
+              <td><span class="badge badge-low">&#x2713; 24/24 通过</span></td>
+            </tr>
+            <tr>
+              <td>2026-04-30 13:45:22</td>
+              <td>Signature</td>
+              <td style="font-weight:600;color:#c2410c">log-entry-#1847</td>
+              <td colspan="2" style="font-size:12px;color:#8f8681">— 签名验证 —</td>
+              <td><span class="badge badge-high">&#x2717; 签名无效</span></td>
+            </tr>
+            <tr>
+              <td>2026-04-30 10:22:33</td>
+              <td>IMA</td>
+              <td style="font-weight:600">/usr/bin/kubearmor</td>
+              <td style="font-family:monospace;font-size:11px">e5d3a1b7c9f2...</td>
+              <td style="font-family:monospace;font-size:11px">e5d3a1b7c9f2...</td>
+              <td><span class="badge badge-low">&#x2713; 匹配</span></td>
+            </tr>
+            <tr>
+              <td>2026-04-30 10:22:33</td>
+              <td>IMA</td>
+              <td style="font-weight:600">/usr/bin/ksecure</td>
+              <td style="font-family:monospace;font-size:11px">4d6b8a2c0e5f...</td>
+              <td style="font-family:monospace;font-size:11px">4d6b8a2c0e5f...</td>
+              <td><span class="badge badge-low">&#x2713; 匹配</span></td>
+            </tr>
+            <tr>
+              <td>2026-04-30 10:22:33</td>
+              <td>IMA</td>
+              <td style="font-weight:600">/bin/bash</td>
+              <td style="font-family:monospace;font-size:11px">7b9e4f2c8a1d...</td>
+              <td style="font-family:monospace;font-size:11px">7b9e4f2c8a1d...</td>
+              <td><span class="badge badge-low">&#x2713; 匹配</span></td>
+            </tr>
+            <tr>
+              <td>2026-04-29 23:00:00</td>
+              <td>Certificate</td>
+              <td style="font-weight:600">ka-sign-log-2026a</td>
+              <td colspan="2" style="font-size:12px;color:#8f8681">— 证书有效期检查 —</td>
+              <td><span class="badge badge-medium">&#x26A0; 30天后过期</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Signing Configuration -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f510; 签名配置</div>
+          <div class="form-group">
+            <label class="form-label">签名算法（Signing Algorithm）</label>
+            <select class="form-select" style="width:100%">
+              <option selected>RSA-SHA256</option>
+              <option>ECDSA-P256-SHA256</option>
+              <option>ECDSA-P384-SHA384</option>
+              <option>RSA-SHA512</option>
+            </select>
+            <div class="form-hint">RSA-SHA256 为默认算法，ECDSA 提供更短的签名长度和更快的验证速度</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CA 密钥长度（CA Key Size）</label>
+            <select class="form-select" style="width:100%">
+              <option selected>RSA-4096</option>
+              <option>RSA-2048</option>
+              <option>ECDSA-P256</option>
+              <option>ECDSA-P384</option>
+            </select>
+            <div class="form-hint">KubeArmor DefaultKubeArmorCAConfig 使用 RSA，KeyUsage 包含 CertSign 和 CRLSign</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">签名密钥长度（Signing Key Size）</label>
+            <select class="form-select" style="width:100%">
+              <option selected>RSA-2048</option>
+              <option>RSA-4096</option>
+              <option>ECDSA-P256</option>
+            </select>
+            <div class="form-hint">KubeArmor DefaultKubeArmorServerConfig: RSA-2048, KeyUsage: DigitalSignature</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">证书加载模式（CertLoader Mode）</label>
+            <select class="form-select" style="width:100%">
+              <option>SelfSignedCertLoader</option>
+              <option selected>K8sCertLoader</option>
+              <option>ExternalCertLoader</option>
+            </select>
+            <div class="form-hint">K8sCertLoader 从 Kubernetes Secret 读取证书，支持 cert-manager 自动轮换</div>
+          </div>
+        </div>
+
+        <!-- Key Rotation -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f504; 密钥轮换</div>
+          <div class="form-group">
+            <label class="form-label">签名密钥轮换周期（Key Rotation Period）</label>
+            <select class="form-select" style="width:100%">
+              <option>3 个月</option>
+              <option selected>6 个月</option>
+              <option>12 个月</option>
+            </select>
+            <div class="form-hint">签名密钥定期轮换，新密钥在旧密钥过期前 30 天生成</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CA 证书有效期（CA Certificate Validity）</label>
+            <select class="form-select" style="width:100%">
+              <option>5 年</option>
+              <option selected>10 年</option>
+              <option>20 年</option>
+            </select>
+            <div class="form-hint">Root CA 有效期较长，轮换时需同步更新所有中间证书</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">自动轮换提前天数（Pre-rotation Days）</label>
+            <input class="form-input" type="number" value="30">
+            <div class="form-hint">旧密钥过期前 N 天自动生成新密钥并设为 Standby</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">密钥存储位置（Key Storage）</label>
+            <select class="form-select" style="width:100%">
+              <option selected>Kubernetes Secret</option>
+              <option>文件系统</option>
+              <option>HashiCorp Vault</option>
+              <option>AWS KMS</option>
+            </select>
+            <div class="form-hint">K8sCertLoader 使用 K8s Secret，ExternalCertLoader 使用文件系统</div>
+          </div>
+        </div>
+
+        <!-- Integrity Verification -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6e1;&#xfe0f; 完整性验证</div>
+          <div class="form-group">
+            <label class="form-label">指纹验证间隔（Fingerprint Verification Interval）</label>
+            <select class="form-select" style="width:100%">
+              <option>1 分钟</option>
+              <option>3 分钟</option>
+              <option selected>5 分钟</option>
+              <option>10 分钟</option>
+              <option>15 分钟</option>
+            </select>
+            <div class="form-hint">SelfIntegrityRecord SHA-256 哈希比对的执行周期</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">IMA 集成模式（IMA Integration）</label>
+            <select class="form-select" style="width:100%">
+              <option selected>启用 — bprm_check_security LSM hook</option>
+              <option>仅度量（不阻止）</option>
+              <option>禁用</option>
+            </select>
+            <div class="form-hint">IMA 通过 BPF LSM hook 在 execve 时计算文件哈希，BPF Map 容量 10240</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SelfIntegrityRecord 文件列表（SELF_INTEGRITY_FILES）</label>
+            <textarea class="form-input" rows="5" style="resize:vertical;font-family:monospace;font-size:11px">src/handlers.ts
+src/security-strategies.ts
+src/state.ts
+src/config.ts
+src/scan-service.ts
+src/encoding-guard.ts</textarea>
+            <div class="form-hint">列入此列表的文件将在启动时和周期验证时计算 SHA-256 哈希</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">启动时自检（Startup Self-Check）</label>
+            <div class="toggle-switch" style="margin-top:4px">
+              <input type="checkbox" id="cfg-startup" checked>
+              <label class="toggle-slider" for="cfg-startup"></label>
+            </div>
+            <div class="form-hint">插件启动时立即执行一次完整性验证</div>
+          </div>
+        </div>
+
+        <!-- Tamper Response -->
+        <div class="config-section">
+          <div class="cs-title">&#x26a0;&#xfe0f; 篡改响应</div>
+          <div class="form-group">
+            <label class="form-label">篡改响应策略（Tamper Response）</label>
+            <select class="form-select" style="width:100%">
+              <option>alert — 仅告警</option>
+              <option selected>freeze — 冻结受影响日志段</option>
+              <option>quarantine — 隔离整个日志存储</option>
+            </select>
+            <div class="form-hint">freeze 模式冻结受影响日志段并保全证据；quarantine 模式隔离整个存储并切换备份</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">证据保全路径（Evidence Preservation Path）</label>
+            <input class="form-input" type="text" value="/var/lib/aegis/evidence/">
+            <div class="form-hint">篡改检测时将内存中的日志快照和当前状态写入此只读路径</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">syslog 转发（syslog Forwarding）</label>
+            <div class="toggle-switch" style="margin-top:4px">
+              <input type="checkbox" id="cfg-syslog" checked>
+              <label class="toggle-slider" for="cfg-syslog"></label>
+            </div>
+            <div class="form-hint">篡改告警通过 syslog 协议转发到外部 SIEM，确保告警不被本地销毁</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">syslog 服务器地址</label>
+            <input class="form-input" type="text" value="syslog.secureclaw.local:514">
+            <div class="form-hint">支持 TCP 和 UDP 协议的 syslog 服务器</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">静态加密（Encryption at Rest）</label>
+            <select class="form-select" style="width:100%">
+              <option selected>AES-256-GCM</option>
+              <option>AES-128-GCM</option>
+              <option>ChaCha20-Poly1305</option>
+              <option>禁用</option>
+            </select>
+            <div class="form-hint">日志文件在磁盘上的加密算法，AES-256-GCM 提供认证加密</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">加密密钥管理（Encryption Key Source）</label>
+            <select class="form-select" style="width:100%">
+              <option selected>K8s Secret</option>
+              <option>文件系统密钥文件</option>
+              <option>HashiCorp Vault</option>
+            </select>
+            <div class="form-hint">加密密钥与签名密钥分离存储，遵循最小权限原则</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Acceptance Criteria -->
+      <div class="app-panel" style="margin-top:22px">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria</div>
+            <div class="panel-title">验收标准</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:240px;border-radius:14px;border:1px solid #bbf7d0;background:#ecfdf5;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#059669;margin-bottom:6px">&#x2713; 关键日志有数字签名</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">安全事件、策略执行、防御事件等关键日志均使用 KubeArmor PKI 签发的密钥签名，包含完整证书链</div>
+          </div>
+          <div style="flex:1;min-width:240px;border-radius:14px;border:1px solid #bbf7d0;background:#ecfdf5;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#059669;margin-bottom:6px">&#x2713; 日志篡改可检测</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">SelfIntegrityRecord SHA-256 指纹比对 + KubeArmor IMA 内核度量双重检测机制</div>
+          </div>
+          <div style="flex:1;min-width:240px;border-radius:14px;border:1px solid #bbf7d0;background:#ecfdf5;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#059669;margin-bottom:6px">&#x2713; 日志有不可抵赖保护</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">每条签名日志包含 RSA-SHA256 签名 + 证书链 + 时间戳，签名者无法否认</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Mode selector interaction
+document.querySelectorAll('.mode-selector').forEach(selector => {
+  selector.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selector.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.remove('active-enforce','active-observe','active-off');
+      });
+      const mode = btn.textContent.trim();
+      btn.classList.add('active-' + mode);
+    });
+  });
+});
+
+// Sidebar navigation
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

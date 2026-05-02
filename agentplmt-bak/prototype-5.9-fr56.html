@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-56 非模型化风险摘要与安全提示 | 智能安全防护平台</title>
+<style>
+:root{--text:#696363;--text-h:#171212;--bg:#f8f5f2;--surface:#ffffff;--border:#eee5df;--accent:#ef4444;--accent-strong:#dc2626;--accent-coral:#ef6b4a;--accent-bg:rgba(239,68,68,0.1);--shell:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,249,245,0.92));--shell-warm:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9);--shadow-soft:0 24px 70px -52px rgba(72,44,24,0.5);--shadow-strong:0 30px 90px -54px rgba(72,44,24,0.58);--sidebar-w:260px;--topbar-h:104px;--subheader-h:64px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:"Segoe UI Variable","Segoe UI","SF Pro Text",system-ui,sans-serif;background:linear-gradient(180deg,#fbf8f5,#f5f1ed);color:var(--text);line-height:1.6;font-size:14px;min-height:100vh}a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}table{border-collapse:collapse;width:100%}
+.app-shell{min-height:100vh;color:var(--text-h);background:radial-gradient(circle at top left,#fff8f0,#fff6f0 22%,#fbf4ef 45%,#f5efe9),linear-gradient(180deg,#fcf8f4,#f5efea)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,248,244,0.92));border-right:1px solid #eadfd8;box-shadow:18px 0 50px -44px rgba(72,44,24,0.45);z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{height:80px;border-bottom:1px solid #efe2da;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.sidebar-logo .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:2px}
+.sidebar-logo .title{font-size:1.15rem;font-weight:700;background:linear-gradient(135deg,#ef6b4a,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-nav{flex:1;padding:12px;overflow-y:auto}
+.nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;padding:16px 16px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;border-radius:14px;padding:9px 14px;font-size:13px;font-weight:500;color:#6e6763;transition:all .2s;cursor:pointer;margin-bottom:1px}
+.nav-item:hover{background:rgba(247,236,230,0.82);color:var(--text-h)}
+.nav-item.active{background:rgba(255,241,235,0.95);color:#dc2626;box-shadow:inset 0 0 0 1px rgba(243,199,183,0.8),0 0 12px -4px rgba(239,68,68,0.25)}
+.nav-item .fr-badge{margin-left:auto;font-size:10px;font-weight:600;border-radius:6px;padding:1px 7px;background:rgba(239,107,74,0.1);color:#c2410c}
+.main-content{margin-left:var(--sidebar-w);min-height:100vh}
+.subheader{height:var(--subheader-h);background:rgba(255,255,255,0.72);border-bottom:1px solid #eee5df;box-shadow:0 1px 3px rgba(72,44,24,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 36px;position:sticky;top:0;z-index:50;backdrop-filter:blur(12px)}
+.subheader-left .eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:#b46c50;margin-bottom:1px}
+.subheader-left .page-title{font-size:1.15rem;font-weight:700;color:var(--text-h)}
+.content-area{padding:28px 36px 60px;max-width:1800px}
+.app-panel{border-radius:26px;border:1px solid #ead8cf;background:var(--shell);box-shadow:var(--shadow-soft);padding:22px;margin-bottom:22px}
+.app-panel-warm{border-radius:30px;border:1px solid #ead8cf;background:var(--shell-warm);box-shadow:var(--shadow-strong);padding:26px;margin-bottom:22px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:1.05rem;font-weight:700;color:var(--text-h)}
+.panel-eyebrow{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.18em;color:#b46c50;margin-bottom:3px}
+.badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.badge-p0{background:#fee2e2;color:#b91c1c}.badge-p1{background:#fef3c7;color:#92400e}.badge-p2{background:#e0e7ff;color:#4338ca}
+.badge-enforce{background:#fee2e2;color:#b91c1c}.badge-observe{background:#fef3c7;color:#92400e}.badge-off{background:#e5e7eb;color:#6b7280}
+.badge-critical{background:#fee2e2;color:#b91c1c}.badge-high{background:#ffedd5;color:#c2410c}.badge-medium{background:#fef3c7;color:#92400e}.badge-low{background:#d1fae5;color:#065f46}
+.badge-blocked{background:#fee2e2;color:#b91c1c}.badge-observed{background:#fef3c7;color:#92400e}.badge-allowed{background:#d1fae5;color:#065f46}
+.badge-approved{background:#d1fae5;color:#065f46}.badge-pending{background:#fef3c7;color:#92400e}.badge-rejected{background:#fee2e2;color:#b91c1c}.badge-expired{background:#e5e7eb;color:#6b7280}.badge-overridden{background:#e0e7ff;color:#4338ca}
+.badge-sys{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:500;background:rgba(239,107,74,0.1);color:#c2410c;border:1px solid rgba(239,107,74,0.2)}
+.btn-primary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(135deg,#ef6b4a,#dc2626);box-shadow:0 4px 14px -4px rgba(239,107,74,0.4);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px -4px rgba(239,107,74,0.5)}
+.btn-secondary{border-radius:14px;padding:9px 18px;font-size:13px;font-weight:500;color:#5f5957;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:10px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1e7e1}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1}.toggle-label .name{font-size:13px;font-weight:600;color:var(--text-h)}.toggle-label .desc{font-size:12px;color:#8f8681;margin-top:2px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;margin-left:16px}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:999px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:linear-gradient(135deg,#ef6b4a,#dc2626)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.mode-selector{display:flex;gap:2px;border-radius:10px;background:#f5f1ed;padding:3px;margin-left:12px}
+.mode-btn{border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;color:#8f8681}
+.mode-btn.active-enforce{background:#fee2e2;color:#b91c1c}.mode-btn.active-observe{background:#fef3c7;color:#92400e}.mode-btn.active-off{background:#e5e7eb;color:#6b7280}
+.data-table{width:100%}.data-table thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;background:linear-gradient(180deg,#fffaf6,#fff6f1);padding:11px 14px;text-align:left;border-bottom:1px solid #f1e7e1}
+.data-table tbody td{padding:11px 14px;border-bottom:1px solid #f2e8e2;font-size:13px;color:var(--text);vertical-align:top}
+.data-table tbody tr:hover td{background:rgba(239,68,68,0.02)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:6px}
+.form-input{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);width:100%;outline:none;transition:all .2s}
+.form-input:focus{border-color:#ef6b4a;box-shadow:0 0 0 3px rgba(239,107,74,0.12)}
+.form-hint{font-size:11px;color:#8f8681;margin-top:4px}
+.form-select{border-radius:14px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:9px 14px;font-size:13px;color:var(--text-h);outline:none;transition:all .2s;cursor:pointer;appearance:auto}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:4px 10px;font-size:11px;font-weight:500;color:var(--text-h);display:flex;align-items:center;gap:5px}
+.log-entry{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px 18px;margin-bottom:10px;transition:all .2s}
+.log-entry:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2)}
+.log-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.log-time{font-size:11px;color:#8f8681;font-family:monospace}.log-id{font-size:11px;font-weight:700;color:#dc2626;font-family:monospace}
+.log-body{font-size:13px;color:var(--text);line-height:1.7}.log-body code{background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c}
+.log-detail{margin-top:8px;border-radius:10px;background:#faf7f4;padding:10px 14px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763;overflow-x:auto}
+.log-chain{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.log-chain-step{border-radius:8px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:3px 10px;font-size:11px;font-weight:500}
+.log-chain-arrow{color:#c4b0a2;font-size:14px}
+.score-circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;border:4px solid;flex-shrink:0}
+.score-circle .score-num{font-size:1.8rem;line-height:1}
+.score-circle .score-label{font-size:.65rem;opacity:.7;margin-top:2px}
+.score-high{border-color:#059669;color:#059669;background:#ecfdf5}.score-med{border-color:#d97706;color:#d97706;background:#fffbeb}.score-low{border-color:#dc2626;color:#dc2626;background:#fef2f2}
+.tabs{display:flex;gap:2px;margin-bottom:22px;border-bottom:1px solid #eee5df}
+.tab{padding:9px 18px;font-size:13px;font-weight:500;color:#6e6763;border-bottom:2px solid transparent;transition:all .2s;cursor:pointer}
+.tab:hover{color:var(--text-h)}.tab.active{color:#dc2626;border-bottom-color:#dc2626}
+.tab-content{display:none}.tab-content.active{display:block}
+.rule-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:14px;margin-bottom:10px}
+.rule-card .rule-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.rule-card .rule-flag{font-size:12px;font-weight:700;font-family:monospace;color:#dc2626}
+.rule-card .rule-desc{font-size:12px;color:var(--text);line-height:1.6}
+.rule-card .rule-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.rule-card .rule-pattern{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+.stat-row{display:flex;gap:16px;margin-bottom:20px}
+.stat-card{flex:1;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;text-align:center}
+.stat-card .sc-value{font-size:1.8rem;font-weight:700;line-height:1}
+.stat-card .sc-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:6px}
+.flow-diagram{display:flex;align-items:center;gap:0;flex-wrap:wrap;padding:20px 0}
+.flow-step{border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:12px 18px;font-size:12px;font-weight:600;color:var(--text-h);text-align:center;min-width:120px;position:relative;transition:all .2s}
+.flow-step:hover{box-shadow:0 4px 16px -8px rgba(72,44,24,0.2);transform:translateY(-1px)}
+.flow-step.step-accent{background:linear-gradient(135deg,#fef2f2,#fee2e2);border-color:#fecaca;color:#b91c1c}
+.flow-step.step-success{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-color:#a7f3d0;color:#065f46}
+.flow-step.step-warn{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a;color:#92400e}
+.flow-step.step-info{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe;color:#1d4ed8}
+.flow-arrow{color:#c4b0a2;font-size:18px;padding:0 6px;flex-shrink:0}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.config-section{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px}
+.config-section .cs-title{font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f1e7e1}
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-bar .filter-select{border-radius:10px;border:1px solid #e5d9d1;background:rgba(255,255,255,0.95);padding:6px 12px;font-size:12px;color:var(--text-h);outline:none;cursor:pointer}
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f5f1ed}.check-item:last-child{border-bottom:none}
+.check-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px}
+.check-icon.pass{background:#dcfce7;color:#15803d}.check-icon.fail{background:#fee2e2;color:#b91c1c}.check-icon.warn{background:#fef3c7;color:#92400e}
+.check-info .check-name{font-size:13px;font-weight:600;color:var(--text-h)}.check-info .check-id{font-size:11px;font-family:monospace;color:#8f8681}.check-info .check-detail{font-size:12px;color:var(--text);margin-top:3px}
+/* Custom: risk summary card mockup */
+.risk-summary-card{border-radius:20px;border:2px solid #fecaca;background:linear-gradient(135deg,#fff8f8,#fff1f1);padding:22px;margin-bottom:16px;position:relative;overflow:hidden}
+.risk-summary-card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#dc2626,#ef4444,#f87171)}
+.risk-summary-card .rsc-severity{position:absolute;top:14px;right:16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.18em;padding:3px 10px;border-radius:8px}
+.risk-summary-card .rsc-operation{font-size:16px;font-weight:700;color:var(--text-h);margin-bottom:4px}
+.risk-summary-card .rsc-desc{font-size:12px;color:#8f8681;margin-bottom:14px}
+.risk-summary-card .rsc-section{margin-bottom:12px}
+.risk-summary-card .rsc-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#b46c50;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.risk-summary-card .rsc-section-title .rsc-icon{width:16px;height:16px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.risk-summary-card .rsc-item{display:flex;align-items:flex-start;gap:8px;padding:4px 0;font-size:12px;color:var(--text-h);line-height:1.5}
+.risk-summary-card .rsc-item .rsc-bullet{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.risk-summary-card .rsc-item .rsc-bullet.b-red{background:#dc2626}.risk-summary-card .rsc-item .rsc-bullet.b-orange{background:#ea580c}.risk-summary-card .rsc-item .rsc-bullet.b-yellow{background:#d97706}.risk-summary-card .rsc-item .rsc-bullet.b-blue{background:#3b82f6}.risk-summary-card .rsc-item .rsc-bullet.b-green{background:#059669}
+/* AI suggestion box - distinct visual */
+.ai-suggestion-box{border-radius:14px;border:1px dashed #c4b0a2;background:repeating-linear-gradient(135deg,#faf7f4,#faf7f4 10px,#f5f1ed 10px,#f5f1ed 20px);padding:14px 18px;margin-bottom:14px;position:relative}
+.ai-suggestion-box::before{content:"AI建议";position:absolute;top:-10px;left:14px;background:#f5f1ed;border:1px solid #eadfd8;border-radius:6px;padding:1px 8px;font-size:10px;font-weight:600;color:#8f8681;letter-spacing:0.1em}
+.ai-suggestion-box .ai-text{font-size:12px;color:#8f8681;font-style:italic;line-height:1.6;padding-top:4px}
+/* Mockup comparison layout */
+.compare-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.compare-label{text-align:center;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-bottom:10px;padding:6px 0;border-bottom:2px solid #f1e7e1}
+.compare-label.cl-model{border-bottom-color:#d1c7bf;color:#8f8681}
+.compare-label.cl-structured{border-bottom-color:#dc2626;color:#dc2626}
+/* Severity-to-template mapping */
+.mapping-card{border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:16px;margin-bottom:12px}
+.mapping-card .mc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.mapping-card .mc-severity{border-radius:10px;padding:4px 12px;font-size:12px;font-weight:700}
+.mapping-card .mc-arrow{color:#c4b0a2;font-size:16px}
+.mapping-card .mc-template-name{font-size:13px;font-weight:700;color:var(--text-h)}
+.mapping-card .mc-fields{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.mapping-card .mc-field{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763}
+/* Risk prompt mockup card inline */
+.risk-prompt-mockup{border-radius:18px;border:2px solid #fecaca;background:#fff;padding:0;overflow:hidden;margin-bottom:16px}
+.risk-prompt-mockup .rpm-header{background:linear-gradient(90deg,#dc2626,#ef4444);padding:12px 18px;display:flex;align-items:center;gap:10px}
+.risk-prompt-mockup .rpm-header .rpm-icon{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.risk-prompt-mockup .rpm-header .rpm-title{font-size:14px;font-weight:700;color:#fff}
+.risk-prompt-mockup .rpm-body{padding:18px}
+.risk-prompt-mockup .rpm-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.risk-prompt-mockup .rpm-cell{border-radius:12px;border:1px solid #f1e7e1;background:#faf7f4;padding:12px}
+.risk-prompt-mockup .rpm-cell .rpm-cell-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b46c50;margin-bottom:6px}
+.risk-prompt-mockup .rpm-cell .rpm-cell-item{font-size:12px;color:var(--text-h);padding:2px 0;line-height:1.5;display:flex;align-items:flex-start;gap:6px}
+.risk-prompt-mockup .rpm-cell .rpm-cell-item .rpm-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:6px}
+/* Dispatch guard pattern display */
+.guard-group{border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:14px;margin-bottom:10px}
+.guard-group .gg-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.guard-group .gg-flag{font-size:12px;font-weight:700;font-family:monospace;color:#dc2626;border-radius:6px;background:#fee2e2;padding:2px 8px}
+.guard-group .gg-desc{font-size:12px;color:var(--text)}
+.guard-group .gg-patterns{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.guard-group .gg-pattern{border-radius:6px;background:#f5f1ed;padding:2px 8px;font-size:10px;font-family:monospace;color:#6e6763;border:1px solid #eadfd8}
+/* Anti-misleading design tokens */
+.anti-misleading-note{border-radius:12px;border:1px solid #fde68a;background:linear-gradient(135deg,#fffbeb,#fef3c7);padding:14px 18px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px}
+.anti-misleading-note .amn-icon{width:20px;height:20px;border-radius:50%;background:#f59e0b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.anti-misleading-note .amn-text{font-size:12px;color:#92400e;line-height:1.6}
+/* Cost impact mini card */
+.cost-impact{border-radius:10px;border:1px solid #f1e7e1;background:linear-gradient(135deg,#faf7f4,#f5f1ed);padding:10px 14px;display:flex;align-items:center;gap:12px;margin-top:8px}
+.cost-impact .ci-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#8f8681}
+.cost-impact .ci-value{font-size:16px;font-weight:700;color:var(--text-h)}
+.cost-impact .ci-sub{font-size:10px;color:#8f8681}
+@media(max-width:1024px){.sidebar{display:none}.main-content{margin-left:0}.content-area{padding:20px}.config-grid{grid-template-columns:1fr}.compare-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ========== SIDEBAR ========== -->
+<aside class="sidebar">
+  <div class="sidebar-logo"><div class="eyebrow">Security Platform</div><div class="title">智能安全防护平台</div></div>
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">5.9 人机信任与交互安全</div>
+    <div class="nav-item" data-page="fr55"><span>&#x1f6e1;&#xfe0f; 输出安全防护与脱敏</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item active" data-page="fr56"><span>&#x26a0;&#xfe0f; 非模型化风险摘要与安全提示</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr57"><span>&#x1f4ca; 模型行为基线与漂移</span><span class="fr-badge">P1</span></div>
+    <div class="nav-item" data-page="fr58"><span>&#x1f517; 模型供应链安全</span><span class="fr-badge">P0</span></div>
+    <div class="nav-item" data-page="fr59"><span>&#x1f9f9; 模型幻觉检测与纠正</span><span class="fr-badge">P1</span></div>
+    <div class="nav-section-label">运维</div>
+    <div class="nav-item" data-page="logs"><span>&#x1f4cb; 风险提示日志</span></div>
+    <div class="nav-item" data-page="audit"><span>&#x1f50d; 信任审计报告</span></div>
+  </nav>
+</aside>
+
+<!-- ========== MAIN ========== -->
+<div class="main-content">
+
+  <!-- Subheader -->
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.9 人机信任与交互安全</div>
+      <div class="page-title">FR-56 | 非模型化风险摘要与安全提示 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge badge-sys">OpenClaw</span>
+      <span class="badge badge-sys">ClawManager</span>
+      <span class="badge badge-sys">ClawAegis</span>
+      <button class="btn-secondary btn-sm">&#x21bb; 同步状态</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出报告</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="risk-arch">风险摘要架构</div>
+      <div class="tab" data-tab="risk-templates">风险模板</div>
+      <div class="tab" data-tab="prompt-design">风险提示设计</div>
+      <div class="tab" data-tab="prompt-monitor">提示效果监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 风险摘要架构                                            -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-risk-arch">
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card"><div class="sc-value" style="color:#dc2626">6</div><div class="sc-label">高风险操作类型</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#059669">47</div><div class="sc-label">风险摘要展示次数</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#f59e0b">31.9%</div><div class="sc-label">提示后否决率</div></div>
+        <div class="stat-card"><div class="sc-value" style="color:#3b82f6">12</div><div class="sc-label">误导解释纠正次数</div></div>
+      </div>
+
+      <!-- Panel 1: 核心问题 - 模型自然语言解释 vs 结构化风险摘要 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Structured Risk Summary vs Model Explanation</div>
+            <div class="panel-title">模型自然语言解释 vs 结构化风险摘要</div>
+          </div>
+          <span class="badge badge-enforce">运行中</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:18px;line-height:1.8">
+          FR-56 的核心问题：当模型提议执行高风险操作时，仅展示模型的自然语言解释存在严重的信任风险。模型可能以看似合理的语气说"我将停止实例以节省资源"，但用户无法从这句话中判断实际的<strong>影响范围</strong>、<strong>副作用</strong>和<strong>成本</strong>。结构化风险摘要独立于模型解释生成，基于 RiskRule、InstanceCommand 模板和 CostRecord 数据，提供客观、不可伪造的风险信息。
+        </p>
+
+        <!-- Comparison -->
+        <div class="compare-row">
+          <div>
+            <div class="compare-label cl-model">&#x26a0;&#xfe0f; 仅模型自然语言解释（当前）</div>
+            <div style="border-radius:16px;border:1px solid #eadfd8;background:rgba(255,255,255,0.92);padding:18px;font-size:13px;color:var(--text);line-height:1.7">
+              <div style="font-size:11px;color:#8f8681;margin-bottom:8px;font-weight:600">AI Assistant</div>
+              <p style="font-style:italic;color:var(--text-h)">"我将停止 <code>prod-openclaw-03</code> 实例以释放闲置资源。该实例当前 CPU 利用率仅 2%，停用后可节省约 $0.12/小时。这是最经济的做法。"</p>
+              <div style="margin-top:12px;padding:8px 12px;border-radius:8px;background:#fef3c7;font-size:11px;color:#92400e">
+                &#x26a0;&#xfe0f; 问题：用户仅看到"节省资源"的善意解释，无法得知实际服务中断、数据丢失风险和受影响用户数
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="compare-label cl-structured">&#x2705; 结构化风险摘要（FR-56 目标）</div>
+            <div class="risk-summary-card">
+              <div class="rsc-severity" style="background:#fee2e2;color:#b91c1c">HIGH RISK</div>
+              <div class="rsc-operation">stop_openclaw</div>
+              <div class="rsc-desc">停止 OpenClaw 实例 prod-openclaw-03</div>
+              <div class="rsc-section">
+                <div class="rsc-section-title"><span class="rsc-icon" style="background:#fee2e2;color:#b91c1c">&#x26a0;</span> 影响范围</div>
+                <div class="rsc-item"><span class="rsc-bullet b-red"></span><span>服务中断：<strong>prod-openclaw-03</strong> 所有活跃会话立即终止</span></div>
+                <div class="rsc-item"><span class="rsc-bullet b-red"></span><span>受影响用户：<strong>3 名活跃用户</strong>（来自 Instance 活跃连接数据）</span></div>
+                <div class="rsc-item"><span class="rsc-bullet b-orange"></span><span>依赖服务：<strong>2 个下游服务</strong>（skill-gateway, cost-tracker）将失去连接</span></div>
+              </div>
+              <div class="rsc-section">
+                <div class="rsc-section-title"><span class="rsc-icon" style="background:#ffedd5;color:#c2410c">&#x21bb;</span> 副作用</div>
+                <div class="rsc-item"><span class="rsc-bullet b-red"></span><span>活跃连接断开：3 个 WebSocket 会话被强制关闭</span></div>
+                <div class="rsc-item"><span class="rsc-bullet b-orange"></span><span>未保存工作丢失：内存中未持久化的对话状态将丢失</span></div>
+                <div class="rsc-item"><span class="rsc-bullet b-yellow"></span><span>数据一致性风险：正在执行的 skill 可能处于中间状态</span></div>
+              </div>
+              <div class="rsc-section">
+                <div class="rsc-section-title"><span class="rsc-icon" style="background:#dbeafe;color:#1d4ed8">&#x1f4b0;</span> 成本影响</div>
+                <div class="rsc-item"><span class="rsc-bullet b-blue"></span><span>停机时间估算：<strong>15-30 分钟</strong>（重启+恢复）</span></div>
+                <div class="rsc-item"><span class="rsc-bullet b-blue"></span><span>成本节省：$0.12/小时（来自 CostRecord.EstimatedCost）</span></div>
+                <div class="rsc-item"><span class="rsc-bullet b-blue"></span><span>恢复成本：$0.08（重启产生的额外 token 消耗）</span></div>
+              </div>
+              <div class="rsc-section">
+                <div class="rsc-section-title"><span class="rsc-icon" style="background:#d1fae5;color:#065f46">&#x21ba;</span> 替代方案</div>
+                <div class="rsc-item"><span class="rsc-bullet b-green"></span><span><strong>restart_openclaw</strong>：重启而非停止，保留数据，影响时间 &lt; 2 分钟</span></div>
+                <div class="rsc-item"><span class="rsc-bullet b-green"></span><span><strong>apply_config_revision</strong>：通过配置调整资源限制，无需停机</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Suggestion Box - clearly labeled -->
+        <div class="ai-suggestion-box">
+          <div class="ai-text">"我将停止 prod-openclaw-03 实例以释放闲置资源。该实例当前 CPU 利用率仅 2%，停用后可节省约 $0.12/小时。这是最经济的做法。" — 此为 AI 建议，非结构化风险评估，仅供参考。请以上方结构化风险摘要为准进行决策。</div>
+        </div>
+      </div>
+
+      <!-- Panel 2: 风险摘要生成流程架构 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Risk Summary Generation Pipeline</div>
+            <div class="panel-title">风险摘要生成流程架构</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x1f504; 刷新</button>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          风险摘要的生成独立于模型推理过程。当系统检测到高风险 InstanceCommand 时，基于预定义模板和实时数据（Instance 资源、CostRecord 成本、活跃连接数）自动组装结构化摘要。模型解释被降级为辅助参考信息，并以明显区分的视觉样式呈现。
+        </p>
+        <div class="flow-diagram">
+          <div class="flow-step step-accent">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 1</div>
+            High-Risk Command<br><span style="font-size:10px;color:#8f8681">高风险命令检测</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 2</div>
+            RiskRule Match<br><span style="font-size:10px;color:#8f8681">RiskRule.Severity 匹配</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-warn">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 3</div>
+            Template Lookup<br><span style="font-size:10px;color:#8f8681">风险模板查询</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 4</div>
+            Live Data Fill<br><span style="font-size:10px;color:#8f8681">实时数据填充</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-accent">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 5</div>
+            Structured Summary<br><span style="font-size:10px;color:#8f8681">结构化风险摘要</span>
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-success">
+            <div style="font-size:10px;color:#8f8681;margin-bottom:4px">STEP 6</div>
+            User Decision<br><span style="font-size:10px;color:#8f8681">用户决策</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: RiskRule Severity -> Risk Summary Template Mapping -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">RiskRule Severity to Risk Summary Template Mapping</div>
+            <div class="panel-title">RiskRule 严重度 -> 风险摘要模板映射</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          ClawManager RiskRule 的 <code>Severity</code> 字段（low/medium/high）决定风险摘要模板的触发级别和展示详细程度。<code>Action</code> 字段决定摘要展示后是否需要用户确认。
+        </p>
+        <div class="mapping-card">
+          <div class="mc-header">
+            <span class="mc-severity badge-critical" style="border-radius:10px;padding:4px 12px;font-size:12px;font-weight:700">high</span>
+            <span class="mc-arrow">&#x2192;</span>
+            <span class="mc-template-name">完整风险摘要模板</span>
+            <span class="badge badge-enforce" style="margin-left:auto">强制展示+审批</span>
+          </div>
+          <p style="font-size:12px;color:var(--text);margin-bottom:6px">展示完整影响范围、副作用、成本、替代方案。Action=require_approval 时必须等待用户确认。</p>
+          <div class="mc-fields">
+            <span class="mc-field">ImpactScope</span><span class="mc-field">SideEffects</span><span class="mc-field">CostImpact</span><span class="mc-field">Alternatives</span><span class="mc-field">RecoveryPath</span><span class="mc-field">MandatoryRead=8s</span>
+          </div>
+        </div>
+        <div class="mapping-card">
+          <div class="mc-header">
+            <span class="mc-severity badge-high" style="border-radius:10px;padding:4px 12px;font-size:12px;font-weight:700">medium</span>
+            <span class="mc-arrow">&#x2192;</span>
+            <span class="mc-template-name">精简风险摘要模板</span>
+            <span class="badge badge-observe" style="margin-left:auto">展示+记录</span>
+          </div>
+          <p style="font-size:12px;color:var(--text);margin-bottom:6px">展示影响范围和副作用摘要，可选展示成本和替代方案。Action=route_secure_model 时由安全模型复核。</p>
+          <div class="mc-fields">
+            <span class="mc-field">ImpactScope</span><span class="mc-field">SideEffects</span><span class="mc-field">CostImpact(可选)</span><span class="mc-field">Alternatives(可选)</span><span class="mc-field">MandatoryRead=4s</span>
+          </div>
+        </div>
+        <div class="mapping-card">
+          <div class="mc-header">
+            <span class="mc-severity badge-low" style="border-radius:10px;padding:4px 12px;font-size:12px;font-weight:700">low</span>
+            <span class="mc-arrow">&#x2192;</span>
+            <span class="mc-template-name">通知级提示模板</span>
+            <span class="badge badge-off" style="margin-left:auto">仅通知</span>
+          </div>
+          <p style="font-size:12px;color:var(--text);margin-bottom:6px">仅展示操作类型和简短说明，无需强制阅读。Action=allow 时自动执行但记录风险提示展示。</p>
+          <div class="mc-fields">
+            <span class="mc-field">OperationType</span><span class="mc-field">BriefDescription</span><span class="mc-field">MandatoryRead=0s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: Dispatch Guard Flags -> Risk Descriptions -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Dispatch Guard Flags to Risk Descriptions</div>
+            <div class="panel-title">ClawAegis Dispatch Guard 标志 -> 风险描述映射</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          ClawAegis Dispatch Guard 在 <code>before_dispatch</code> 和 <code>before_agent_reply</code> hook 中检测的 4 组模式标志，为风险摘要提供具体的威胁描述内容。这些描述直接来自模式匹配结果，而非模型推理。
+        </p>
+        <div class="guard-group">
+          <div class="gg-header"><span class="gg-flag">openclaw-cli-command</span></div>
+          <div class="gg-desc">检测到 <code>openclaw reset/uninstall/remove/shutdown/stop</code> 等 CLI 控制命令。风险描述：OpenClaw 运行时将被直接操作，可能导致服务中断或配置丢失。</div>
+          <div class="gg-patterns">
+            <span class="gg-pattern">openclaw reset</span><span class="gg-pattern">openclaw uninstall</span><span class="gg-pattern">openclaw remove</span><span class="gg-pattern">openclaw shutdown</span><span class="gg-pattern">openclaw stop</span>
+          </div>
+        </div>
+        <div class="guard-group">
+          <div class="gg-header"><span class="gg-flag">destructive-path-command</span></div>
+          <div class="gg-desc">检测到针对 <code>.openclaw/</code>、<code>skills/</code>、<code>plugins/</code>、<code>extensions/</code> 目录的删除操作。风险描述：关键配置或扩展数据将被永久删除，无法自动恢复。</div>
+          <div class="gg-patterns">
+            <span class="gg-pattern">rm ~/.openclaw/*</span><span class="gg-pattern">rm /skills/*</span><span class="gg-pattern">rm /plugins/*</span><span class="gg-pattern">rm /extensions/*</span>
+          </div>
+        </div>
+        <div class="guard-group">
+          <div class="gg-header"><span class="gg-flag">destructive-intent</span></div>
+          <div class="gg-desc">检测到表达破坏性意图的自然语言指令。风险描述：操作者意图删除/重置/清空关键组件，可能导致不可逆的数据丢失。</div>
+          <div class="gg-patterns">
+            <span class="gg-pattern">删除skill/技能</span><span class="gg-pattern">重置workspace</span><span class="gg-pattern">清空skills</span><span class="gg-pattern">卸载plugin</span><span class="gg-pattern">清除.openclaw配置</span>
+          </div>
+        </div>
+        <div class="guard-group">
+          <div class="gg-header"><span class="gg-flag">bypass-tool-call</span></div>
+          <div class="gg-desc">检测到试图绕过 tool call 安全机制的指令。风险描述：此操作试图规避安全 hook，所有破坏性操作必须通过标准 tool call 执行。</div>
+          <div class="gg-patterns">
+            <span class="gg-pattern">绕过tool call</span><span class="gg-pattern">跳过hook</span><span class="gg-pattern">直接执行</span><span class="gg-pattern">bypass guard</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 5: 验收标准 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria Status</div>
+            <div class="panel-title">验收标准达成状态</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高风险操作有结构化风险提示</div>
+            <div class="check-id">AC-56-1</div>
+            <div class="check-detail">6 类高风险 InstanceCommand（stop_openclaw, quarantine_skill, handle_skill_risk, disable_skill, uninstall_skill, remove_skill）均已配置结构化风险摘要模板。RiskRule Severity=high 时自动触发。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">提示包含影响范围和副作用</div>
+            <div class="check-id">AC-56-2</div>
+            <div class="check-detail">所有高风险模板包含 ImpactScope（受影响实例、用户、服务）和 SideEffects（网络中断、数据不一致、服务不可用）字段。数据来源于 Instance 模型和实时状态。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">!</div>
+          <div class="check-info">
+            <div class="check-name">提示独立于模型解释</div>
+            <div class="check-id">AC-56-3</div>
+            <div class="check-detail">风险摘要基于模板和实时数据生成，不依赖模型输出。模型解释被降级为"AI建议"并以虚线边框+斜体+灰色文字区分。当前需加强：部分场景下模型解释仍出现在风险摘要上方，需要确保结构化数据始终位于视觉优先位置。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 风险模板                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-risk-templates">
+
+      <!-- Toggle controls -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Risk Summary Template Controls</div>
+            <div class="panel-title">风险摘要模板控制</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用结构化风险摘要</div>
+            <div class="desc">对高风险操作展示独立于模型解释的结构化风险提示</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce">强制</div>
+            <div class="mode-btn">观察</div>
+            <div class="mode-btn">关闭</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">展示成本影响</div>
+            <div class="desc">在风险摘要中展示来自 CostRecord 的成本估算数据</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">展示替代方案</div>
+            <div class="desc">在风险摘要中推荐风险更低的替代操作</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">展示恢复路径</div>
+            <div class="desc">展示操作失败或需要回滚时的恢复步骤</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">AI 建议降级展示</div>
+            <div class="desc">将模型自然语言解释降级为"AI建议"区域，使用明显区分的视觉样式</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Risk Template Data Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Risk Summary Templates for High-Risk Operations</div>
+            <div class="panel-title">高风险操作风险摘要模板</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">+ 新增模板</button>
+            <button class="btn-primary btn-sm">&#x1f4be; 导出模板</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <select class="filter-select"><option>全部操作类型</option><option>stop_openclaw</option><option>quarantine_skill</option><option>handle_skill_risk</option><option>disable_skill</option><option>uninstall_skill</option><option>remove_skill</option><option>apply_config_revision</option></select>
+          <select class="filter-select"><option>全部影响级别</option><option>Critical</option><option>High</option><option>Medium</option></select>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>操作</th>
+              <th>影响级别</th>
+              <th>受影响资源</th>
+              <th>潜在副作用</th>
+              <th>恢复时间</th>
+              <th>替代操作</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code style="background:#f5f1ed;border-radius:6px;padding:2px 6px;font-size:12px;font-family:monospace;color:#c2410c">stop_openclaw</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>实例进程、活跃会话、下游服务、内存数据</td>
+              <td>服务中断、活跃连接断开、未保存工作丢失、数据一致性风险</td>
+              <td>15-30 min</td>
+              <td><code>restart_openclaw</code>, <code>apply_config_revision</code></td>
+              <td><span class="badge badge-enforce">已启用</span></td>
+            </tr>
+            <tr>
+              <td><code style="background:#f5f1ed;border-radius:6px;padding:2px 6px;font-size:12px;font-family:monospace;color:#c2410c">quarantine_skill</code></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>目标 Skill、依赖该 Skill 的 Agent 流程</td>
+              <td>功能降级、依赖链中断、Agent 任务失败</td>
+              <td>5-10 min</td>
+              <td><code>disable_skill</code>（非隔离）</td>
+              <td><span class="badge badge-enforce">已启用</span></td>
+            </tr>
+            <tr>
+              <td><code style="background:#f5f1ed;border-radius:6px;padding:2px 6px;font-size:12px;font-family:monospace;color:#c2410c">handle_skill_risk</code></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td>风险 Skill 及其关联资源、执行上下文</td>
+              <td>自动隔离导致功能缺失、误判可能影响正常 Skill</td>
+              <td>2-5 min</td>
+              <td>人工审查后再操作</td>
+              <td><span class="badge badge-enforce">已启用</span></td>
+            </tr>
+            <tr>
+              <td><code style="background:#f5f1ed;border-radius:6px;padding:2px 6px;font-size:12px;font-family:monospace;color:#c2410c">disable_skill</code></td>
+              <td><span class="badge badge-medium">Medium</span></td>
+              <td>目标 Skill、调用该 Skill 的流程</td>
+              <td>功能不可用、用户体验降级</td>
+              <td>1-2 min</td>
+              <td><code>update_skill</code>（修复替代禁用）</td>
+              <td><span class="badge badge-enforce">已启用</span></td>
+            </tr>
+            <tr>
+              <td><code style="background:#f5f1ed;border-radius:6px;padding:2px 6px;font-size:12px;font-family:monospace;color:#c2410c">uninstall_skill</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Skill 文件、配置引用、持久化数据</td>
+              <td>永久移除、配置残留引用错误、不可自动恢复</td>
+              <td>30-60 min</td>
+              <td><code>disable_skill</code>（临时禁用替代永久删除）</td>
+              <td><span class="badge badge-enforce">已启用</span></td>
+            </tr>
+            <tr>
+              <td><code style="background:#f5f1ed;border-radius:6px;padding:2px 6px;font-size:12px;font-family:monospace;color:#c2410c">remove_skill</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td>Skill 目录、关联清单、缓存数据</td>
+              <td>永久删除、清单不一致、缓存残留</td>
+              <td>30-60 min</td>
+              <td><code>disable_skill</code> + <code>quarantine_skill</code></td>
+              <td><span class="badge badge-enforce">已启用</span></td>
+            </tr>
+            <tr>
+              <td><code style="background:#f5f1ed;border-radius:6px;padding:2px 6px;font-size:12px;font-family:monospace;color:#c2410c">apply_config_revision</code></td>
+              <td><span class="badge badge-medium">Medium</span></td>
+              <td>OpenClaw 运行配置、所有生效的 Skill/Plugin</td>
+              <td>配置变更导致功能异常、兼容性冲突、服务重启</td>
+              <td>5-15 min</td>
+              <td>先 <code>reload_config</code> 测试</td>
+              <td><span class="badge badge-observe">观察</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Template Detail: stop_openclaw expanded -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Template Detail: stop_openclaw</div>
+            <div class="panel-title">模板详情：stop_openclaw 风险摘要</div>
+          </div>
+          <span class="badge badge-critical">Critical</span>
+        </div>
+        <table class="data-table" style="margin-bottom:16px">
+          <tbody>
+            <tr><td style="font-weight:600;width:160px">操作类型</td><td><code>stop_openclaw</code> — 停止 OpenClaw 实例运行</td></tr>
+            <tr><td style="font-weight:600">RiskRule 映射</td><td>Severity=high, Action=require_approval, Pattern=<code>/stop_openclaw/i</code></td></tr>
+            <tr><td style="font-weight:600">影响级别</td><td>Critical — 服务完全中断</td></tr>
+            <tr><td style="font-weight:600">受影响资源</td><td>Instance 进程 (CPUCores, MemoryGB, DiskGB)、活跃 WebSocket 会话、下游依赖服务</td></tr>
+            <tr><td style="font-weight:600">潜在副作用</td><td>1) 服务中断 — 所有活跃会话立即终止<br>2) 数据丢失 — 内存中未持久化状态丢失<br>3) 连接断开 — 3 个活跃 WebSocket 被强制关闭<br>4) 一致性风险 — 执行中的 skill 处于中间状态</td></tr>
+            <tr><td style="font-weight:600">成本影响</td><td>节省：CostRecord.EstimatedCost 停机期间的 token 费用<br>恢复成本：重启产生的额外 token 消耗 ~$0.08</td></tr>
+            <tr><td style="font-weight:600">恢复时间</td><td>15-30 分钟（重启 + 状态恢复 + 依赖服务重连）</td></tr>
+            <tr><td style="font-weight:600">替代操作</td><td><code>restart_openclaw</code>（重启，影响 &lt;2min）<br><code>apply_config_revision</code>（调整资源限制，无需停机）</td></tr>
+            <tr><td style="font-weight:600">恢复路径</td><td>1) 执行 <code>start_openclaw</code> 重新启动<br>2) 检查 <code>health_check</code> 确认状态<br>3) 验证下游服务连接恢复</td></tr>
+            <tr><td style="font-weight:600">强制阅读时间</td><td>8 秒</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ClawAegis HIGH_RISK_COMMAND_PATTERNS reference -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis HIGH_RISK_COMMAND_PATTERNS Reference</div>
+            <div class="panel-title">ClawAegis 16 个高风险命令模式参考</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          以下来自 ClawAegis <code>rules.ts</code> 的 <code>HIGH_RISK_COMMAND_PATTERNS</code>，用于在 <code>before_tool_call</code> hook 中检测高风险 shell 命令。命中这些模式的操作也应触发结构化风险摘要。
+        </p>
+        <div class="tag-list">
+          <span class="tag">rm -rf /</span>
+          <span class="tag">rm -rf /*</span>
+          <span class="tag">curl | sh</span>
+          <span class="tag">wget | bash</span>
+          <span class="tag">| sh / | bash</span>
+          <span class="tag">while true; do</span>
+          <span class="tag">while [ 1 ]; do</span>
+          <span class="tag">for ((;;)); do</span>
+          <span class="tag">&gt; ~/.bashrc</span>
+          <span class="tag">&gt; /etc/profile</span>
+          <span class="tag">shutdown</span>
+          <span class="tag">poweroff</span>
+          <span class="tag">halt</span>
+          <span class="tag">reboot</span>
+          <span class="tag">init 0/6</span>
+          <span class="tag">mkfs</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 风险提示设计                                            -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-prompt-design">
+
+      <!-- Anti-misleading design principle -->
+      <div class="anti-misleading-note">
+        <div class="amn-icon">!</div>
+        <div class="amn-text">
+          <strong>防误导设计原则：</strong>结构化数据优先于模型解释。模型自然语言解释可能因幻觉或上下文操纵而产生看似合理但实际误导的表述。风险提示卡片的视觉层级为：1) 结构化风险摘要（顶部，粗边框，红色主题）；2) AI 建议（底部，虚线边框，灰色斜体，明确标注"仅供参考"）。两者不可混淆。
+        </div>
+      </div>
+
+      <!-- Mockup 1: stop_openclaw risk prompt -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Risk Prompt Mockup #1: stop_openclaw</div>
+            <div class="panel-title">风险提示卡片示例 - stop_openclaw</div>
+          </div>
+        </div>
+
+        <div class="risk-prompt-mockup">
+          <div class="rpm-header">
+            <div class="rpm-icon">&#x26a0;</div>
+            <div class="rpm-title">高风险操作确认：stop_openclaw</div>
+          </div>
+          <div class="rpm-body">
+            <div class="rpm-grid">
+              <div class="rpm-cell">
+                <div class="rpm-cell-title">&#x1f4cb; 影响范围</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#dc2626"></span>实例 <strong>prod-openclaw-03</strong> (4 CPU / 16GB / 100GB)</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#dc2626"></span><strong>3 名活跃用户</strong>会话将被中断</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#ea580c"></span><strong>2 个依赖服务</strong>失去连接</div>
+              </div>
+              <div class="rpm-cell">
+                <div class="rpm-cell-title">&#x26a0;&#xfe0f; 副作用</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#dc2626"></span>网络中断：3 个 WebSocket 断开</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#ea580c"></span>数据风险：未保存对话丢失</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#d97706"></span>一致性：执行中 skill 中间态</div>
+              </div>
+              <div class="rpm-cell">
+                <div class="rpm-cell-title">&#x1f4b0; 成本估算</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#3b82f6"></span>停机时间：15-30 分钟</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#3b82f6"></span>节省：$0.12/小时 (CostRecord)</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#3b82f6"></span>恢复成本：~$0.08</div>
+              </div>
+              <div class="rpm-cell">
+                <div class="rpm-cell-title">&#x21ba; 恢复路径</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#059669"></span>1. start_openclaw 重新启动</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#059669"></span>2. health_check 确认状态</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#059669"></span>3. 验证下游服务重连</div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;padding:10px 14px;border-radius:10px;background:#ecfdf5;border:1px solid #a7f3d0">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#065f46;margin-bottom:4px">&#x1f4a1; 推荐替代方案</div>
+              <div style="font-size:12px;color:#065f46;line-height:1.6">
+                <strong>restart_openclaw</strong>：重启而非停止，保留数据，影响时间 &lt; 2 分钟 &nbsp;|&nbsp;
+                <strong>apply_config_revision</strong>：调整资源限制，无需停机
+              </div>
+            </div>
+
+            <!-- AI suggestion - visually distinct -->
+            <div class="ai-suggestion-box" style="margin-top:14px">
+              <div class="ai-text">"我将停止 prod-openclaw-03 实例以释放闲置资源。该实例当前 CPU 利用率仅 2%，停用后可节省约 $0.12/小时。" — 以上为 AI 建议，非结构化风险评估，仅供参考。</div>
+            </div>
+
+            <!-- Action buttons -->
+            <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+              <button class="btn-secondary">&#x21ba; 选择替代方案</button>
+              <button class="btn-secondary" style="color:#b91c1c;border-color:#fecaca">&#x2717; 拒绝操作</button>
+              <button class="btn-primary" style="background:linear-gradient(135deg,#dc2626,#b91c1c)">&#x26a0; 确认执行（已阅读 8s）</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mockup 2: uninstall_skill risk prompt -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Risk Prompt Mockup #2: uninstall_skill</div>
+            <div class="panel-title">风险提示卡片示例 - uninstall_skill</div>
+          </div>
+        </div>
+
+        <div class="risk-prompt-mockup">
+          <div class="rpm-header" style="background:linear-gradient(90deg,#ea580c,#f97316)">
+            <div class="rpm-icon">&#x26a0;</div>
+            <div class="rpm-title">永久删除操作确认：uninstall_skill</div>
+          </div>
+          <div class="rpm-body">
+            <div class="rpm-grid">
+              <div class="rpm-cell">
+                <div class="rpm-cell-title">&#x1f4cb; 影响范围</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#dc2626"></span>Skill <strong>web-search-v3</strong> 将被永久移除</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#ea580c"></span><strong>5 个 Agent 流程</strong>引用此 Skill</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#d97706"></span>配置文件中存在 <strong>3 处引用</strong></div>
+              </div>
+              <div class="rpm-cell">
+                <div class="rpm-cell-title">&#x26a0;&#xfe0f; 副作用</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#dc2626"></span>永久删除：无法自动恢复</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#ea580c"></span>引用错误：配置残留导致运行时错误</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#d97706"></span>缓存残留：需手动清理</div>
+              </div>
+              <div class="rpm-cell">
+                <div class="rpm-cell-title">&#x1f4b0; 成本估算</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#3b82f6"></span>恢复时间：30-60 分钟</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#3b82f6"></span>重装成本：需重新下载 + 配置</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#3b82f6"></span>下游影响：5 个流程中断</div>
+              </div>
+              <div class="rpm-cell">
+                <div class="rpm-cell-title">&#x21ba; 恢复路径</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#d97706"></span>1. 手动重新 install_skill</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#d97706"></span>2. 修复配置引用</div>
+                <div class="rpm-cell-item"><span class="rpm-dot" style="background:#d97706"></span>3. 重启受影响 Agent</div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;padding:10px 14px;border-radius:10px;background:#ecfdf5;border:1px solid #a7f3d0">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#065f46;margin-bottom:4px">&#x1f4a1; 推荐替代方案</div>
+              <div style="font-size:12px;color:#065f46;line-height:1.6">
+                <strong>disable_skill</strong>：临时禁用而非永久删除，可随时恢复 &nbsp;|&nbsp;
+                <strong>quarantine_skill</strong>：隔离运行，保留功能但限制执行
+              </div>
+            </div>
+
+            <div class="ai-suggestion-box" style="margin-top:14px">
+              <div class="ai-text">"该 web-search-v3 Skill 存在安全风险，建议立即卸载以消除隐患。" — 以上为 AI 建议，非结构化风险评估，仅供参考。请注意：卸载为永久操作，disable_skill 可达到类似效果且可逆。</div>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+              <button class="btn-secondary">&#x21ba; 选择替代方案</button>
+              <button class="btn-secondary" style="color:#b91c1c;border-color:#fecaca">&#x2717; 拒绝操作</button>
+              <button class="btn-primary" style="background:linear-gradient(135deg,#dc2626,#b91c1c)">&#x26a0; 确认永久删除（已阅读 8s）</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anti-misleading design patterns -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Anti-Misleading Visual Design Patterns</div>
+            <div class="panel-title">防误导视觉设计模式</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>设计维度</th><th>结构化风险摘要</th><th>AI 建议（模型解释）</th><th>目的</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">边框</td>
+              <td>2px 实线，红色 (#fecaca)</td>
+              <td>1px 虚线，灰色 (#c4b0a2)</td>
+              <td>视觉优先级区分</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">背景</td>
+              <td>暖白渐变 (#fff8f8 -> #fff1f1)</td>
+              <td>条纹图案 (#faf7f4 / #f5f1ed 交替)</td>
+              <td>信息来源区分</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">文字样式</td>
+              <td>正常字重，黑色文字</td>
+              <td>斜体，灰色文字 (#8f8681)</td>
+              <td>可信度区分</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">标签</td>
+              <td>"HIGH RISK" 红色徽标</td>
+              <td>"AI建议" 灰色标签 + "仅供参考" 声明</td>
+              <td>来源标注</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">位置</td>
+              <td>始终位于上方，占据主要视觉区域</td>
+              <td>始终位于下方，需要滚动才能完整查看</td>
+              <td>阅读顺序控制</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">数据来源</td>
+              <td>模板 + Instance/CostRecord 实时数据</td>
+              <td>模型推理输出</td>
+              <td>独立性保证</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 提示效果监控                                            -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-prompt-monitor">
+
+      <!-- Score circle + stats -->
+      <div style="display:flex;gap:22px;margin-bottom:22px;align-items:stretch">
+        <div class="app-panel" style="flex:0 0 160px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div class="score-circle score-med">
+            <div class="score-num">72</div>
+            <div class="score-label">有效性评分</div>
+          </div>
+          <div style="font-size:10px;color:#8f8681;margin-top:8px;text-align:center">基于提示后否决率<br>和误导纠正率计算</div>
+        </div>
+        <div style="flex:1">
+          <div class="stat-row" style="margin-bottom:0">
+            <div class="stat-card"><div class="sc-value" style="color:#dc2626">47</div><div class="sc-label">风险提示展示</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#059669">6.8s</div><div class="sc-label">平均阅读时间</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#f59e0b">31.9%</div><div class="sc-label">提示后否决率</div></div>
+            <div class="stat-card"><div class="sc-value" style="color:#3b82f6">12</div><div class="sc-label">误导纠正次数</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key metrics explanation -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Risk Prompt Effectiveness Metrics</div>
+            <div class="panel-title">风险提示有效性指标</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>指标</th><th>当前值</th><th>目标值</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">提示展示次数</td>
+              <td>47</td>
+              <td>-</td>
+              <td>今日因高风险操作触发结构化风险摘要的次数</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">平均阅读时间</td>
+              <td>6.8s</td>
+              <td>&ge; 8s</td>
+              <td>用户在风险提示卡片上的停留时间，低于强制阅读时间说明跳过</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">提示后否决率</td>
+              <td>31.9%</td>
+              <td>20-40%</td>
+              <td>看到风险提示后拒绝执行的比例。过低=提示无效，过高=提示过于保守</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">误导纠正次数</td>
+              <td>12</td>
+              <td>-</td>
+              <td>结构化摘要与 AI 建议矛盾时，用户选择信任结构化摘要的次数</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">假安全感检出</td>
+              <td>4</td>
+              <td>0</td>
+              <td>AI 建议说"安全"但结构化摘要显示高风险的次数</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Event Log -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Risk Prompt Event Log</div>
+            <div class="panel-title">风险提示事件日志</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x1f504; 刷新</button>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:23:18</span>
+            <span class="log-id">RPT-0047</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-rejected">用户否决</span>
+          </div>
+          <div class="log-body">
+            风险提示已展示：<code>stop_openclaw</code> (prod-openclaw-03)。用户阅读 <strong>9.2s</strong> 后否决操作。结构化摘要显示 3 名活跃用户将受影响，与 AI 建议中"节省资源"的表述矛盾。
+          </div>
+          <div class="log-detail">
+RiskPromptID: rpt-20260501-0047
+Operation: stop_openclaw
+Instance: prod-openclaw-03 (4C/16G/100G)
+Impact: 3 active users, 2 dependent services
+User Read Time: 9.2s (mandatory: 8s)
+AI Suggestion: "停止实例以释放资源" — contradicted by structured summary
+User Decision: REJECTED
+Alternative Chosen: restart_openclaw</div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 13:47:05</span>
+            <span class="log-id">RPT-0046</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-approved">用户批准</span>
+          </div>
+          <div class="log-body">
+            风险提示已展示：<code>uninstall_skill</code> (web-search-v3)。用户阅读 <strong>12.4s</strong> 后确认执行。结构化摘要展示 5 个 Agent 流程受影响和永久删除风险，用户选择承担风险。
+          </div>
+          <div class="log-detail">
+RiskPromptID: rpt-20260501-0046
+Operation: uninstall_skill
+Skill: web-search-v3
+Impact: 5 agent workflows, 3 config references
+User Read Time: 12.4s (mandatory: 8s)
+AI Suggestion: "建议卸载以消除隐患" — partially aligned
+User Decision: APPROVED (acknowledged permanent deletion)</div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 12:15:33</span>
+            <span class="log-id">RPT-0045</span>
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-overridden">用户选择替代</span>
+          </div>
+          <div class="log-body">
+            风险提示已展示：<code>quarantine_skill</code> (data-analyzer-v2)。用户在看到副作用（功能降级、依赖链中断）后选择替代方案 <code>disable_skill</code>，影响更小且可逆。
+          </div>
+          <div class="log-detail">
+RiskPromptID: rpt-20260501-0045
+Operation: quarantine_skill
+Skill: data-analyzer-v2
+Side-Effects: functionality degradation, dependency chain break
+User Read Time: 7.8s (mandatory: 8s — below threshold)
+AI Suggestion: "建议隔离该风险 Skill" — contradicted: disable is sufficient
+User Decision: ALTERNATIVE (disable_skill chosen)</div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 11:02:17</span>
+            <span class="log-id">RPT-0044</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-rejected">用户否决</span>
+          </div>
+          <div class="log-body">
+            <strong>[假安全感检出]</strong> 风险提示纠正了 AI 的误导解释。AI 建议："该实例已无活跃用户，安全停止"，但结构化摘要显示 <strong>2 名用户</strong>仍有活跃会话。用户否决操作。
+          </div>
+          <div class="log-detail">
+RiskPromptID: rpt-20260501-0044
+Operation: stop_openclaw
+Instance: prod-openclaw-07
+FALSE-SAFETY DETECTED:
+  AI Claim: "无活跃用户" (misleading)
+  Structured Data: 2 active WebSocket sessions
+  Contradiction: AI explanation vs real-time session data
+User Decision: REJECTED (trusted structured summary over AI explanation)</div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 09:38:44</span>
+            <span class="log-id">RPT-0043</span>
+            <span class="badge badge-medium">Medium</span>
+            <span class="badge badge-overridden">用户选择替代</span>
+          </div>
+          <div class="log-body">
+            风险提示已展示：<code>apply_config_revision</code>。成本影响估算（来自 CostRecord）提示停机成本 $0.45 高于节省 $0.12，用户选择先 <code>reload_config</code> 测试而非直接应用。
+          </div>
+          <div class="log-detail">
+RiskPromptID: rpt-20260501-0043
+Operation: apply_config_revision
+CostImpact: downtime $0.45 > savings $0.12
+User Decision: ALTERNATIVE (reload_config for testing first)
+Cost-aware decision: yes</div>
+        </div>
+      </div>
+
+      <!-- Decision log data table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Risk Prompt Decision Log</div>
+            <div class="panel-title">风险提示决策记录</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>时间</th><th>操作</th><th>风险提示</th><th>用户行为</th><th>决策时间</th><th>备注</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">14:23:18</td>
+              <td><code>stop_openclaw</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td><span class="badge badge-rejected">否决</span></td>
+              <td>9.2s</td>
+              <td>AI 说"安全"但摘要显示 3 活跃用户</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">13:47:05</td>
+              <td><code>uninstall_skill</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td><span class="badge badge-approved">批准</span></td>
+              <td>12.4s</td>
+              <td>承认永久删除风险</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">12:15:33</td>
+              <td><code>quarantine_skill</code></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td><span class="badge badge-overridden">选替代</span></td>
+              <td>7.8s</td>
+              <td>选择 disable_skill（影响更小）</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">11:02:17</td>
+              <td><code>stop_openclaw</code></td>
+              <td><span class="badge badge-critical">Critical</span></td>
+              <td><span class="badge badge-rejected">否决</span></td>
+              <td>11.6s</td>
+              <td>假安全感：AI 说无用户但实际有 2 个</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">09:38:44</td>
+              <td><code>apply_config_revision</code></td>
+              <td><span class="badge badge-medium">Medium</span></td>
+              <td><span class="badge badge-overridden">选替代</span></td>
+              <td>5.3s</td>
+              <td>成本提示：停机 $0.45 > 节省 $0.12</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">08:54:21</td>
+              <td><code>handle_skill_risk</code></td>
+              <td><span class="badge badge-high">High</span></td>
+              <td><span class="badge badge-approved">批准</span></td>
+              <td>8.1s</td>
+              <td>Skill 确认存在风险，需隔离处理</td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-size:12px">08:12:09</td>
+              <td><code>disable_skill</code></td>
+              <td><span class="badge badge-medium">Medium</span></td>
+              <td><span class="badge badge-approved">批准</span></td>
+              <td>4.2s</td>
+              <td>Skill 需临时禁用，影响已知</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Risk Summary Template Editor -->
+        <div class="config-section">
+          <div class="cs-title">风险摘要模板编辑器</div>
+          <div class="form-group">
+            <label class="form-label">操作类型</label>
+            <select class="form-input form-select">
+              <option>stop_openclaw</option>
+              <option>quarantine_skill</option>
+              <option>handle_skill_risk</option>
+              <option>disable_skill</option>
+              <option>uninstall_skill</option>
+              <option>remove_skill</option>
+              <option>apply_config_revision</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">影响级别</label>
+            <select class="form-input form-select">
+              <option>Critical</option>
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">受影响资源描述</label>
+            <textarea class="form-input" rows="3" placeholder="例：实例进程、活跃会话、下游服务、内存数据">实例进程、活跃 WebSocket 会话、下游依赖服务</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">潜在副作用列表</label>
+            <textarea class="form-input" rows="3" placeholder="每行一个副作用">服务中断 — 所有活跃会话立即终止
+数据丢失 — 内存中未持久化状态丢失
+连接断开 — 活跃 WebSocket 被强制关闭
+一致性风险 — 执行中的 skill 处于中间状态</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">替代操作</label>
+            <input class="form-input" value="restart_openclaw, apply_config_revision">
+            <div class="form-hint">逗号分隔的替代命令类型</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">恢复路径步骤</label>
+            <textarea class="form-input" rows="2" placeholder="每行一个恢复步骤">start_openclaw 重新启动
+health_check 确认状态
+验证下游服务重连</textarea>
+          </div>
+          <button class="btn-primary btn-sm" style="margin-top:8px">&#x1f4be; 保存模板</button>
+        </div>
+
+        <!-- Impact Scope Calculation Rules -->
+        <div class="config-section">
+          <div class="cs-title">影响范围计算规则</div>
+          <div class="form-group">
+            <label class="form-label">活跃用户检测</label>
+            <select class="form-input form-select">
+              <option>实时 WebSocket 会话计数</option>
+              <option>最近 5 分钟 API 请求</option>
+              <option>两者取并集</option>
+            </select>
+            <div class="form-hint">决定"受影响用户"数值的计算来源</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">依赖服务检测</label>
+            <select class="form-input form-select">
+              <option>配置声明的下游服务</option>
+              <option>最近 1 小时有通信的服务</option>
+              <option>两者取并集</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">资源影响数据源</label>
+            <div class="tag-list">
+              <span class="tag">Instance.CPUCores</span>
+              <span class="tag">Instance.MemoryGB</span>
+              <span class="tag">Instance.DiskGB</span>
+              <span class="tag">Instance.PodName</span>
+              <span class="tag">Instance.Status</span>
+            </div>
+            <div class="form-hint">来自 ClawManager Instance 模型，用于展示受影响的计算资源</div>
+          </div>
+        </div>
+
+        <!-- Side-Effect Detection Patterns -->
+        <div class="config-section">
+          <div class="cs-title">副作用检测模式</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">网络中断检测</div>
+              <div class="desc">检测活跃 WebSocket/API 连接数，操作将导致的中断数</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">数据一致性检测</div>
+              <div class="desc">检测是否有 skill 正在执行中（InstanceCommand.Status=running）</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">服务不可用检测</div>
+              <div class="desc">检测下游依赖服务将失去连接的情况</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">配置残留检测</div>
+              <div class="desc">检测操作后配置文件中的残留引用（uninstall/remove 场景）</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <!-- Cost Estimation Formula -->
+        <div class="config-section">
+          <div class="cs-title">成本估算公式</div>
+          <div class="form-group">
+            <label class="form-label">停机成本计算</label>
+            <textarea class="form-input" rows="2" style="font-family:monospace;font-size:12px">DowntimeCost = EstimatedDowntimeMinutes * HourlyCost / 60
+HourlyCost = SUM(CostRecord.EstimatedCost) / ActiveHours</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">恢复成本计算</label>
+            <textarea class="form-input" rows="2" style="font-family:monospace;font-size:12px">RecoveryCost = RestartTokenCost + ReconnectionOverhead
+RestartTokenCost = AVG(CostRecord.ActualCost WHERE Operation='restart')</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CostRecord 字段映射</label>
+            <div class="tag-list">
+              <span class="tag">EstimatedCost</span>
+              <span class="tag">ActualCost</span>
+              <span class="tag">TotalTokens</span>
+              <span class="tag">ModelName</span>
+              <span class="tag">Currency</span>
+            </div>
+            <div class="form-hint">来自 ClawManager CostRecord 模型</div>
+          </div>
+        </div>
+
+        <!-- Visual Styling Configuration -->
+        <div class="config-section">
+          <div class="cs-title">视觉样式配置</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">结构化数据优先</div>
+              <div class="desc">风险摘要始终位于 AI 建议上方</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">AI 建议降级样式</div>
+              <div class="desc">虚线边框 + 斜体灰色文字 + "仅供参考" 标签</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">矛盾高亮</div>
+              <div class="desc">当 AI 建议与结构化摘要矛盾时，用黄色警告框标注</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">成本对比展示</div>
+              <div class="desc">当停机成本 > 节省成本时，用红色高亮标注</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <!-- Prompt Display Timing -->
+        <div class="config-section">
+          <div class="cs-title">提示展示时机与强制阅读</div>
+          <div class="form-group">
+            <label class="form-label">Critical 强制阅读时间</label>
+            <input class="form-input" type="number" value="8" min="0" max="30">
+            <div class="form-hint">秒。用户必须等待此时间后才能点击确认按钮</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">High 强制阅读时间</label>
+            <input class="form-input" type="number" value="4" min="0" max="30">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Medium 强制阅读时间</label>
+            <input class="form-input" type="number" value="0" min="0" max="30">
+            <div class="form-hint">0 表示仅通知，无需等待</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">提示展示时机</label>
+            <select class="form-input form-select">
+              <option>操作执行前（require_approval 时）</option>
+              <option>模型提议时（route_secure_model 时）</option>
+              <option>两者均展示</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">阅读时间不足时</label>
+            <select class="form-input form-select">
+              <option>禁止确认（按钮禁用）</option>
+              <option>二次确认弹窗</option>
+              <option>记录但允许</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- RiskRule Integration -->
+        <div class="config-section">
+          <div class="cs-title">RiskRule 集成配置</div>
+          <div class="form-group">
+            <label class="form-label">RiskRule Severity 映射</label>
+            <table class="data-table" style="font-size:12px">
+              <thead><tr><th>Severity</th><th>摘要级别</th><th>Action 映射</th></tr></thead>
+              <tbody>
+                <tr><td><span class="badge badge-critical">high</span></td><td>完整摘要</td><td>require_approval</td></tr>
+                <tr><td><span class="badge badge-high">medium</span></td><td>精简摘要</td><td>route_secure_model</td></tr>
+                <tr><td><span class="badge badge-low">low</span></td><td>仅通知</td><td>allow</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pattern 触发规则</label>
+            <textarea class="form-input" rows="3" style="font-family:monospace;font-size:12px">/stop_openclaw/i       -> high -> require_approval
+/uninstall_skill/i    -> high -> require_approval
+/remove_skill/i       -> high -> require_approval
+/quarantine_skill/i   -> medium -> route_secure_model
+/disable_skill/i      -> medium -> route_secure_model
+/apply_config_revision/i -> medium -> route_secure_model</textarea>
+            <div class="form-hint">RiskRule.Pattern regex 匹配 InstanceCommand.CommandType</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ClawAegis Dispatch Guard 集成</label>
+            <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+              <div class="toggle-label">
+                <div class="name">Dispatch Guard 标志触发风险摘要</div>
+                <div class="desc">当 Dispatch Guard 检测到 openclaw-cli-command/destructive-path 等标志时，同时展示结构化风险摘要</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">HIGH_RISK_COMMAND_PATTERNS 集成</label>
+            <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+              <div class="toggle-label">
+                <div class="name">Shell 命令高风险模式触发</div>
+                <div class="desc">当 ClawAegis 的 16 个 HIGH_RISK_COMMAND_PATTERNS 命中时，在 tool call 拦截前展示风险摘要</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <button class="btn-primary btn-sm" style="margin-top:8px">&#x1f4be; 保存集成配置</button>
+        </div>
+
+        <!-- Alternative Action Generation Rules -->
+        <div class="config-section">
+          <div class="cs-title">替代操作生成规则</div>
+          <div class="form-group">
+            <label class="form-label">替代操作映射表</label>
+            <textarea class="form-input" rows="6" style="font-family:monospace;font-size:12px">stop_openclaw     -> restart_openclaw, apply_config_revision
+uninstall_skill   -> disable_skill, quarantine_skill
+remove_skill      -> disable_skill, quarantine_skill
+quarantine_skill  -> disable_skill
+handle_skill_risk -> manual_review
+disable_skill     -> update_skill
+apply_config_revision -> reload_config (test first)</textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">替代操作风险递减</label>
+            <div class="form-hint">列出的替代操作按风险从低到高排序，第一个为最优替代</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">替代操作优势描述模板</label>
+            <textarea class="form-input" rows="2" placeholder="例：{alternative}：{advantage}，影响时间 &lt; {time}">{operation}：{advantage}，影响时间 < {estimated_time}，{reversibility}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-area -->
+</div><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+<script>
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    const targetId = 'tab-' + tab.getAttribute('data-tab');
+    document.getElementById(targetId)?.classList.add('active');
+  });
+});
+
+// Sidebar navigation
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+
+// Mode selector
+document.querySelectorAll('.mode-selector').forEach(selector => {
+  selector.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selector.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.remove('active-enforce', 'active-observe', 'active-off');
+      });
+      if (btn.textContent.includes('强制')) btn.classList.add('active-enforce');
+      else if (btn.textContent.includes('观察')) btn.classList.add('active-observe');
+      else btn.classList.add('active-off');
+    });
+  });
+});
+</script>
+</body>
+</html>
