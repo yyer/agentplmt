@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr10</title>
+<link rel="stylesheet" href="../css-5.2.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr10">
+
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-10 &middot; P1</div><div class="page-title">工具调用监控与预算限制</div></div><button class="btn-primary btn-sm">保存配置</button></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Rate & Budget Limits</div><div class="panel-title">速率限制与预算配置</div></div><span class="badge-sys">clawmanager</span></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">API 成本每日限额 <span class="code">cost.dailyLimitUsd</span></div><div class="form-row"><input type="number" class="form-input" value="5" style="max-width:120px;"><span style="padding:9px 0;font-size:13px;color:#8f8681;">USD</span></div><div class="form-hint">超出后触发 SC-COST-004 告警</div></div>
+        <div class="form-group"><div class="form-label">API 成本月度限额 <span class="code">cost.monthlyLimitUsd</span></div><div class="form-row"><input type="number" class="form-input" value="100" style="max-width:120px;"><span style="padding:9px 0;font-size:13px;color:#8f8681;">USD</span></div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">熔断器 <span class="code">cost.circuitBreakerEnabled</span></div>
+          <div class="toggle-row" style="border:none;padding:6px 0;"><div class="toggle-label"><div class="desc">成本超限后自动阻断后续 API 请求</div></div><label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+        </div>
+        <div class="form-group"><div class="form-label">高频调用检测阈值 <span class="code">SC-COST-003</span></div><div class="form-row"><input type="number" class="form-input" value="5" style="max-width:80px;"><span style="padding:9px 0;font-size:13px;color:#8f8681;">分钟间隔（低于此值告警）</span></div></div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Loop Guard</div><div class="panel-title">循环调用检测配置</div></div><span class="badge-sys">claw-aegis</span></div>
+      <div class="form-row">
+        <div class="form-group"><div class="form-label">容许重复次数 <span class="code">LOOP_GUARD_ALLOW_COUNT</span></div><input type="number" class="form-input" value="3" style="max-width:100px;"><div class="form-hint">同一 run 内重复变更工具调用超过此次数触发 loop_guard</div></div>
+        <div class="form-group"><div class="form-label">适用工具 <span class="code">LOOP_GUARD_TOOL_NAMES</span></div>
+          <div class="tag-list"><span class="tag">write <span class="remove">&times;</span></span><span class="tag">edit <span class="remove">&times;</span></span><span class="tag">apply_patch <span class="remove">&times;</span></span><span class="tag">exec <span class="remove">&times;</span></span><span class="tag">bash <span class="remove">&times;</span></span><span class="tag">memory_store <span class="remove">&times;</span></span><span class="tag-add">+ 添加</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Usage Dashboard</div><div class="panel-title">用量监控面板</div></div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;">
+        <div class="stat-mini"><div class="value" style="color:#3b82f6;">$2.34</div><div class="label">今日成本</div></div>
+        <div class="stat-mini"><div class="value" style="color:#d59a22;">$47.80</div><div class="label">本月成本</div></div>
+        <div class="stat-mini"><div class="value" style="color:#15803d;">1,247</div><div class="label">今日工具调用</div></div>
+        <div class="stat-mini"><div class="value" style="color:#dc2626;">0</div><div class="label">循环阻断</div></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>实例</th><th>今日调用</th><th>今日成本</th><th>循环检测</th><th>限额使用</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">openclaw-prod-01</td><td>842</td><td>$1.52</td><td><span class="badge badge-allowed">0</span></td><td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:6px;border-radius:999px;background:#efe7e1;"><div style="width:30%;height:100%;border-radius:999px;background:linear-gradient(90deg,#ef6b4a,#d59a22);"></div></div><span style="font-size:11px;color:#8f8681;">30%</span></div></td></tr>
+          <tr><td style="font-weight:600;">openclaw-prod-02</td><td>405</td><td>$0.82</td><td><span class="badge badge-observed">2 (observe)</span></td><td><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:6px;border-radius:999px;background:#efe7e1;"><div style="width:16%;height:100%;border-radius:999px;background:linear-gradient(90deg,#ef6b4a,#d59a22);"></div></div><span style="font-size:11px;color:#8f8681;">16%</span></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

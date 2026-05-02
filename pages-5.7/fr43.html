@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr43</title>
+<link rel="stylesheet" href="../css-5.7.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr43">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">防重放架构</div>
+      <div class="tab" data-tab="rules">消息时效规则</div>
+      <div class="tab" data-tab="detection">重放检测</div>
+      <div class="tab" data-tab="monitor">时效监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 防重放架构                                               -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- 架构概览 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Anti-Replay Architecture</div>
+            <div class="panel-title">防重放架构总览</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span class="badge badge-enforce">强制模式</span>
+            <span class="badge badge-sys">ClawManager + OpenClaw</span>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:18px">
+          防重放机制确保每条协同消息携带唯一标识（nonce）、精确时间戳、有效会话标识和任务窗口，使旧消息无法被重新注入系统造成误执行、错误授权或跨上下文污染。ClawManager 通过 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">IdempotencyKey</code> 机制保证命令幂等性，结合时间戳校验和会话绑定形成三层防线。
+        </p>
+
+        <!-- 防重放流程图 -->
+        <div style="border-radius:18px;background:rgba(255,255,255,0.6);border:1px solid #f1e7e1;padding:20px;margin-bottom:18px">
+          <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:14px">消息生命周期与防重放验证流程</div>
+          <div class="flow-diagram" style="justify-content:center;gap:8px">
+            <div style="text-align:center">
+              <div class="flow-node create">&#x1f4dd; 消息创建</div>
+              <div class="flow-label">生成 nonce + 时间戳<br>绑定 sessionId</div>
+            </div>
+            <div class="flow-arrow">&#x27a1;</div>
+            <div style="text-align:center">
+              <div class="flow-node create">签名封装</div>
+              <div class="flow-label">IdempotencyKey<br>HMAC 签名</div>
+            </div>
+            <div class="flow-arrow">&#x27a1;</div>
+            <div style="text-align:center">
+              <div class="flow-node verify">&#x2699;&#xfe0f; 三层验证</div>
+              <div class="flow-label">Nonce 唯一性<br>时间窗口 + 会话匹配</div>
+            </div>
+            <div class="flow-arrow">&#x27a1;</div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
+              <div class="flow-node accept">&#x2705; 接受执行</div>
+              <div class="flow-node reject">&#x274c; 拒绝重放</div>
+              <div class="flow-node expire">&#x23f0; 过期失效</div>
+            </div>
+            <div class="flow-arrow">&#x27a1;</div>
+            <div style="text-align:center">
+              <div class="flow-node record">&#x1f4cb; 审计记录</div>
+              <div class="flow-label">写入安全日志<br>更新 nonce 缓存</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 三层防线详解 -->
+      <div class="grid-3">
+        <!-- 第一层: Nonce 唯一性 -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Layer 1</div>
+              <div class="panel-title">Nonce 唯一性检查</div>
+            </div>
+            <span class="badge badge-enforce">强制</span>
+          </div>
+          <p style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:12px">
+            每条关键消息携带全局唯一 nonce（IdempotencyKey），接收端维护已用 nonce 缓存。重复 nonce 的消息被立即拒绝，防止同一命令被重复提交执行。
+          </p>
+          <div style="border-radius:12px;background:#faf7f4;padding:12px;font-size:12px;font-family:monospace;line-height:1.8;color:#6e6763;margin-bottom:12px">
+            <div style="color:#dc2626;font-weight:600;margin-bottom:4px">// ClawManager InstanceCommand</div>
+            <div>IdempotencyKey: <span style="color:#1d4ed8">"apply-config-rev-42"</span></div>
+            <div>IssuedAt: <span style="color:#1d4ed8">2026-05-01T10:30:00Z</span></div>
+            <div>若 IdempotencyKey 已存在 →</div>
+            <div style="color:#b91c1c">&nbsp;&nbsp;返回已有命令，不重复创建</div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon pass">&#x2713;</div>
+            <div class="check-info">
+              <div class="check-name">命令幂等性</div>
+              <div class="check-detail">GetByInstanceIdempotencyKey 查重，相同 key 返回已有命令</div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon pass">&#x2713;</div>
+            <div class="check-info">
+              <div class="check-name">自动生成 nonce</div>
+              <div class="check-detail">未提供 key 时自动生成: {type}-{unixNano}</div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon warn">!</div>
+            <div class="check-info">
+              <div class="check-name">Nonce 缓存 TTL</div>
+              <div class="check-detail">已用 nonce 缓存需定期清理，建议 TTL = max(24h, commandTimeout)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第二层: 时间戳窗口 -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Layer 2</div>
+              <div class="panel-title">时间戳窗口校验</div>
+            </div>
+            <span class="badge badge-enforce">强制</span>
+          </div>
+          <p style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:12px">
+            消息携带精确时间戳，接收端验证消息年龄是否在允许的时间窗口内。超出窗口的消息视为过期，自动拒绝。不同消息类型使用不同的时间容忍度。
+          </p>
+          <div style="border-radius:12px;background:#faf7f4;padding:12px;font-size:12px;font-family:monospace;line-height:1.8;color:#6e6763;margin-bottom:12px">
+            <div style="color:#dc2626;font-weight:600;margin-bottom:4px">// 时间窗口校验逻辑</div>
+            <div>msgAge = serverTime - msg.Timestamp</div>
+            <div>if msgAge > maxWindow →</div>
+            <div style="color:#b91c1c">&nbsp;&nbsp;REJECT (消息过期)</div>
+            <div>if |msg.Timestamp - serverTime| > tolerance →</div>
+            <div style="color:#b91c1c">&nbsp;&nbsp;REJECT (时钟偏移过大)</div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon pass">&#x2713;</div>
+            <div class="check-info">
+              <div class="check-name">心跳时间戳</div>
+              <div class="check-detail">AgentHeartbeatRequest.Timestamp + ServerTime 对比，15s 间隔</div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon pass">&#x2713;</div>
+            <div class="check-info">
+              <div class="check-name">命令超时</div>
+              <div class="check-detail">InstanceCommand.TimeoutSeconds (默认 300s)，超时自动标记失败</div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon warn">!</div>
+            <div class="check-info">
+              <div class="check-name">时钟同步</div>
+              <div class="check-detail">Agent 与 Server 间需 NTP 同步，容忍偏移建议 &lt;5s</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第三层: 会话绑定 -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Layer 3</div>
+              <div class="panel-title">会话标识绑定</div>
+            </div>
+            <span class="badge badge-enforce">强制</span>
+          </div>
+          <p style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:12px">
+            消息必须携带有效会话标识（SessionToken），接收端验证会话是否存在且未过期。跨会话的消息被拒绝，防止上下文污染和会话劫持后的重放攻击。
+          </p>
+          <div style="border-radius:12px;background:#faf7f4;padding:12px;font-size:12px;font-family:monospace;line-height:1.8;color:#6e6763;margin-bottom:12px">
+            <div style="color:#dc2626;font-weight:600;margin-bottom:4px">// ClawManager 会话验证</div>
+            <div>session = GetBySessionToken(token)</div>
+            <div>if session == nil → REJECT</div>
+            <div>if session.SessionExpiresAt &lt; now →</div>
+            <div style="color:#b91c1c">&nbsp;&nbsp;REJECT (会话过期)</div>
+            <div style="color:#15803d">// 滚动续期: 每次心跳续 24h</div>
+            <div>newExpiry = now + 24h</div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon pass">&#x2713;</div>
+            <div class="check-info">
+              <div class="check-name">会话有效性</div>
+              <div class="check-detail">SessionToken + SessionExpiresAt 双重校验</div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon pass">&#x2713;</div>
+            <div class="check-info">
+              <div class="check-name">滚动续期</div>
+              <div class="check-detail">每次心跳成功后 SessionExpiresAt 延长 24h</div>
+            </div>
+          </div>
+          <div class="check-item">
+            <div class="check-icon warn">!</div>
+            <div class="check-info">
+              <div class="check-name">Agent ID 匹配</div>
+              <div class="check-detail">Heartbeat 中 AgentID 必须与 Session 中的匹配，否则拒绝</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IdempotencyKey 机制详解 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager IdempotencyKey</div>
+            <div class="panel-title">命令幂等性机制详解</div>
+          </div>
+          <span class="badge badge-sys">InstanceCommand</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          ClawManager 的 InstanceCommand 模型内置 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">IdempotencyKey</code> 字段作为天然的重放防护机制。当客户端提交命令时，系统先按 (instance_id, idempotency_key) 查重，若已存在则直接返回已有命令而不重复创建，从根本上杜绝了命令重放的可能性。系统自动为各类操作生成语义化的 key：
+        </p>
+        <div class="grid-2" style="margin-bottom:16px">
+          <div style="border-radius:14px;background:#faf7f4;padding:14px;border:1px solid #f1e7e1">
+            <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:8px">自动生成规则</div>
+            <div style="font-size:12px;font-family:monospace;line-height:2;color:#6e6763">
+              <div><span style="color:#1d4ed8">apply-config-revision-{revID}</span> — 配置应用</div>
+              <div><span style="color:#1d4ed8">install-skill-{instID}-{skillID}</span> — 技能安装</div>
+              <div><span style="color:#1d4ed8">remove-skill-{instID}-{skillID}</span> — 技能移除</div>
+              <div><span style="color:#1d4ed8">collect-skill-pkg-{instID}-{hash}</span> — 技能包收集</div>
+              <div><span style="color:#1d4ed8">{commandType}-{unixNano}</span> — 通用回退</div>
+            </div>
+          </div>
+          <div style="border-radius:14px;background:#faf7f4;padding:14px;border:1px solid #f1e7e1">
+            <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:8px">命令生命周期时间线</div>
+            <div style="font-size:12px;font-family:monospace;line-height:2.2;color:#6e6763">
+              <div><span style="color:#7c3aed">IssuedAt</span> — 命令创建时间</div>
+              <div><span style="color:#1d4ed8">DispatchedAt</span> — 下发至 Agent 时间</div>
+              <div><span style="color:#15803d">StartedAt</span> — Agent 开始执行时间</div>
+              <div><span style="color:#b91c1c">FinishedAt</span> — 执行完成时间</div>
+              <div><span style="color:#c2410c">TimeoutSeconds</span> — 超时阈值 (默认 300s)</div>
+            </div>
+          </div>
+        </div>
+        <div style="border-radius:14px;background:#fef2f2;border:1px solid #fecaca;padding:14px;font-size:12px;line-height:1.8;color:#b91c1c">
+          <strong>防重放保证：</strong>相同的 IdempotencyKey 只能创建一次命令。即使攻击者截获并重放完整的命令请求，服务端会识别重复 key 并返回首次创建的命令，不会产生第二次执行。配合 TimeoutSeconds 可确保过期命令不再被调度。
+        </div>
+      </div>
+
+      <!-- Loop Guard 联动 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Loop Guard Integration</div>
+            <div class="panel-title">循环防护与重放检测联动</div>
+          </div>
+          <span class="badge badge-sys">ClawAegis</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          ClawAegis 的 Loop Guard 模块提供循环行为检测能力，与 Anti-replay 机制形成互补。Loop Guard 检测同一会话中重复的 tool 调用模式，当检测到潜在的循环行为时触发拦截，防止因重放或循环导致的资源浪费和误执行。
+        </p>
+        <div class="grid-2">
+          <div style="border-radius:14px;background:rgba(255,255,255,0.8);border:1px solid #f1e7e1;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">Loop Guard 参数</div>
+            <div class="config-row">
+              <div class="config-key">LOOP_GUARD_TTL_MS</div>
+              <div class="config-value">
+                <div style="font-size:13px;font-weight:600;color:var(--text-h);font-family:monospace">300000 (5 min)</div>
+                <div class="config-hint">循环检测窗口时长</div>
+              </div>
+            </div>
+            <div class="config-row">
+              <div class="config-key">LOOP_GUARD_ALLOW_COUNT</div>
+              <div class="config-value">
+                <div style="font-size:13px;font-weight:600;color:var(--text-h);font-family:monospace">3</div>
+                <div class="config-hint">允许重复次数上限</div>
+              </div>
+            </div>
+            <div class="config-row">
+              <div class="config-key">Key 格式</div>
+              <div class="config-value">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h);font-family:monospace">sessionKey|runId|stableArgsKey</div>
+                <div class="config-hint">唯一标识一次循环上下文</div>
+              </div>
+            </div>
+          </div>
+          <div style="border-radius:14px;background:rgba(255,255,255,0.8);border:1px solid #f1e7e1;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">监控的工具类型</div>
+            <div class="tag-list" style="margin-bottom:12px">
+              <span class="tag">write</span>
+              <span class="tag">edit</span>
+              <span class="tag">apply_patch</span>
+              <span class="tag">exec</span>
+              <span class="tag">bash</span>
+              <span class="tag">memory_store</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              当同一 <code style="background:#f5f1ed;border-radius:4px;padding:0 4px;font-size:11px;font-family:monospace;color:#c2410c">stableArgsKey</code> 在 TTL 窗口内被调用超过 ALLOW_COUNT 次时，Loop Guard 触发拦截。此机制与 nonce 重放检测互补：nonce 检测完全相同的消息重放，Loop Guard 检测语义等价的循环行为。
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 消息时效规则                                             -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- 消息类型规则卡片 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Message Validity Rules</div>
+            <div class="panel-title">消息时效规则定义</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span class="badge badge-enforce">4 种消息类型</span>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:18px">
+          不同类型的协同消息具有不同的时效要求和安全级别。以下规则定义了各类消息的 nonce 格式、时间窗口、最大存活时间和过期动作，确保每类消息在其有效生命周期内被正确处理，过期后自动失效。
+        </p>
+      </div>
+
+      <div class="grid-2">
+        <!-- InstanceCommand -->
+        <div class="msg-type-card">
+          <div class="card-icon" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);color:#1d4ed8">&#x1f4e6;</div>
+          <div class="card-title">InstanceCommand</div>
+          <div class="card-subtitle">实例控制命令 — 启动/停止/配置/技能</div>
+          <div class="card-field"><span class="field-label">Nonce 字段</span><span class="field-value">IdempotencyKey</span></div>
+          <div class="card-field"><span class="field-label">Nonce 格式</span><span class="field-value">{type}-{revID|unixNano}</span></div>
+          <div class="card-field"><span class="field-label">时间戳</span><span class="field-value">IssuedAt</span></div>
+          <div class="card-field"><span class="field-label">时间窗口</span><span class="field-value">TimeoutSeconds (默认 300s)</span></div>
+          <div class="card-field"><span class="field-label">最大存活</span><span class="field-value">IssuedAt + TimeoutSeconds</span></div>
+          <div class="card-field"><span class="field-label">过期动作</span><span class="field-value" style="color:#b91c1c">标记 FAILED + 告警</span></div>
+          <div class="card-field"><span class="field-label">重放检测</span><span class="field-value">IdempotencyKey 查重</span></div>
+          <div class="card-field"><span class="field-label">安全级别</span><span class="field-value"><span class="badge badge-critical">关键</span></span></div>
+        </div>
+
+        <!-- Heartbeat -->
+        <div class="msg-type-card">
+          <div class="card-icon" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#15803d">&#x1f493;</div>
+          <div class="card-title">Agent Heartbeat</div>
+          <div class="card-subtitle">Agent 心跳 — 状态保活与会话续期</div>
+          <div class="card-field"><span class="field-label">Nonce 字段</span><span class="field-value">Timestamp (天然递增)</span></div>
+          <div class="card-field"><span class="field-label">时间戳</span><span class="field-value">AgentHeartbeatRequest.Timestamp</span></div>
+          <div class="card-field"><span class="field-label">时间窗口</span><span class="field-value">15s 间隔 + 5s 容忍</span></div>
+          <div class="card-field"><span class="field-label">最大存活</span><span class="field-value">单次心跳 &lt; 20s 延迟</span></div>
+          <div class="card-field"><span class="field-label">过期动作</span><span class="field-value" style="color:#92400e">标记 stale/offline</span></div>
+          <div class="card-field"><span class="field-label">重放检测</span><span class="field-value">Timestamp 回退检测</span></div>
+          <div class="card-field"><span class="field-label">安全级别</span><span class="field-value"><span class="badge badge-high">高</span></span></div>
+        </div>
+
+        <!-- Session -->
+        <div class="msg-type-card">
+          <div class="card-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e">&#x1f511;</div>
+          <div class="card-title">Agent Session</div>
+          <div class="card-subtitle">Agent 会话 — 注册认证与权限绑定</div>
+          <div class="card-field"><span class="field-label">Nonce 字段</span><span class="field-value">SessionToken (crypto/rand)</span></div>
+          <div class="card-field"><span class="field-label">时间戳</span><span class="field-value">SessionExpiresAt</span></div>
+          <div class="card-field"><span class="field-label">时间窗口</span><span class="field-value">24h 有效期</span></div>
+          <div class="card-field"><span class="field-label">最大存活</span><span class="field-value">24h (滚动续期)</span></div>
+          <div class="card-field"><span class="field-label">过期动作</span><span class="field-value" style="color:#b91c1c">拒绝所有请求 + 需重新注册</span></div>
+          <div class="card-field"><span class="field-label">重放检测</span><span class="field-value">Token 查找 + 过期校验</span></div>
+          <div class="card-field"><span class="field-label">安全级别</span><span class="field-value"><span class="badge badge-critical">关键</span></span></div>
+        </div>
+
+        <!-- ConfigRevision -->
+        <div class="msg-type-card">
+          <div class="card-icon" style="background:linear-gradient(135deg,#faf5ff,#e9d5ff);color:#7c3aed">&#x2699;&#xfe0f;</div>
+          <div class="card-title">ConfigRevision</div>
+          <div class="card-subtitle">配置修订 — 版本下发与生效追踪</div>
+          <div class="card-field"><span class="field-label">Nonce 字段</span><span class="field-value">Revision ID (递增)</span></div>
+          <div class="card-field"><span class="field-label">时间戳</span><span class="field-value">PublishedAt + ActivatedAt</span></div>
+          <div class="card-field"><span class="field-label">时间窗口</span><span class="field-value">发布后 1h 内须激活</span></div>
+          <div class="card-field"><span class="field-label">最大存活</span><span class="field-value">PublishedAt + 1h</span></div>
+          <div class="card-field"><span class="field-label">过期动作</span><span class="field-value" style="color:#92400e">标记未激活 + 告警</span></div>
+          <div class="card-field"><span class="field-label">重放检测</span><span class="field-value">Revision ID 单调递增校验</span></div>
+          <div class="card-field"><span class="field-label">安全级别</span><span class="field-value"><span class="badge badge-medium">中</span></span></div>
+        </div>
+      </div>
+
+      <!-- 执行策略开关 -->
+      <div class="app-panel" style="margin-top:22px">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Enforcement Policy</div>
+            <div class="panel-title">防重放执行策略</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Nonce 唯一性检查</div>
+            <div class="desc">对 InstanceCommand 和 Session 消息强制 nonce 查重，重复 nonce 直接拒绝或返回已有结果</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce" onclick="setMode(this,'enforce')">强制</div>
+            <div class="mode-btn" onclick="setMode(this,'observe')">观察</div>
+            <div class="mode-btn" onclick="setMode(this,'off')">关闭</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">时间戳窗口校验</div>
+            <div class="desc">验证消息时间戳在允许的容忍窗口内，拒绝时钟偏移过大或已过期的消息</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">过期命令自动失效</div>
+            <div class="desc">超过 TimeoutSeconds 的 pending/dispatched 命令自动标记为 FAILED，防止过期命令被执行</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">会话绑定验证</div>
+            <div class="desc">所有消息必须携带有效 SessionToken，过期会话的消息被拒绝，防止跨上下文污染</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">心跳时间回退检测</div>
+            <div class="desc">检测心跳 Timestamp 回退（新心跳时间早于上次），识别可能的重放或时钟篡改</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce" onclick="setMode(this,'enforce')">强制</div>
+            <div class="mode-btn" onclick="setMode(this,'observe')">观察</div>
+            <div class="mode-btn" onclick="setMode(this,'off')">关闭</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">Loop Guard 循环检测</div>
+            <div class="desc">ClawAegis Loop Guard 在 5 分钟窗口内检测超过 3 次的重复 tool 调用，自动拦截循环行为</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">配置修订单调递增校验</div>
+            <div class="desc">ConfigRevision ID 必须单调递增，拒绝回退到旧版本的配置修订请求</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 重放检测                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-detection">
+
+      <!-- 检测率概览 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Replay Detection Overview</div>
+            <div class="panel-title">重放检测概览</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:#8f8681">过去 24 小时</span>
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:24px;align-items:center;margin-bottom:20px">
+          <div class="score-circle score-high" style="width:100px;height:100px;font-size:2rem">98.7<span style="font-size:0.8rem">%</span></div>
+          <div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--text-h);margin-bottom:4px">重放检测率</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.6">
+              24h 内共检测到 <strong style="color:#b91c1c">23</strong> 次重放尝试，全部被成功识别并拦截。<br>
+              其中 nonce 重复 12 次、时间戳过期 8 次、会话无效 3 次。<br>
+              <span style="font-size:12px;color:#8f8681">目标: &ge;99.0% | 当前状态: 接近目标，需持续优化</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-4">
+          <div class="stat-mini" style="border-radius:14px;background:rgba(255,255,255,0.7);border:1px solid #f1e7e1">
+            <div class="value" style="color:var(--text-h)">12,847</div>
+            <div class="label">总消息数</div>
+          </div>
+          <div class="stat-mini" style="border-radius:14px;background:rgba(255,255,255,0.7);border:1px solid #f1e7e1">
+            <div class="value" style="color:#15803d">12,824</div>
+            <div class="label">唯一消息</div>
+          </div>
+          <div class="stat-mini" style="border-radius:14px;background:rgba(255,255,255,0.7);border:1px solid #f1e7e1">
+            <div class="value" style="color:#b91c1c">23</div>
+            <div class="label">重放检测</div>
+          </div>
+          <div class="stat-mini" style="border-radius:14px;background:rgba(255,255,255,0.7);border:1px solid #f1e7e1">
+            <div class="value" style="color:#c2410c">47</div>
+            <div class="label">过期消息</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 重放尝试数据表 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Replay Attempt Log</div>
+            <div class="panel-title">重放尝试记录</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-secondary btn-sm">&#x1f50d; 筛选</button>
+            <button class="btn-secondary btn-sm">&#x1f4be; 导出</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>消息类型</th>
+              <th>Nonce / Key</th>
+              <th>发送方</th>
+              <th>检测原因</th>
+              <th>处置动作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="log-time">2026-05-01 10:23:15</span></td>
+              <td><span class="badge badge-critical">InstanceCommand</span></td>
+              <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">apply-config-rev-42</code></td>
+              <td>agent-prod-03</td>
+              <td><span class="badge badge-blocked">重复 nonce</span></td>
+              <td><span class="badge badge-blocked">已拒绝</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-time">2026-05-01 10:18:42</span></td>
+              <td><span class="badge badge-high">Heartbeat</span></td>
+              <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">ts=1746094722</code></td>
+              <td>agent-dev-07</td>
+              <td><span class="badge badge-observed">时间戳过期</span></td>
+              <td><span class="badge badge-blocked">已拒绝</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-time">2026-05-01 10:12:08</span></td>
+              <td><span class="badge badge-critical">Session</span></td>
+              <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">sess_a3f8c...</code></td>
+              <td>agent-staging-01</td>
+              <td><span class="badge badge-observed">会话无效</span></td>
+              <td><span class="badge badge-blocked">已拒绝</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-time">2026-05-01 09:58:33</span></td>
+              <td><span class="badge badge-critical">InstanceCommand</span></td>
+              <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">install-skill-5-12</code></td>
+              <td>agent-prod-01</td>
+              <td><span class="badge badge-blocked">重复 nonce</span></td>
+              <td><span class="badge badge-blocked">已拒绝</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-time">2026-05-01 09:45:17</span></td>
+              <td><span class="badge badge-medium">ConfigRevision</span></td>
+              <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">rev-38</code></td>
+              <td>orchestrator-02</td>
+              <td><span class="badge badge-observed">时间戳过期</span></td>
+              <td><span class="badge badge-observed">已标记</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-time">2026-05-01 09:30:55</span></td>
+              <td><span class="badge badge-critical">InstanceCommand</span></td>
+              <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">restart-1746094255</code></td>
+              <td>agent-prod-02</td>
+              <td><span class="badge badge-blocked">重复 nonce</span></td>
+              <td><span class="badge badge-blocked">已拒绝</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-time">2026-05-01 09:15:22</span></td>
+              <td><span class="badge badge-high">Heartbeat</span></td>
+              <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">ts=1746093322</code></td>
+              <td>agent-dev-03</td>
+              <td><span class="badge badge-observed">时间戳回退</span></td>
+              <td><span class="badge badge-blocked">已拒绝</span></td>
+            </tr>
+            <tr>
+              <td><span class="log-time">2026-05-01 08:52:41</span></td>
+              <td><span class="badge badge-critical">Session</span></td>
+              <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">sess_7b2e1...</code></td>
+              <td>agent-prod-04</td>
+              <td><span class="badge badge-observed">会话过期</span></td>
+              <td><span class="badge badge-blocked">已拒绝</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Loop Guard 检测记录 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Loop Guard</div>
+            <div class="panel-title">循环行为检测记录</div>
+          </div>
+          <span class="badge badge-sys">ClawAegis</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:14px">
+          Loop Guard 在 5 分钟窗口（TTL=300000ms）内检测到同一 stableArgsKey 被调用超过 3 次时触发拦截。以下为近期触发的循环检测事件：
+        </p>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 10:05:12</span>
+            <span class="badge badge-blocked">循环拦截</span>
+            <span class="badge badge-sys">write</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-dev-05</code> 在 5 分钟内对同一文件执行 <code>write</code> 操作 4 次，超出 ALLOW_COUNT=3 阈值。
+            <div class="log-detail" style="margin-top:8px">
+              sessionKey: sess_c4d8a... | runId: run-2847 | stableArgsKey: write:/etc/openclaw/config.yaml:hash(a3f1)<br>
+              调用次数: 4/3 | 窗口: 10:00:12 - 10:05:12 | 动作: 拦截 + 告警
+            </div>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 09:32:47</span>
+            <span class="badge badge-blocked">循环拦截</span>
+            <span class="badge badge-sys">exec</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-staging-02</code> 在 5 分钟内执行相同 <code>exec</code> 命令 4 次，触发循环检测。
+            <div class="log-detail" style="margin-top:8px">
+              sessionKey: sess_f1a2b... | runId: run-2841 | stableArgsKey: exec:systemctl restart openclaw:hash(7c2e)<br>
+              调用次数: 4/3 | 窗口: 09:27:47 - 09:32:47 | 动作: 拦截 + 告警
+            </div>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 08:48:15</span>
+            <span class="badge badge-observed">观察模式</span>
+            <span class="badge badge-sys">edit</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-01</code> 在 5 分钟内执行 <code>edit</code> 操作 3 次，达到 ALLOW_COUNT 阈值（观察模式，未拦截）。
+            <div class="log-detail" style="margin-top:8px">
+              sessionKey: sess_9e3c1... | runId: run-2835 | stableArgsKey: edit:/var/log/openclaw/audit.log:hash(d5f8)<br>
+              调用次数: 3/3 | 窗口: 08:43:15 - 08:48:15 | 动作: 记录 + 告警（观察模式）
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 检测原因分布 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Detection Breakdown</div>
+            <div class="panel-title">重放检测原因分布</div>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div style="border-radius:14px;background:rgba(255,255,255,0.8);border:1px solid #f1e7e1;padding:16px;text-align:center">
+            <div style="font-size:2rem;font-weight:800;color:#b91c1c">12</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-h);margin:4px 0">重复 Nonce</div>
+            <div class="stat-bar"><div class="stat-bar-fill red" style="width:52%"></div></div>
+            <div style="font-size:11px;color:#8f8681;margin-top:4px">52.2% | IdempotencyKey 查重</div>
+          </div>
+          <div style="border-radius:14px;background:rgba(255,255,255,0.8);border:1px solid #f1e7e1;padding:16px;text-align:center">
+            <div style="font-size:2rem;font-weight:800;color:#c2410c">8</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-h);margin:4px 0">时间戳过期</div>
+            <div class="stat-bar"><div class="stat-bar-fill amber" style="width:35%"></div></div>
+            <div style="font-size:11px;color:#8f8681;margin-top:4px">34.8% | 超出时间窗口</div>
+          </div>
+          <div style="border-radius:14px;background:rgba(255,255,255,0.8);border:1px solid #f1e7e1;padding:16px;text-align:center">
+            <div style="font-size:2rem;font-weight:800;color:#92400e">3</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-h);margin:4px 0">会话无效</div>
+            <div class="stat-bar"><div class="stat-bar-fill amber" style="width:13%"></div></div>
+            <div style="font-size:11px;color:#8f8681;margin-top:4px">13.0% | 过期/不存在 Session</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 时效监控                                                 -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- 实时会话监控 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Real-Time Session Monitor</div>
+            <div class="panel-title">活跃会话时效监控</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:#15803d">&#x25cf; 实时</span>
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+
+        <div style="border-radius:16px;border:1px solid #f1e7e1;overflow:hidden;margin-bottom:16px">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Session Token</th>
+                <th>Agent</th>
+                <th>状态</th>
+                <th>最后心跳</th>
+                <th>距过期</th>
+                <th>心跳年龄</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">sess_a3f8c9...</code></td>
+                <td>agent-prod-01</td>
+                <td><span class="badge badge-online">online</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">3s ago</td>
+                <td><span class="countdown ok">23h 59m 57s</span></td>
+                <td><span class="countdown ok">3s</span></td>
+              </tr>
+              <tr>
+                <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">sess_7b2e1d...</code></td>
+                <td>agent-prod-02</td>
+                <td><span class="badge badge-online">online</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">8s ago</td>
+                <td><span class="countdown ok">23h 59m 52s</span></td>
+                <td><span class="countdown ok">8s</span></td>
+              </tr>
+              <tr>
+                <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">sess_c4d8af...</code></td>
+                <td>agent-dev-05</td>
+                <td><span class="badge badge-stale">stale</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">67s ago</td>
+                <td><span class="countdown ok">23h 58m 53s</span></td>
+                <td><span class="countdown warn">67s</span></td>
+              </tr>
+              <tr>
+                <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">sess_f1a2b3...</code></td>
+                <td>agent-staging-02</td>
+                <td><span class="badge badge-stale">stale</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">89s ago</td>
+                <td><span class="countdown ok">23h 58m 31s</span></td>
+                <td><span class="countdown warn">89s</span></td>
+              </tr>
+              <tr>
+                <td><code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c">sess_9e3c12...</code></td>
+                <td>agent-prod-04</td>
+                <td><span class="badge badge-offline">offline</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">185s ago</td>
+                <td><span class="countdown warn">23h 56m 55s</span></td>
+                <td><span class="countdown critical">185s</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="font-size:12px;color:#8f8681;line-height:1.6">
+          <strong>状态判定规则：</strong>
+          心跳年龄 &le;45s → <span class="badge badge-online" style="font-size:10px">online</span> |
+          &le;120s → <span class="badge badge-stale" style="font-size:10px">stale</span> |
+          &gt;120s → <span class="badge badge-offline" style="font-size:10px">offline</span>
+          &nbsp;&nbsp;|&nbsp;&nbsp;会话过期 = SessionExpiresAt &lt; now → 需重新注册
+        </div>
+      </div>
+
+      <!-- 待处理命令超时监控 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Pending Command Timeout Monitor</div>
+            <div class="panel-title">待处理命令超时倒计时</div>
+          </div>
+          <span class="badge badge-sys">InstanceCommand</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:14px">
+          以下命令处于 pending 或 dispatched 状态，距离超时的时间在持续递减。超时后命令将被自动标记为 FAILED。
+        </p>
+        <div style="border-radius:14px;border:1px solid #f1e7e1;overflow:hidden">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>命令 ID</th>
+                <th>类型</th>
+                <th>IdempotencyKey</th>
+                <th>状态</th>
+                <th>IssuedAt</th>
+                <th>超时阈值</th>
+                <th>剩余时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code style="font-size:11px;font-family:monospace;color:#c2410c">#1847</code></td>
+                <td>apply_config</td>
+                <td><code style="font-size:11px;font-family:monospace;color:#6e6763">apply-config-rev-42</code></td>
+                <td><span class="badge badge-observed">dispatched</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">10:28:00</td>
+                <td style="font-size:12px;font-family:monospace">300s</td>
+                <td><span class="countdown ok">247s</span></td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;font-family:monospace;color:#c2410c">#1846</code></td>
+                <td>install_skill</td>
+                <td><code style="font-size:11px;font-family:monospace;color:#6e6763">install-skill-5-12</code></td>
+                <td><span class="badge badge-observed">dispatched</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">10:25:30</td>
+                <td style="font-size:12px;font-family:monospace">300s</td>
+                <td><span class="countdown warn">97s</span></td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;font-family:monospace;color:#c2410c">#1845</code></td>
+                <td>restart</td>
+                <td><code style="font-size:11px;font-family:monospace;color:#6e6763">restart-1746094255</code></td>
+                <td><span class="badge badge-observed">pending</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">10:23:15</td>
+                <td style="font-size:12px;font-family:monospace">300s</td>
+                <td><span class="countdown critical">12s</span></td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;font-family:monospace;color:#c2410c">#1844</code></td>
+                <td>remove_skill</td>
+                <td><code style="font-size:11px;font-family:monospace;color:#6e6763">remove-skill-5-8</code></td>
+                <td><span class="badge" style="background:#fee2e2;color:#b91c1c">FAILED</span></td>
+                <td style="font-size:12px;font-family:monospace;color:#8f8681">10:18:00</td>
+                <td style="font-size:12px;font-family:monospace">300s</td>
+                <td><span class="countdown critical">-53s</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 心跳陈旧度分布 -->
+      <div class="grid-2">
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Heartbeat Staleness Distribution</div>
+              <div class="panel-title">心跳陈旧度分布</div>
+            </div>
+          </div>
+          <div style="padding:10px 0">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f1ed">
+              <span class="badge badge-online" style="min-width:64px;justify-content:center">online</span>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:4px">&le;45s <span style="color:#8f8681;font-weight:400">(正常)</span></span></div>
+                <div class="stat-bar" style="height:8px"><div class="stat-bar-fill green" style="width:72%"></div></div>
+              </div>
+              <div style="font-size:1.2rem;font-weight:700;color:#15803d;min-width:30px;text-align:right">18</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f1ed">
+              <span class="badge badge-stale" style="min-width:64px;justify-content:center">stale</span>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:4px">45-120s <span style="color:#8f8681;font-weight:400">(陈旧)</span></div>
+                <div class="stat-bar" style="height:8px"><div class="stat-bar-fill amber" style="width:20%"></div></div>
+              </div>
+              <div style="font-size:1.2rem;font-weight:700;color:#92400e;min-width:30px;text-align:right">5</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+              <span class="badge badge-offline" style="min-width:64px;justify-content:center">offline</span>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:4px">&gt;120s <span style="color:#8f8681;font-weight:400">(离线)</span></div>
+                <div class="stat-bar" style="height:8px"><div class="stat-bar-fill red" style="width:8%"></div></div>
+              </div>
+              <div style="font-size:1.2rem;font-weight:700;color:#b91c1c;min-width:30px;text-align:right">2</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#8f8681;margin-top:8px">
+            总计 25 个 Agent | 在线率 72% | 阈值来源: ClawManager instance_agent_service.go
+          </div>
+        </div>
+
+        <!-- 近期过期事件时间线 -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Recent Expiry Events</div>
+              <div class="panel-title">近期过期事件时间线</div>
+            </div>
+          </div>
+          <div style="padding:8px 0">
+            <div class="timeline-item">
+              <div class="timeline-dot red"></div>
+              <div class="timeline-line"></div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h)">命令 #1844 超时失败</div>
+                <div style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 10:23:00 | remove-skill-5-8 | TimeoutSeconds=300</div>
+                <div style="font-size:12px;color:var(--text);margin-top:3px">命令从 IssuedAt 起超过 300s 未完成，自动标记 FAILED</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot amber"></div>
+              <div class="timeline-line"></div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h)">Agent agent-prod-04 进入 offline</div>
+                <div style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 10:19:35 | 心跳年龄 &gt;120s</div>
+                <div style="font-size:12px;color:var(--text);margin-top:3px">最后一次心跳在 120s 前，状态从 stale 转为 offline</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot amber"></div>
+              <div class="timeline-line"></div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h)">Agent agent-dev-05 进入 stale</div>
+                <div style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 10:17:08 | 心跳年龄 &gt;45s</div>
+                <div style="font-size:12px;color:var(--text);margin-top:3px">心跳间隔超过 45s 阈值，状态从 online 降级为 stale</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot red"></div>
+              <div class="timeline-line"></div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h)">配置修订 rev-38 过期未激活</div>
+                <div style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 09:45:17 | PublishedAt +1h 超时</div>
+                <div style="font-size:12px;color:var(--text);margin-top:3px">配置发布后 1 小时内未被 Agent 激活，标记为过期</div>
+              </div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-dot red"></div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:600;color:var(--text-h)">会话 sess_e5d9f2 过期</div>
+                <div style="font-size:11px;color:#8f8681;font-family:monospace">2026-05-01 09:02:33 | SessionExpiresAt 已过</div>
+                <div style="font-size:12px;color:var(--text);margin-top:3px">Agent 长期未发送心跳，24h 会话自然过期，需重新注册</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                     -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Anti-Replay Configuration</div>
+            <div class="panel-title">防重放与时效控制配置</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x21bb; 重置默认</button>
+            <button class="btn-primary btn-sm">&#x1f4be; 保存配置</button>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          以下配置参数控制 Anti-replay 与时效控制的行为。参数值来源于 ClawManager 和 ClawAegis 的实际配置，修改后需重启相关服务生效。
+        </p>
+      </div>
+
+      <!-- Nonce 配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Nonce Settings</div>
+            <div class="panel-title">Nonce 配置</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <div class="config-row">
+          <div class="config-key">Nonce 长度 (自动生成)</div>
+          <div class="config-value">
+            <input type="text" class="form-input" value="自动 (type-unixNano)" style="max-width:260px" readonly>
+            <div class="config-hint">自动生成的 nonce 格式: {commandType}-{unixNano}，手动指定时使用语义化 key</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">Nonce 缓存 TTL</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="24" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">小时</span>
+            </div>
+            <div class="config-hint">已用 nonce 在缓存中的保留时长，建议 &ge; max(commandTimeout)。过短可能导致旧 nonce 被重用</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">IdempotencyKey 查重范围</div>
+          <div class="config-value">
+            <select class="form-input" style="max-width:260px">
+              <option selected>同一 Instance 内</option>
+              <option>全局 (跨 Instance)</option>
+            </select>
+            <div class="config-hint">当前: GetByInstanceIdempotencyKey(instanceID, key)，仅在同一实例内查重</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 时间戳配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Timestamp Settings</div>
+            <div class="panel-title">时间戳校验配置</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <div class="config-row">
+          <div class="config-key">时钟偏移容忍度</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="5" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">秒</span>
+            </div>
+            <div class="config-hint">Agent 与 Server 间允许的最大时钟偏移。超出此范围的消息被拒绝。需配合 NTP 同步</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">命令默认超时 (TimeoutSeconds)</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="300" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">秒</span>
+            </div>
+            <div class="config-hint">InstanceCommand.TimeoutSeconds 默认值。apply-config-revision 和 install-skill 默认 300s</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">心跳间隔</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="15" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">秒</span>
+            </div>
+            <div class="config-hint">AgentHeartbeatResponse.HeartbeatIntervalSeconds = 15s。Agent 应按此间隔发送心跳</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">配置修订激活窗口</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="60" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">分钟</span>
+            </div>
+            <div class="config-hint">ConfigRevision 发布后须在此时间内被 Agent 激活，否则标记为过期</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 会话配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Session Settings</div>
+            <div class="panel-title">会话时效配置</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <div class="config-row">
+          <div class="config-key">会话有效期</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="24" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">小时</span>
+            </div>
+            <div class="config-hint">SessionExpiresAt = RegisterTime + 24h。注册时签发，后续每次心跳滚动续期</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">会话滚动续期</div>
+          <div class="config-value">
+            <label class="toggle-switch">
+              <input type="checkbox" checked>
+              <span class="toggle-slider"></span>
+            </label>
+            <div class="config-hint">每次成功心跳后: newExpiry = now + 24h。关闭后会话将在注册后 24h 硬过期</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">SessionToken 生成方式</div>
+          <div class="config-value">
+            <input type="text" class="form-input" value="crypto/rand + hex.EncodeToString" style="max-width:300px" readonly>
+            <div class="config-hint">使用加密安全随机数生成器生成，确保不可预测</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 心跳陈旧度阈值 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Heartbeat Staleness Thresholds</div>
+            <div class="panel-title">心跳陈旧度阈值配置</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <div class="config-row">
+          <div class="config-key">Online 阈值</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="45" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">秒</span>
+              <span class="badge badge-online" style="margin-left:8px">online</span>
+            </div>
+            <div class="config-hint">age &le;45s → online。来源: instance_agent_service.go case age &lt;= 45*time.Second</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">Stale 阈值</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="120" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">秒</span>
+              <span class="badge badge-stale" style="margin-left:8px">stale</span>
+            </div>
+            <div class="config-hint">age &le;120s → stale。来源: case age &lt;= 120*time.Second</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">Offline 判定</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:13px;color:var(--text)">age &gt; 120s</span>
+              <span class="badge badge-offline" style="margin-left:8px">offline</span>
+            </div>
+            <div class="config-hint">超过 Stale 阈值即判定为 offline。来源: default → agentStatusOffline</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loop Guard 配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Loop Guard Configuration</div>
+            <div class="panel-title">ClawAegis 循环防护配置</div>
+          </div>
+          <span class="badge badge-sys">ClawAegis</span>
+        </div>
+        <div class="config-row">
+          <div class="config-key">LOOP_GUARD_TTL_MS</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="300000" style="max-width:120px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">毫秒 (5 min)</span>
+            </div>
+            <div class="config-hint">循环检测窗口时长。来源: ClawAegis src/config.ts LOOP_GUARD_TTL_MS = 5 * 60_000</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">LOOP_GUARD_ALLOW_COUNT</div>
+          <div class="config-value">
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" class="form-input" value="3" style="max-width:80px;text-align:center">
+              <span style="font-size:13px;color:var(--text)">次</span>
+            </div>
+            <div class="config-hint">TTL 窗口内允许的最大重复调用次数。来源: ClawAegis src/config.ts LOOP_GUARD_ALLOW_COUNT = 3</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">循环检测 Key 格式</div>
+          <div class="config-value">
+            <input type="text" class="form-input" value="sessionKey|runId|stableArgsKey" style="max-width:320px" readonly>
+            <div class="config-hint">stableArgsKey 格式: {tool}:{path}:{hash}。来源: ClawAegis src/rules.ts buildLoopGuardStableArgsKey()</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div class="config-key">监控工具列表</div>
+          <div class="config-value">
+            <div class="tag-list">
+              <span class="tag">write</span>
+              <span class="tag">edit</span>
+              <span class="tag">apply_patch</span>
+              <span class="tag">exec</span>
+              <span class="tag">bash</span>
+              <span class="tag">memory_store</span>
+            </div>
+            <div class="config-hint">来源: ClawAegis src/security-strategies.ts LOOP_GUARD_TOOL_NAMES</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 验收标准检查 -->
+      <div class="app-panel" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#bbf7d0">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria</div>
+            <div class="panel-title">验收标准检查</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">关键消息包含 nonce/时间戳</div>
+            <div class="check-detail">InstanceCommand: IdempotencyKey + IssuedAt | Heartbeat: Timestamp | Session: SessionToken + SessionExpiresAt | ConfigRevision: Revision ID + PublishedAt</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">重放消息被识别和拒绝</div>
+            <div class="check-detail">IdempotencyKey 查重: 重复 key 返回已有命令不重复创建 | SessionToken 校验: 过期/无效会话被拒绝 | Loop Guard: 3次/5min 循环检测拦截</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">过期消息自动失效</div>
+            <div class="check-detail">InstanceCommand: TimeoutSeconds 超时 → FAILED | Heartbeat: age&gt;45s stale, &gt;120s offline | Session: SessionExpiresAt 过期 → 需重新注册 | ConfigRevision: PublishedAt+1h 未激活 → 标记过期</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

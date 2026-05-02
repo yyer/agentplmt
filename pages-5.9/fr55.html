@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr55</title>
+<link rel="stylesheet" href="../css-5.9.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr55">
+
+  <div class="content-area">
+<!-- Acceptance Criteria -->
+<div class="app-panel" style="margin-bottom:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">验收标准</div>
+<div class="panel-title">FR-55 验收标准与承载系统</div>
+</div>
+<div style="display:flex;gap:8px">
+<span class="badge badge-sys">ClawManager</span>
+<span class="badge badge-sys">OpenClaw</span>
+<span class="badge badge-sys">ClawAegis</span>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+<div style="border-radius:14px;border:1px solid #bfdbfe;background:linear-gradient(180deg,#eff6ff,#fff);padding:16px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+<div style="width:28px;height:28px;border-radius:8px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">1</div>
+<span style="font-size:13px;font-weight:700;color:var(--text-h)">预览模式不产生副作用</span>
+</div>
+<div style="font-size:12px;color:var(--text);line-height:1.7">预览阶段禁止任何状态变更、网络副作用或外部调用。所有 InstanceCommand 在预览模式下使用 dry-run 执行，NetworkPolicy 限制 egress 为 DNS+system ports，ClawAegis Dispatch Guard 拦截破坏性命令。</div>
+</div>
+<div style="border-radius:14px;border:1px solid #fed7aa;background:linear-gradient(180deg,#fff7ed,#fff);padding:16px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+<div style="width:28px;height:28px;border-radius:8px;background:#ffedd5;color:#c2410c;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">2</div>
+<span style="font-size:13px;font-weight:700;color:var(--text-h)">执行操作需显式确认</span>
+</div>
+<div style="font-size:12px;color:var(--text);line-height:1.7">InstanceCommand 创建为 pending 状态，必须经过确认门控后才可 dispatched。AI Gateway 在执行前进行风险检测，resolveTargetModel 阻断敏感请求。用户必须明确确认才进入执行流程。</div>
+</div>
+<div style="border-radius:14px;border:1px solid #fecaca;background:linear-gradient(180deg,#fef2f2,#fff);padding:16px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+<div style="width:28px;height:28px;border-radius:8px;background:#fee2e2;color:#b91c1c;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">3</div>
+<span style="font-size:13px;font-weight:700;color:var(--text-h)">预览与执行有明确视觉区分</span>
+</div>
+<div style="font-size:12px;color:var(--text);line-height:1.7">预览界面使用蓝色冷色调、只读指示器、"PREVIEW" 水印；执行界面使用暖色珊瑚色调、确认对话框、影响摘要。两种模式在视觉上有显著差异，防止用户混淆预览与真实执行。</div>
+</div>
+</div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+<div class="tab active" data-tab="tab-arch">分离架构</div>
+<div class="tab" data-tab="tab-rules">预览安全规则</div>
+<div class="tab" data-tab="tab-panel">操作分离面板</div>
+<div class="tab" data-tab="tab-monitor">分离监控</div>
+<div class="tab" data-tab="tab-config">配置</div>
+</div>
+
+<!-- ==================== TAB 1: 分离架构 ==================== -->
+<div class="tab-content active" id="tab-arch">
+
+<div class="app-panel-warm">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Separation Architecture</div>
+<div class="panel-title">预览与执行分离架构</div>
+</div>
+<span class="badge badge-critical">核心隔离</span>
+</div>
+
+<p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+FR-55 的核心原则是将"预览结果"与"真实执行"严格分离。预览模式是一个完全隔离的只读环境，不会产生任何状态变更、网络副作用或外部调用。
+ClawManager 的 InstanceCommand 生命周期 <code>pending &rarr; dispatched &rarr; running &rarr; succeeded/failed</code> 天然提供了确认门控：命令在 <code>pending</code> 状态下仅执行 dry-run 预览，必须经过显式确认后才进入 <code>dispatched</code> 状态并产生实际效果。
+ClawAegis 的 Dispatch Guard 作为 <code>before_dispatch</code> 钩子在 agent 处理前拦截，确保破坏性命令不会意外执行。NetworkPolicy 通过 egress 限制（仅允许 DNS + system ports）防止预览阶段的网络副作用。
+</p>
+
+<!-- Separation Diagram -->
+<div class="separation-diagram">
+<!-- Preview Zone -->
+<div class="sep-zone sep-zone-preview">
+<div style="font-size:14px;font-weight:700;color:#1d4ed8;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+<span style="width:24px;height:24px;border-radius:8px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:12px">&#128065;</span>
+预览模式
+<span class="badge badge-preview" style="margin-left:auto">READ-ONLY</span>
+</div>
+<div class="sep-item">
+<div class="si-label">Dry-Run 执行引擎</div>
+<div class="si-desc">所有 tool call 返回 mock/dry-run 结果，不触发真实操作。InstanceCommand 停留在 <code>pending</code> 状态。</div>
+<span class="si-badge"><span class="preview-indicator pi-safe">安全</span></span>
+</div>
+<div class="sep-item">
+<div class="si-label">只读状态查询</div>
+<div class="si-desc">可查询 InstanceDesiredState、ConfigRevision 等当前状态，但不能修改。DesiredPowerState 和 DesiredConfigRevisionID 为只读视图。</div>
+<span class="si-badge"><span class="preview-indicator pi-safe">安全</span></span>
+</div>
+<div class="sep-item">
+<div class="si-label">网络隔离 (NetworkPolicy)</div>
+<div class="si-desc">Egress 仅允许 DNS(53) + system ports。禁止外部 API 调用、文件下载、数据外传。</div>
+<span class="si-badge"><span class="preview-indicator pi-safe">隔离</span></span>
+</div>
+<div class="sep-item">
+<div class="si-label">无副作用保障</div>
+<div class="si-desc">不修改 Pod 状态、不创建 ConfigRevision、不写入磁盘、不触发外部通知。</div>
+<span class="si-badge"><span class="preview-indicator pi-safe">零副作用</span></span>
+</div>
+<div class="sep-item">
+<div class="si-label">ClawAegis Command Block</div>
+<div class="si-desc">16 个 HIGH_RISK_COMMAND_PATTERNS 在预览模式中被硬拦截，返回风险说明而非执行结果。</div>
+<span class="si-badge"><span class="preview-indicator pi-blocked">拦截</span></span>
+</div>
+</div>
+
+<!-- Divider -->
+<div class="sep-divider">
+<div class="sep-label">STRICT</div>
+<div class="sep-divider-line"></div>
+<div class="sep-divider-icon">&#9888;</div>
+<div class="sep-divider-line"></div>
+<div class="sep-label">WALL</div>
+</div>
+
+<!-- Execute Zone -->
+<div class="sep-zone sep-zone-execute">
+<div style="font-size:14px;font-weight:700;color:#c2410c;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+<span style="width:24px;height:24px;border-radius:8px;background:#ffedd5;color:#c2410c;display:flex;align-items:center;justify-content:center;font-size:12px">&#9888;</span>
+执行模式
+<span class="badge badge-execute" style="margin-left:auto">CONFIRMED</span>
+</div>
+<div class="sep-item">
+<div class="si-label">真实命令派发</div>
+<div class="si-desc">InstanceCommand 从 <code>pending</code> 进入 <code>dispatched</code>，携带 IdempotencyKey、IssuedBy、TimeoutSeconds。</div>
+<span class="si-badge"><span class="preview-indicator pi-confirmed">已确认</span></span>
+</div>
+<div class="sep-item">
+<div class="si-label">状态变更生效</div>
+<div class="si-desc">修改 InstanceDesiredState（DesiredPowerState、DesiredConfigRevisionID），触发实际 Pod 变更。</div>
+<span class="si-badge"><span class="preview-indicator pi-confirmed">生效</span></span>
+</div>
+<div class="sep-item">
+<div class="si-label">网络调用开放</div>
+<div class="si-desc">AI Gateway 风险检测通过后，允许必要的 API 调用。resolveTargetModel 对敏感请求仍保持阻断。</div>
+<span class="si-badge"><span class="preview-indicator pi-confirmed">受控</span></span>
+</div>
+<div class="sep-item">
+<div class="si-label">Dispatch Guard 守卫</div>
+<div class="si-desc">before_dispatch 钩子在 agent 处理前拦截，对破坏性命令进行二次确认或阻断。</div>
+<span class="si-badge"><span class="preview-indicator pi-blocked">守卫</span></span>
+</div>
+<div class="sep-item">
+<div class="si-label">完整审计链</div>
+<div class="si-desc">所有执行操作记录 IssuedBy、IdempotencyKey、确认时间、执行结果。支持全链路回溯。</div>
+<span class="si-badge"><span class="preview-indicator pi-confirmed">审计</span></span>
+</div>
+</div>
+</div>
+
+<!-- Command Confirmation Gate -->
+<div class="app-panel" style="margin-top:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Command Confirmation Gate</div>
+<div class="panel-title">ClawManager 命令确认门控流程</div>
+</div>
+<span class="badge badge-sys">ClawManager</span>
+</div>
+<div class="flow-diagram" style="justify-content:center">
+<div class="flow-step step-info">
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;color:#1d4ed8">Step 1</div>
+命令创建<br><code style="font-size:10px;background:#dbeafe;padding:1px 6px;border-radius:4px">pending</code>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">IdempotencyKey 生成<br>IssuedBy 记录<br>TimeoutSeconds 设定</div>
+</div>
+<div class="flow-arrow">&rarr;</div>
+<div class="flow-step step-info">
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;color:#1d4ed8">Step 2</div>
+预览执行<br><span style="font-size:10px;background:#dbeafe;padding:1px 6px;border-radius:4px;color:#1d4ed8">DRY-RUN</span>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">只读模式<br>无副作用<br>返回预期结果</div>
+</div>
+<div class="flow-arrow">&rarr;</div>
+<div class="flow-step step-warn">
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;color:#92400e">Step 3</div>
+AI 风险检测<br><span style="font-size:10px;background:#fef3c7;padding:1px 6px;border-radius:4px;color:#92400e">GATE</span>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">AI Gateway 检测<br>resolveTargetModel<br>风险评估</div>
+</div>
+<div class="flow-arrow">&rarr;</div>
+<div class="flow-step step-accent">
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;color:#b91c1c">Step 4</div>
+显式确认<br><span style="font-size:10px;background:#fee2e2;padding:1px 6px;border-radius:4px;color:#b91c1c">CONFIRM</span>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">用户确认操作<br>影响摘要展示<br>不可逆操作警告</div>
+</div>
+<div class="flow-arrow">&rarr;</div>
+<div class="flow-step step-accent">
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;color:#b91c1c">Step 5</div>
+Dispatch Guard<br><span style="font-size:10px;background:#fee2e2;padding:1px 6px;border-radius:4px;color:#b91c1c">GUARD</span>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">before_dispatch 钩子<br>破坏性命令拦截<br>二次校验</div>
+</div>
+<div class="flow-arrow">&rarr;</div>
+<div class="flow-step step-success">
+<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;color:#065f46">Step 6</div>
+命令派发<br><code style="font-size:10px;background:#d1fae5;padding:1px 6px;border-radius:4px">dispatched</code>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">状态: running<br>实际执行<br>结果: succeeded/failed</div>
+</div>
+</div>
+</div>
+
+<!-- NetworkPolicy for Preview -->
+<div class="network-policies">
+<div class="panel-header" style="margin-bottom:12px">
+<div>
+<div class="panel-eyebrow">NetworkPolicy Enforcement</div>
+<div class="panel-title">预览模式网络策略 &mdash; 防止网络副作用</div>
+</div>
+<span class="badge badge-sys">NetworkPolicy</span>
+</div>
+<div style="font-size:12px;color:var(--text);margin-bottom:12px;line-height:1.7">
+在预览模式下，ClawManager NetworkPolicy 严格限制 egress 流量，仅允许 DNS 解析和系统内部端口通信。这确保预览阶段不会产生任何外部 API 调用、数据外传或其他网络副作用。所有出站请求（除 DNS + system ports 外）在预览模式被 NetworkPolicy 拦截。
+</div>
+<div class="np-rule">
+<span class="np-direction np-egress">Egress</span>
+<span style="color:var(--text-h);font-weight:600">DNS Resolution</span>
+<span class="np-port">:53</span>
+<span style="font-size:11px;color:var(--text)">UDP/TCP 域名解析</span>
+<span class="np-action np-allow">ALLOW</span>
+</div>
+<div class="np-rule">
+<span class="np-direction np-egress">Egress</span>
+<span style="color:var(--text-h);font-weight:600">System Internal</span>
+<span class="np-port">:8080 :8443</span>
+<span style="font-size:11px;color:var(--text)">ClawManager/OpenClaw 内部通信</span>
+<span class="np-action np-allow">ALLOW</span>
+</div>
+<div class="np-rule">
+<span class="np-direction np-egress">Egress</span>
+<span style="color:var(--text-h);font-weight:600">External API Calls</span>
+<span class="np-port">:443 :80</span>
+<span style="font-size:11px;color:var(--text)">第三方 API、外部服务</span>
+<span class="np-action np-deny">DENY (预览)</span>
+</div>
+<div class="np-rule">
+<span class="np-direction np-egress">Egress</span>
+<span style="color:var(--text-h);font-weight:600">Data Export</span>
+<span class="np-port">:*</span>
+<span style="font-size:11px;color:var(--text)">数据外传、文件上传</span>
+<span class="np-action np-deny">DENY (预览)</span>
+</div>
+<div class="np-rule">
+<span class="np-direction np-egress">Egress</span>
+<span style="color:var(--text-h);font-weight:600">Notification Push</span>
+<span class="np-port">:*</span>
+<span style="font-size:11px;color:var(--text)">Webhook、Slack、邮件通知</span>
+<span class="np-action np-deny">DENY (预览)</span>
+</div>
+</div>
+
+<!-- Preview Safety Checklist -->
+<div class="app-panel" style="margin-top:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Preview Safety Checklist</div>
+<div class="panel-title">预览安全检查清单</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">无 Pod 变更</div>
+<div class="check-id">PS-001</div>
+<div class="check-detail">预览模式不会修改任何 Pod 规格、副本数或调度策略。InstanceDesiredState 的 DesiredPowerState 变更仅在执行确认后生效。</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">无 ConfigRevision 创建</div>
+<div class="check-id">PS-002</div>
+<div class="check-detail">预览模式不会创建新的 ConfigRevision。DesiredConfigRevisionID 变更仅在执行确认后写入。apply_config_revision 命令在预览中返回 dry-run 结果。</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">无网络 Egress</div>
+<div class="check-id">PS-003</div>
+<div class="check-detail">NetworkPolicy 在预览模式下仅允许 DNS(53) 和 system ports(8080/8443)。所有外部 API 调用、数据外传被拒绝，防止网络副作用。</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">无文件系统写入</div>
+<div class="check-id">PS-004</div>
+<div class="check-detail">预览模式下所有文件写入操作被重定向为 dry-run 模拟，不会修改磁盘上的任何配置文件、日志文件或临时文件。</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">无 InstanceCommand 状态推进</div>
+<div class="check-id">PS-005</div>
+<div class="check-detail">预览模式下 InstanceCommand 保持在 pending 状态，不会推进到 dispatched/running。IdempotencyKey 仅用于去重校验，不触发实际执行。</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">无外部通知触发</div>
+<div class="check-id">PS-006</div>
+<div class="check-detail">预览模式不会发送任何 Webhook、Slack 通知、邮件或告警。所有通知系统在预览阶段被静默，避免产生外部可观测效应。</div>
+</div>
+</div>
+</div>
+
+<!-- InstanceCommand Lifecycle -->
+<div class="app-panel" style="margin-top:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">InstanceCommand Lifecycle</div>
+<div class="panel-title">命令生命周期与确认门控</div>
+</div>
+<span class="badge badge-sys">ClawManager</span>
+</div>
+<p style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:16px">
+InstanceCommand 的生命周期天然支持预览/执行分离：命令创建时处于 <code>pending</code> 状态，此时仅执行 dry-run 预览。用户确认后，命令通过 Dispatch Guard 检查进入 <code>dispatched</code> 状态，然后转为 <code>running</code> 执行实际操作，最终达到 <code>succeeded</code> 或 <code>failed</code> 终态。每个命令携带 IdempotencyKey（幂等键）防止重复执行，IssuedBy 记录操作者身份，TimeoutSeconds 确保执行不会无限期挂起。
+</p>
+<div class="flow-diagram" style="justify-content:center">
+<div class="flow-step" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#93c5fd;color:#1d4ed8">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.1em;margin-bottom:2px">PREVIEW</div>
+<code>pending</code>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">Dry-Run Only<br>Read-Only Queries<br>No Side-Effects</div>
+</div>
+<div class="flow-arrow" style="font-size:24px;color:#f59e0b">&#10227;</div>
+<div class="flow-step step-warn">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.1em;margin-bottom:2px">GATE</div>
+显式确认
+<div style="font-size:10px;color:#6b7280;margin-top:4px">User Confirm<br>AI Risk Check<br>Dispatch Guard</div>
+</div>
+<div class="flow-arrow">&rarr;</div>
+<div class="flow-step step-accent">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.1em;margin-bottom:2px">EXECUTE</div>
+<code>dispatched</code>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">State Change<br>Network Open<br>Real Execution</div>
+</div>
+<div class="flow-arrow">&rarr;</div>
+<div class="flow-step" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#fbbf24;color:#92400e">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.1em;margin-bottom:2px">RUNNING</div>
+<code>running</code>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">In Progress<br>TimeoutSeconds<br>Monitoring</div>
+</div>
+<div class="flow-arrow">&rarr;</div>
+<div class="flow-step step-success">
+<div style="font-size:10px;font-weight:700;letter-spacing:0.1em;margin-bottom:2px">DONE</div>
+<code>succeeded/failed</code>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">IdempotencyKey<br>Audit Complete<br>Result Recorded</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- ==================== TAB 2: 预览安全规则 ==================== -->
+<div class="tab-content" id="tab-rules">
+
+<div class="app-panel-warm">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Preview Safety Rules</div>
+<div class="panel-title">预览安全规则引擎</div>
+</div>
+<span class="badge badge-enforce">强制执行</span>
+</div>
+<p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+预览安全规则定义了预览模式下的完整隔离策略。每条规则包含触发条件（condition）、检测方法（detection）和阻断动作（action），确保预览阶段不产生任何副作用。
+ClawAegis Dispatch Guard 作为 before_dispatch 钩子在 agent 处理前拦截，16 个 HIGH_RISK_COMMAND_PATTERNS 在预览模式中被硬拦截。NetworkPolicy 通过 egress 限制防止网络副作用。
+</p>
+
+<!-- Rule Cards -->
+<div class="rule-card" style="border-left:4px solid #1d4ed8">
+<div class="rule-header">
+<div>
+<span class="rule-flag" style="color:#1d4ed8">RULE-PSM-001</span>
+<span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">无状态变更</span>
+</div>
+<div style="display:flex;gap:6px">
+<span class="badge badge-critical">关键</span>
+<span class="badge badge-enforce">强制</span>
+</div>
+</div>
+<div class="rule-desc">预览模式不能修改任何 InstanceDesiredState（包括 DesiredPowerState、DesiredConfigRevisionID），不能创建或更新 ConfigRevision，不能推进 InstanceCommand 状态。所有状态变更操作在预览模式下返回 dry-run 模拟结果。</div>
+<div style="margin-top:10px;border-radius:10px;background:#faf7f4;padding:12px 16px">
+<div style="font-size:11px;font-weight:700;color:#b46c50;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">规则详情</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px">
+<div><strong style="color:var(--text-h)">条件 (Condition)</strong><br>预览模式下任何对 InstanceDesiredState、ConfigRevision、InstanceCommand 的写操作</div>
+<div><strong style="color:var(--text-h)">检测 (Detection)</strong><br>监控 InstanceCommand 状态变更事件、DesiredState 修改 API 调用、ConfigRevision 创建记录</div>
+<div><strong style="color:var(--text-h)">动作 (Action)</strong><br>将写操作重定向为 dry-run 模拟，返回预期结果但不持久化。记录违规尝试到审计日志。</div>
+</div>
+</div>
+<div class="rule-patterns">
+<span class="rule-pattern">InstanceDesiredState.Write</span>
+<span class="rule-pattern">DesiredPowerState.Update</span>
+<span class="rule-pattern">DesiredConfigRevisionID.Set</span>
+<span class="rule-pattern">ConfigRevision.Create</span>
+<span class="rule-pattern">InstanceCommand.Status.Advance</span>
+</div>
+</div>
+
+<div class="rule-card" style="border-left:4px solid #f59e0b">
+<div class="rule-header">
+<div>
+<span class="rule-flag" style="color:#f59e0b">RULE-PNS-002</span>
+<span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">无网络副作用</span>
+</div>
+<div style="display:flex;gap:6px">
+<span class="badge badge-critical">关键</span>
+<span class="badge badge-enforce">强制</span>
+</div>
+</div>
+<div class="rule-desc">预览模式必须不触发任何外部 API 调用。NetworkPolicy 在预览模式下强制执行 egress 限制，仅允许 DNS(53) 和系统内部端口(8080/8443)。任何外部 API 调用、数据外传、Webhook 触发在预览阶段被严格阻断。AI Gateway 的 resolveTargetModel 在预览模式下对敏感请求返回阻断说明而非转发。</div>
+<div style="margin-top:10px;border-radius:10px;background:#faf7f4;padding:12px 16px">
+<div style="font-size:11px;font-weight:700;color:#b46c50;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">规则详情</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px">
+<div><strong style="color:var(--text-h)">条件 (Condition)</strong><br>预览模式下任何到非 DNS/system port 的出站网络请求</div>
+<div><strong style="color:var(--text-h)">检测 (Detection)</strong><br>NetworkPolicy egress 规则匹配、网络连接审计、外部 API 调用拦截日志</div>
+<div><strong style="color:var(--text-h)">动作 (Action)</strong><br>NetworkPolicy 拒绝连接。记录阻断事件。返回网络不可达模拟结果，不暴露阻断细节给 agent。</div>
+</div>
+</div>
+<div class="rule-patterns">
+<span class="rule-pattern">Egress.DNS.Only</span>
+<span class="rule-pattern">SystemPorts.8080.8443</span>
+<span class="rule-pattern">ExternalAPI.Blocked</span>
+<span class="rule-pattern">Webhook.Blocked</span>
+<span class="rule-pattern">DataExport.Blocked</span>
+</div>
+</div>
+
+<div class="rule-card" style="border-left:4px solid #ef4444">
+<div class="rule-header">
+<div>
+<span class="rule-flag" style="color:#ef4444">RULE-PFS-003</span>
+<span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">无文件系统变更</span>
+</div>
+<div style="display:flex;gap:6px">
+<span class="badge badge-high">高</span>
+<span class="badge badge-enforce">强制</span>
+</div>
+</div>
+<div class="rule-desc">预览模式不能写入磁盘或修改任何配置文件。所有文件写入操作（包括配置文件更新、临时文件创建、日志文件追加）在预览模式下被重定向到内存缓冲区或返回 dry-run 模拟结果。磁盘 I/O 监控确保无实际写入发生。</div>
+<div style="margin-top:10px;border-radius:10px;background:#faf7f4;padding:12px 16px">
+<div style="font-size:11px;font-weight:700;color:#b46c50;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">规则详情</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px">
+<div><strong style="color:var(--text-h)">条件 (Condition)</strong><br>预览模式下任何文件写入、创建、修改、删除操作</div>
+<div><strong style="color:var(--text-h)">检测 (Detection)</strong><br>文件系统 I/O 监控、KubeArmor 文件访问规则、inotify 事件审计</div>
+<div><strong style="color:var(--text-h)">动作 (Action)</strong><br>文件写入重定向到内存缓冲区。返回操作成功的 dry-run 模拟。记录所有写入尝试。</div>
+</div>
+</div>
+<div class="rule-patterns">
+<span class="rule-pattern">FileWrite.Redirect</span>
+<span class="rule-pattern">ConfigUpdate.DryRun</span>
+<span class="rule-pattern">TempFile.InMemory</span>
+<span class="rule-pattern">LogAppend.Buffer</span>
+</div>
+</div>
+
+<div class="rule-card" style="border-left:4px solid #8b5cf6">
+<div class="rule-header">
+<div>
+<span class="rule-flag" style="color:#8b5cf6">RULE-PRO-004</span>
+<span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">只读执行</span>
+</div>
+<div style="display:flex;gap:6px">
+<span class="badge badge-high">高</span>
+<span class="badge badge-enforce">强制</span>
+</div>
+</div>
+<div class="rule-desc">预览模式下所有 tool call 返回 mock/dry-run 结果，不触发真实操作。包括 OpenClaw agent 的工具调用、ClawManager 的 API 请求、外部服务集成。每个工具调用的返回值被标记为 <code>dry_run: true</code>，并与真实执行结果在视觉上区分。</div>
+<div style="margin-top:10px;border-radius:10px;background:#faf7f4;padding:12px 16px">
+<div style="font-size:11px;font-weight:700;color:#b46c50;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px">规则详情</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px">
+<div><strong style="color:var(--text-h)">条件 (Condition)</strong><br>预览模式下所有 tool call 和 API 请求</div>
+<div><strong style="color:var(--text-h)">检测 (Detection)</strong><br>Tool call 执行上下文检查、API 请求模式匹配、dry_run 标记验证</div>
+<div><strong style="color:var(--text-h)">动作 (Action)</strong><br>返回 mock 结果，标记 <code>dry_run: true</code>。确保返回值格式与真实执行一致，但内容为模拟数据。</div>
+</div>
+</div>
+<div class="rule-patterns">
+<span class="rule-pattern">ToolCall.Mock</span>
+<span class="rule-pattern">APIRequest.DryRun</span>
+<span class="rule-pattern">AgentExecution.ReadOnly</span>
+<span class="rule-pattern">dry_run:true</span>
+</div>
+</div>
+
+<!-- Toggle Rows -->
+<div class="app-panel" style="margin-top:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Policy Controls</div>
+<div class="panel-title">预览分离策略控制</div>
+</div>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">强制预览分离</div>
+<div class="desc">启用后，所有操作必须先经过预览模式，禁止跳过预览直接执行。预览通过后才可进入确认流程。</div>
+</div>
+<div class="mode-selector">
+<div class="mode-btn active-enforce">强制</div>
+<div class="mode-btn">观察</div>
+<div class="mode-btn">关闭</div>
+</div>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">预览模式阻断网络调用</div>
+<div class="desc">在预览模式下，NetworkPolicy 强制拒绝所有非 DNS/system port 的出站连接，防止网络副作用。</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">要求显式执行确认</div>
+<div class="desc">所有执行操作必须经过用户显式确认。InstanceCommand 从 pending 到 dispatched 必须经过确认门控。</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">Dispatch Guard 预览拦截</div>
+<div class="desc">ClawAegis Dispatch Guard 在 before_dispatch 钩子中拦截预览阶段的破坏性命令尝试。</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">文件系统写入重定向</div>
+<div class="desc">预览模式下所有文件写入操作重定向到内存缓冲区，不产生实际磁盘 I/O。</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">AI Gateway 预览风险检测</div>
+<div class="desc">AI Gateway 在预览阶段进行风险检测，resolveTargetModel 对敏感请求返回风险说明而非转发。</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+</div>
+
+<!-- HIGH_RISK_COMMAND_PATTERNS -->
+<div class="app-panel" style="margin-top:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">HIGH_RISK_COMMAND_PATTERNS</div>
+<div class="panel-title">ClawAegis Command Block &mdash; 预览模式硬拦截模式</div>
+</div>
+<div style="display:flex;gap:8px">
+<span class="badge badge-critical">16 模式</span>
+<span class="badge badge-blocked">始终拦截</span>
+</div>
+</div>
+<p style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:14px">
+以下 16 个高风险命令模式在 ClawAegis Command Block 中定义，在预览模式中始终被硬拦截。无论用户权限如何，这些命令在预览模式下不会执行，仅返回风险说明和影响预估。这些模式在执行模式下也需要经过 Dispatch Guard 的额外确认。
+</p>
+<div class="high-risk-grid">
+<div class="high-risk-item">rm -rf /</div>
+<div class="high-risk-item">DROP DATABASE</div>
+<div class="high-risk-item">DELETE FROM *</div>
+<div class="high-risk-item">format /</div>
+<div class="high-risk-item">shutdown -h now</div>
+<div class="high-risk-item">reboot</div>
+<div class="high-risk-item">iptables -F</div>
+<div class="high-risk-item">chmod 777</div>
+<div class="high-risk-item">kubectl delete ns</div>
+<div class="high-risk-item">docker rm -f $(docker ps -aq)</div>
+<div class="high-risk-item">:(){ :|:& };:</div>
+<div class="high-risk-item">dd if=/dev/zero of=/dev/sda</div>
+<div class="high-risk-item">mv / /* /dev/null</div>
+<div class="high-risk-item">crontab -r</div>
+<div class="high-risk-item">service * stop</div>
+<div class="high-risk-item">pkill -9 *</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- ==================== TAB 3: 操作分离面板 ==================== -->
+<div class="tab-content" id="tab-panel">
+
+<div class="app-panel-warm">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Operation Separation Panel</div>
+<div class="panel-title">操作分离面板 &mdash; 预览 vs 执行交互演示</div>
+</div>
+<div style="display:flex;gap:8px">
+<span class="badge badge-preview">预览</span>
+<span class="badge badge-execute">执行</span>
+</div>
+</div>
+<p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+操作分离面板展示预览模式与执行模式的视觉区分和交互差异。预览模式使用蓝色冷色调、只读指示器和"PREVIEW"水印；执行模式使用暖色珊瑚色调、确认对话框和影响摘要。
+17 种 InstanceCommand 类型被分为三组：预览安全命令（可在预览中完整模拟）、需确认命令（预览后需显式确认才可执行）、预览阻断命令（在预览中返回风险说明而非执行）。
+</p>
+
+<!-- Visual Demo -->
+<div class="visual-demo">
+<div class="vis-panel vis-panel-preview" data-watermark="PREVIEW">
+<div class="vp-title" style="color:#1d4ed8">
+<span style="width:20px;height:20px;border-radius:6px;background:#dbeafe;color:#1d4ed8;display:inline-flex;align-items:center;justify-content:center;font-size:10px;margin-right:6px">&#128065;</span>
+预览模式 &mdash; 只读安全
+</div>
+<div class="vp-content">
+<div style="margin-bottom:12px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.8);border:1px solid #bfdbfe">
+<div style="font-weight:600;color:#1d4ed8;margin-bottom:4px">&#128274; 只读模式已启用</div>
+<div style="color:var(--text)">所有操作以 dry-run 模式执行，不产生任何副作用。结果仅供预览，不反映实际状态变更。</div>
+</div>
+<div style="padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.8);border:1px solid #bfdbfe;margin-bottom:8px">
+<div style="font-weight:600;color:#1d4ed8">&#128270; 命令预览: health_check</div>
+<div style="color:var(--text);margin-top:4px;font-family:monospace;font-size:11px">Status: <span style="color:#1d4ed8">dry_run=true</span><br>Result: Instance healthy (simulated)<br>Side-Effects: <span style="color:#059669">NONE</span></div>
+</div>
+<div style="padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.8);border:1px solid #fecaca">
+<div style="font-weight:600;color:#b91c1c">&#128683; 命令拦截: stop_openclaw</div>
+<div style="color:var(--text);margin-top:4px;font-family:monospace;font-size:11px">Status: <span style="color:#b91c1c">BLOCKED_IN_PREVIEW</span><br>Reason: Destructive command requires explicit confirmation<br>Preview Result: Operation would stop OpenClaw instance</div>
+</div>
+<div style="margin-top:10px">
+<span class="vis-lock">&#128274; Read-Only</span>
+<span class="vis-lock" style="margin-left:12px">&#128274; No Network</span>
+<span class="vis-lock" style="margin-left:12px">&#128274; No Side-Effects</span>
+</div>
+</div>
+</div>
+
+<div class="vis-panel vis-panel-execute" data-watermark="LIVE EXECUTION">
+<div class="vp-title" style="color:#c2410c">
+<span style="width:20px;height:20px;border-radius:6px;background:#ffedd5;color:#c2410c;display:inline-flex;align-items:center;justify-content:center;font-size:10px;margin-right:6px">&#9888;</span>
+执行模式 &mdash; 确认后生效
+</div>
+<div class="vp-content">
+<div class="confirmation-dialog" style="margin:0 0 12px;padding:16px;max-width:100%">
+<div class="cd-header">
+<div class="cd-icon">&#9888;</div>
+<div>
+<div class="cd-title" style="font-size:13px">确认执行: stop_openclaw</div>
+<div class="cd-subtitle">此操作不可逆，请仔细审核影响摘要</div>
+</div>
+</div>
+<div class="cd-impact" style="margin-bottom:12px">
+<div class="cd-impact-title">影响摘要</div>
+<div class="cd-impact-item"><div class="cd-impact-dot" style="background:#dc2626"></div>OpenClaw 实例将停止运行</div>
+<div class="cd-impact-item"><div class="cd-impact-dot" style="background:#f59e0b"></div>所有关联 Skill 将中断</div>
+<div class="cd-impact-item"><div class="cd-impact-dot" style="background:#f59e0b"></div>进行中的任务将丢失</div>
+<div class="cd-impact-item"><div class="cd-impact-dot" style="background:#059669"></div>IdempotencyKey: cmd-a7f3e2b1</div>
+</div>
+<div class="cd-actions" style="justify-content:flex-start">
+<button class="btn-secondary btn-sm">取消</button>
+<button class="btn-danger btn-sm">确认执行</button>
+</div>
+</div>
+<div style="margin-top:10px">
+<span class="vis-unlock">&#128275; State Changes</span>
+<span class="vis-unlock" style="margin-left:12px">&#128275; Network Open</span>
+<span class="vis-unlock" style="margin-left:12px">&#128275; Audited</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Command Type Classification -->
+<div class="app-panel" style="margin-top:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">InstanceCommand Classification</div>
+<div class="panel-title">17 种命令类型分组 &mdash; 预览安全 / 需确认 / 预览阻断</div>
+</div>
+<span class="badge badge-sys">ClawManager</span>
+</div>
+
+<div class="cmd-group">
+<div class="cg-title">&#128994; 预览安全命令 &mdash; 可在预览中完整模拟（只读查询类）</div>
+<div style="padding:10px 14px">
+<span class="cmd-tag ct-safe">&#128270; health_check</span>
+<span class="cmd-tag ct-safe">&#128270; collect_system_info</span>
+<span class="cmd-tag ct-safe">&#128270; get_instance_status</span>
+<span class="cmd-tag ct-safe">&#128270; list_skills</span>
+<span class="cmd-tag ct-safe">&#128270; get_config_revision</span>
+<span class="cmd-tag ct-safe">&#128270; get_audit_log</span>
+</div>
+<div style="font-size:11px;color:var(--text);margin-top:4px;padding:0 14px">这些命令仅执行只读查询，不修改任何状态，在预览模式下返回完全一致的结果。无需额外确认。</div>
+</div>
+
+<div class="cmd-group">
+<div class="cg-title">&#128992; 需确认命令 &mdash; 预览后需显式确认才可执行</div>
+<div style="padding:10px 14px">
+<span class="cmd-tag ct-confirm">&#9888; start_openclaw</span>
+<span class="cmd-tag ct-confirm">&#9888; restart_openclaw</span>
+<span class="cmd-tag ct-confirm">&#9888; update_skill_config</span>
+<span class="cmd-tag ct-confirm">&#9888; reload_configuration</span>
+<span class="cmd-tag ct-confirm">&#9888; scale_instance</span>
+<span class="cmd-tag ct-confirm">&#9888; update_network_policy</span>
+<span class="cmd-tag ct-confirm">&#9888; enable_skill</span>
+<span class="cmd-tag ct-confirm">&#9888; disable_skill</span>
+</div>
+<div style="font-size:11px;color:var(--text);margin-top:4px;padding:0 14px">这些命令会产生状态变更，但变更可逆。预览模式返回 dry-run 模拟结果，执行需要用户显式确认。InstanceCommand 从 pending 到 dispatched 需经确认门控。</div>
+</div>
+
+<div class="cmd-group">
+<div class="cg-title">&#128308; 预览阻断命令 &mdash; 在预览中返回风险说明而非执行</div>
+<div style="padding:10px 14px">
+<span class="cmd-tag ct-blocked">&#128683; stop_openclaw</span>
+<span class="cmd-tag ct-blocked">&#128683; quarantine_skill</span>
+<span class="cmd-tag ct-blocked">&#128683; apply_config_revision</span>
+<span class="cmd-tag ct-blocked">&#128683; delete_instance</span>
+</div>
+<div style="font-size:11px;color:var(--text);margin-top:4px;padding:0 14px">这些命令产生不可逆变更或高风险操作。预览模式不执行模拟，仅返回风险说明和预估影响。执行需要双重确认（AI Gateway + 用户确认 + Dispatch Guard）。</div>
+</div>
+</div>
+
+<!-- Operations Data Table -->
+<div class="app-panel" style="margin-top:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Operation Registry</div>
+<div class="panel-title">操作分离注册表</div>
+</div>
+</div>
+<div class="filter-bar">
+<select class="filter-select"><option>全部类型</option><option>预览安全</option><option>需确认</option><option>预览阻断</option></select>
+<select class="filter-select"><option>全部状态</option><option>可用</option><option>受限</option><option>阻断</option></select>
+</div>
+<table class="data-table">
+<thead>
+<tr><th>操作</th><th>类型</th><th>预览可用</th><th>需要确认</th><th>副作用</th><th>状态</th></tr>
+</thead>
+<tbody>
+<tr><td><code>health_check</code></td><td><span class="badge badge-low">只读</span></td><td><span class="badge badge-allowed">完整</span></td><td><span style="color:#8f8681">否</span></td><td><span class="badge badge-allowed">无</span></td><td><span class="badge badge-allowed">可用</span></td></tr>
+<tr><td><code>collect_system_info</code></td><td><span class="badge badge-low">只读</span></td><td><span class="badge badge-allowed">完整</span></td><td><span style="color:#8f8681">否</span></td><td><span class="badge badge-allowed">无</span></td><td><span class="badge badge-allowed">可用</span></td></tr>
+<tr><td><code>get_instance_status</code></td><td><span class="badge badge-low">只读</span></td><td><span class="badge badge-allowed">完整</span></td><td><span style="color:#8f8681">否</span></td><td><span class="badge badge-allowed">无</span></td><td><span class="badge badge-allowed">可用</span></td></tr>
+<tr><td><code>list_skills</code></td><td><span class="badge badge-low">只读</span></td><td><span class="badge badge-allowed">完整</span></td><td><span style="color:#8f8681">否</span></td><td><span class="badge badge-allowed">无</span></td><td><span class="badge badge-allowed">可用</span></td></tr>
+<tr><td><code>get_config_revision</code></td><td><span class="badge badge-low">只读</span></td><td><span class="badge badge-allowed">完整</span></td><td><span style="color:#8f8681">否</span></td><td><span class="badge badge-allowed">无</span></td><td><span class="badge badge-allowed">可用</span></td></tr>
+<tr><td><code>get_audit_log</code></td><td><span class="badge badge-low">只读</span></td><td><span class="badge badge-allowed">完整</span></td><td><span style="color:#8f8681">否</span></td><td><span class="badge badge-allowed">无</span></td><td><span class="badge badge-allowed">可用</span></td></tr>
+<tr><td><code>start_openclaw</code></td><td><span class="badge badge-medium">变更</span></td><td><span class="badge badge-dryrun">Dry-Run</span></td><td><span style="color:#92400e;font-weight:600">是</span></td><td><span class="badge badge-observed">DesiredPowerState</span></td><td><span class="badge badge-pending">受限</span></td></tr>
+<tr><td><code>restart_openclaw</code></td><td><span class="badge badge-medium">变更</span></td><td><span class="badge badge-dryrun">Dry-Run</span></td><td><span style="color:#92400e;font-weight:600">是</span></td><td><span class="badge badge-observed">服务中断</span></td><td><span class="badge badge-pending">受限</span></td></tr>
+<tr><td><code>update_skill_config</code></td><td><span class="badge badge-medium">变更</span></td><td><span class="badge badge-dryrun">Dry-Run</span></td><td><span style="color:#92400e;font-weight:600">是</span></td><td><span class="badge badge-observed">ConfigRevision</span></td><td><span class="badge badge-pending">受限</span></td></tr>
+<tr><td><code>reload_configuration</code></td><td><span class="badge badge-medium">变更</span></td><td><span class="badge badge-dryrun">Dry-Run</span></td><td><span style="color:#92400e;font-weight:600">是</span></td><td><span class="badge badge-observed">配置重载</span></td><td><span class="badge badge-pending">受限</span></td></tr>
+<tr><td><code>scale_instance</code></td><td><span class="badge badge-medium">变更</span></td><td><span class="badge badge-dryrun">Dry-Run</span></td><td><span style="color:#92400e;font-weight:600">是</span></td><td><span class="badge badge-observed">副本数变更</span></td><td><span class="badge badge-pending">受限</span></td></tr>
+<tr><td><code>stop_openclaw</code></td><td><span class="badge badge-critical">破坏</span></td><td><span class="badge badge-blocked">阻断</span></td><td><span style="color:#b91c1c;font-weight:600">双重</span></td><td><span class="badge badge-blocked">服务停止</span></td><td><span class="badge badge-rejected">阻断</span></td></tr>
+<tr><td><code>quarantine_skill</code></td><td><span class="badge badge-critical">破坏</span></td><td><span class="badge badge-blocked">阻断</span></td><td><span style="color:#b91c1c;font-weight:600">双重</span></td><td><span class="badge badge-blocked">技能隔离</span></td><td><span class="badge badge-rejected">阻断</span></td></tr>
+<tr><td><code>apply_config_revision</code></td><td><span class="badge badge-critical">破坏</span></td><td><span class="badge badge-blocked">阻断</span></td><td><span style="color:#b91c1c;font-weight:600">双重</span></td><td><span class="badge badge-blocked">配置生效</span></td><td><span class="badge badge-rejected">阻断</span></td></tr>
+<tr><td><code>delete_instance</code></td><td><span class="badge badge-critical">破坏</span></td><td><span class="badge badge-blocked">阻断</span></td><td><span style="color:#b91c1c;font-weight:600">双重</span></td><td><span class="badge badge-blocked">实例删除</span></td><td><span class="badge badge-rejected">阻断</span></td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+</div>
+
+<!-- ==================== TAB 4: 分离监控 ==================== -->
+<div class="tab-content" id="tab-monitor">
+
+<div class="app-panel-warm">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Separation Monitoring</div>
+<div class="panel-title">预览/执行分离合规监控</div>
+</div>
+<div style="display:flex;align-items:center;gap:16px">
+<div class="score-circle score-high" style="width:80px;height:80px;border-width:3px">
+<div class="score-num" style="font-size:1.4rem">97</div>
+<div class="score-label">合规分</div>
+</div>
+</div>
+</div>
+<p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+实时监控预览/执行分离的合规状态。评分基于预览安全性（无副作用违反次数）、确认合规性（未经确认执行的次数）和视觉区分度（预览/执行混淆次数）。当前合规分 97/100，反映系统在分离执行上的高标准。唯一扣分来自 1 次预览阶段网络调用尝试被及时阻断。
+</p>
+
+<!-- Stats Row -->
+<div class="sep-stat-row">
+<div class="sep-stat ss-preview">
+<div class="ss-value" style="color:#1d4ed8">1,247</div>
+<div class="ss-label">预览请求</div>
+</div>
+<div class="sep-stat ss-exec">
+<div class="ss-value" style="color:#c2410c">389</div>
+<div class="ss-label">确认执行</div>
+</div>
+<div class="sep-stat ss-blocked">
+<div class="ss-value" style="color:#dc2626">23</div>
+<div class="ss-label">阻断副作用</div>
+</div>
+<div class="sep-stat ss-violation">
+<div class="ss-value" style="color:#f59e0b">1</div>
+<div class="ss-label">分离违规</div>
+</div>
+</div>
+
+<!-- Detailed Stats -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px">
+<div class="app-panel">
+<div class="panel-eyebrow">Preview Metrics</div>
+<div class="panel-title">预览模式指标</div>
+<div style="margin-top:14px">
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">Dry-Run 成功完成</span>
+<span style="font-weight:700;color:#059669">1,218</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">预览阻断（高风险命令）</span>
+<span style="font-weight:700;color:#dc2626">23</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">网络调用阻断</span>
+<span style="font-weight:700;color:#f59e0b">4</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">文件写入重定向</span>
+<span style="font-weight:700;color:#1d4ed8">7</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">状态变更模拟</span>
+<span style="font-weight:700;color:#8b5cf6">156</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px">
+<span style="color:var(--text)">平均预览耗时</span>
+<span style="font-weight:700;color:var(--text-h)">47ms</span>
+</div>
+</div>
+</div>
+<div class="app-panel">
+<div class="panel-eyebrow">Execution Metrics</div>
+<div class="panel-title">执行模式指标</div>
+<div style="margin-top:14px">
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">用户确认执行</span>
+<span style="font-weight:700;color:#059669">389</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">Dispatch Guard 放行</span>
+<span style="font-weight:700;color:#059669">382</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">Dispatch Guard 拦截</span>
+<span style="font-weight:700;color:#dc2626">7</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">AI Gateway 风险检测</span>
+<span style="font-weight:700;color:#f59e0b">42</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f1ed;font-size:13px">
+<span style="color:var(--text)">IdempotencyKey 去重触发</span>
+<span style="font-weight:700;color:#8b5cf6">3</span>
+</div>
+<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px">
+<span style="color:var(--text)">平均确认耗时</span>
+<span style="font-weight:700;color:var(--text-h)">12.3s</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Compliance Checks -->
+<div class="app-panel" style="margin-bottom:22px">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Compliance Status</div>
+<div class="panel-title">分离合规检查</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">预览模式无副作用</div>
+<div class="check-id">AC-1</div>
+<div class="check-detail">过去 24 小时内预览模式未产生任何状态变更、网络副作用或文件系统写入。所有 1,247 次预览请求均以 dry-run 或只读方式完成。</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">执行操作显式确认</div>
+<div class="check-id">AC-2</div>
+<div class="check-detail">过去 24 小时内所有 389 次执行操作均经过用户显式确认。InstanceCommand 从 pending 到 dispatched 均通过确认门控。IdempotencyKey 正常工作。</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon pass">&#10003;</div>
+<div class="check-info">
+<div class="check-name">预览/执行视觉区分</div>
+<div class="check-id">AC-3</div>
+<div class="check-detail">预览界面使用蓝色冷色调 + "PREVIEW" 水印 + 只读指示器；执行界面使用暖色珊瑚色调 + 确认对话框 + 影响摘要。用户混淆事件：0 次。</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-icon warn">!</div>
+<div class="check-info">
+<div class="check-name">分离违规事件</div>
+<div class="check-id">AC-4</div>
+<div class="check-detail">过去 24 小时内检测到 1 次分离违规：预览模式中一次外部 API 调用尝试被 NetworkPolicy 及时阻断，未产生实际副作用。根因：agent 未正确标记 dry-run 上下文。</div>
+</div>
+</div>
+</div>
+
+<!-- Logs -->
+<div class="app-panel">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Separation Log</div>
+<div class="panel-title">分离执行日志</div>
+</div>
+<div class="filter-bar" style="margin-bottom:0">
+<select class="filter-select"><option>全部类型</option><option>预览完成</option><option>执行确认</option><option>副作用阻断</option><option>违规事件</option></select>
+<select class="filter-select"><option>最近 24h</option><option>最近 7d</option><option>最近 30d</option></select>
+</div>
+</div>
+
+<div class="log-entry">
+<div class="log-header">
+<span class="log-time">2026-05-01 14:32:18</span>
+<span class="log-id">PSV-0042</span>
+<span class="badge badge-preview">预览完成</span>
+<span class="badge badge-allowed">无副作用</span>
+</div>
+<div class="log-body">预览模式完成命令 <code>health_check</code>，dry-run 执行成功。InstanceCommand ID: <code>cmd-a7f3e2b1</code>，状态保持 <code>pending</code>，未产生任何状态变更或网络副作用。预览结果显示实例健康。</div>
+<div class="log-chain">
+<span class="log-chain-step">pending</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">dry-run</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">preview_ok</span>
+</div>
+</div>
+
+<div class="log-entry">
+<div class="log-header">
+<span class="log-time">2026-05-01 14:28:05</span>
+<span class="log-id">EXE-0138</span>
+<span class="badge badge-execute">执行确认</span>
+<span class="badge badge-approved">已确认</span>
+</div>
+<div class="log-body">用户确认执行 <code>update_skill_config</code>。InstanceCommand 从 <code>pending</code> 进入 <code>dispatched</code>。IssuedBy: <code>admin@claw.io</code>，IdempotencyKey: <code>idem-8c2d1f4a</code>，TimeoutSeconds: 300。AI Gateway 风险检测通过，Dispatch Guard 放行。</div>
+<div class="log-chain">
+<span class="log-chain-step">pending</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">ai_gateway_ok</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">user_confirm</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">dispatch_guard_ok</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">dispatched</span>
+</div>
+</div>
+
+<div class="log-entry" style="border-left:3px solid #dc2626">
+<div class="log-header">
+<span class="log-time">2026-05-01 13:15:42</span>
+<span class="log-id">VIO-0001</span>
+<span class="badge badge-sideeffect">副作用违规</span>
+<span class="badge badge-blocked">已阻断</span>
+</div>
+<div class="log-body">检测到预览模式中的副作用违规：agent 在预览上下文中尝试外部 API 调用（目标: <code>api.external-service.io:443</code>）。NetworkPolicy egress 规则已阻断该连接，未产生实际副作用。根因分析：agent 未正确传递 dry-run 上下文标识。</div>
+<div class="log-detail">InstanceCommand: cmd-b3e7f9c2 | Agent: openclaw-agent-v2 | Context: preview<br>Attempted: GET https://api.external-service.io/v1/status<br>NetworkPolicy: DENY (egress :443 not in allowed list)<br>Resolution: Agent context propagation fix deployed (PR #412)</div>
+<div class="log-chain">
+<span class="log-chain-step">preview</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca">api_attempt</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca">network_deny</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">violation_logged</span>
+</div>
+</div>
+
+<div class="log-entry" style="border-left:3px solid #f59e0b">
+<div class="log-header">
+<span class="log-time">2026-05-01 12:45:30</span>
+<span class="log-id">DG-0089</span>
+<span class="badge badge-execute">Dispatch Guard</span>
+<span class="badge badge-blocked">拦截</span>
+</div>
+<div class="log-body">Dispatch Guard 在预览模式中拦截破坏性命令 <code>stop_openclaw</code>。before_dispatch 钩子触发，命令未到达 agent 处理层。返回风险说明：<code>"stop_openclaw 将停止 OpenClaw 实例并中断所有关联 Skill。此命令需要显式确认后才能执行。"</code></div>
+<div class="log-chain">
+<span class="log-chain-step">preview</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step" style="background:#fef3c7;color:#92400e;border-color:#fde68a">before_dispatch</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca">blocked</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">risk_description</span>
+</div>
+</div>
+
+<div class="log-entry" style="border-left:3px solid #f59e0b">
+<div class="log-header">
+<span class="log-time">2026-05-01 11:22:17</span>
+<span class="log-id">NP-0031</span>
+<span class="badge badge-preview">网络阻断</span>
+<span class="badge badge-blocked">预览保护</span>
+</div>
+<div class="log-body">预览模式中网络调用尝试被阻断。Agent 尝试在预览阶段发起 Webhook 通知调用（目标: <code>hooks.slack.com:443</code>）。NetworkPolicy egress 规则拒绝该连接。此为预期行为，预览模式下所有外部通知被静默。Agent 返回通知成功的 dry-run 模拟结果。</div>
+<div class="log-chain">
+<span class="log-chain-step">preview</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step" style="background:#fef3c7;color:#92400e;border-color:#fde68a">webhook_attempt</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca">network_deny</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">dry_run_simulated</span>
+</div>
+</div>
+
+<div class="log-entry">
+<div class="log-header">
+<span class="log-time">2026-05-01 10:05:44</span>
+<span class="log-id">PSV-0041</span>
+<span class="badge badge-preview">预览完成</span>
+<span class="badge badge-allowed">无副作用</span>
+</div>
+<div class="log-body">预览模式完成命令 <code>collect_system_info</code>，dry-run 执行成功。收集到系统信息：CPU 使用率 42%，内存使用率 68%，磁盘使用率 55%。所有查询为只读操作，未产生任何副作用。InstanceCommand 保持 <code>pending</code> 状态。</div>
+<div class="log-chain">
+<span class="log-chain-step">pending</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">dry-run</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">read_only_query</span>
+<span class="log-chain-arrow">&rarr;</span>
+<span class="log-chain-step">preview_ok</span>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<!-- ==================== TAB 5: 配置 ==================== -->
+<div class="tab-content" id="tab-config">
+
+<div class="app-panel-warm">
+<div class="panel-header">
+<div>
+<div class="panel-eyebrow">Configuration</div>
+<div class="panel-title">预览/执行分离配置</div>
+</div>
+<div style="display:flex;gap:8px">
+<button class="btn-primary btn-sm">保存配置</button>
+<button class="btn-secondary btn-sm">重置默认</button>
+</div>
+</div>
+
+<div class="config-grid">
+
+<!-- Preview Mode Settings -->
+<div class="config-section">
+<div class="cs-title">预览模式设置</div>
+<div class="form-group">
+<label class="form-label">默认模式</label>
+<select class="form-select" style="width:100%">
+<option selected>预览优先（所有操作先预览）</option>
+<option>快速执行（低风险操作直接执行）</option>
+<option>严格预览（所有操作必须预览）</option>
+</select>
+<div class="form-hint">建议使用"预览优先"模式，所有操作默认先进入预览阶段</div>
+</div>
+<div class="form-group">
+<label class="form-label">预览超时时间</label>
+<input type="text" class="form-input" value="30s" placeholder="例如: 30s, 1m">
+<div class="form-hint">单个预览操作的最大执行时间，超时自动取消</div>
+</div>
+<div class="form-group">
+<label class="form-label">最大预览持续时间</label>
+<input type="text" class="form-input" value="5m" placeholder="例如: 5m, 10m">
+<div class="form-hint">预览会话的最大持续时间，超时后预览结果失效</div>
+</div>
+<div class="form-group">
+<label class="form-label">Dry-Run 结果缓存</label>
+<select class="form-select" style="width:100%">
+<option selected>启用（相同参数复用预览结果）</option>
+<option>禁用（每次预览重新执行）</option>
+</select>
+<div class="form-hint">启用后，相同参数的预览操作将复用之前的 dry-run 结果，减少重复计算</div>
+</div>
+<div class="form-group">
+<label class="form-label">预览结果保留时间</label>
+<input type="text" class="form-input" value="24h" placeholder="例如: 12h, 24h, 48h">
+<div class="form-hint">预览结果在缓存中的保留时间，过期后需要重新预览</div>
+</div>
+</div>
+
+<!-- Execution Confirmation Settings -->
+<div class="config-section">
+<div class="cs-title">执行确认要求</div>
+<div class="form-group">
+<label class="form-label">只读命令确认</label>
+<select class="form-select" style="width:100%">
+<option selected>无需确认</option>
+<option>隐式确认</option>
+<option>显式确认</option>
+</select>
+<div class="form-hint">health_check、collect_system_info 等只读命令的确认要求</div>
+</div>
+<div class="form-group">
+<label class="form-label">变更命令确认</label>
+<select class="form-select" style="width:100%">
+<option>无需确认</option>
+<option>隐式确认</option>
+<option selected>显式确认</option>
+</select>
+<div class="form-hint">start_openclaw、update_skill_config 等变更命令的确认要求</div>
+</div>
+<div class="form-group">
+<label class="form-label">破坏性命令确认</label>
+<select class="form-select" style="width:100%">
+<option>显式确认</option>
+<option selected>双重确认（AI Gateway + 用户）</option>
+<option>三重确认（AI Gateway + 用户 + Dispatch Guard）</option>
+</select>
+<div class="form-hint">stop_openclaw、quarantine_skill 等破坏性命令的确认要求</div>
+</div>
+<div class="form-group">
+<label class="form-label">确认超时时间</label>
+<input type="text" class="form-input" value="5m" placeholder="例如: 2m, 5m, 10m">
+<div class="form-hint">等待用户确认的最大时间，超时后命令自动取消并回到 pending 状态</div>
+</div>
+<div class="form-group">
+<label class="form-label">TimeoutSeconds 默认值</label>
+<input type="text" class="form-input" value="300" placeholder="例如: 120, 300, 600">
+<div class="form-hint">InstanceCommand 的 TimeoutSeconds 默认值，执行超时后命令标记为 failed</div>
+</div>
+</div>
+
+<!-- Side-Effect Detection Rules -->
+<div class="config-section">
+<div class="cs-title">副作用检测规则</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">状态变更检测</div>
+<div class="desc">监控 InstanceDesiredState、ConfigRevision 的写操作</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">网络调用检测</div>
+<div class="desc">监控预览模式下的出站网络连接尝试</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">文件写入检测</div>
+<div class="desc">监控预览模式下的磁盘写入操作</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">通知触发检测</div>
+<div class="desc">监控预览模式下的 Webhook/Slack/邮件通知尝试</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">InstanceCommand 状态推进检测</div>
+<div class="desc">监控预览模式下 pending 到 dispatched 的非法状态推进</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="form-group" style="margin-top:14px">
+<label class="form-label">违规自动处理</label>
+<select class="form-select" style="width:100%">
+<option>仅记录</option>
+<option selected>记录并阻断</option>
+<option>记录、阻断并告警</option>
+<option>记录、阻断、告警并暂停预览权限</option>
+</select>
+<div class="form-hint">检测到分离违规时的自动处理策略</div>
+</div>
+</div>
+
+<!-- NetworkPolicy Preview Restrictions -->
+<div class="config-section">
+<div class="cs-title">NetworkPolicy 预览限制</div>
+<div class="form-group">
+<label class="form-label">允许的 Egress 端口（预览模式）</label>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+<span class="tag">:53 DNS <span style="color:#059669">&#10003;</span></span>
+<span class="tag">:8080 Internal <span style="color:#059669">&#10003;</span></span>
+<span class="tag">:8443 Internal <span style="color:#059669">&#10003;</span></span>
+</div>
+<div class="form-hint">预览模式下仅允许这些端口的出站连接</div>
+</div>
+<div class="form-group">
+<label class="form-label">阻断的 Egress 目标（预览模式）</label>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+<span class="tag" style="border-color:#fecaca;background:#fef2f2">:443 External API <span style="color:#dc2626">&#10007;</span></span>
+<span class="tag" style="border-color:#fecaca;background:#fef2f2">:80 HTTP <span style="color:#dc2626">&#10007;</span></span>
+<span class="tag" style="border-color:#fecaca;background:#fef2f2">:* Webhook <span style="color:#dc2626">&#10007;</span></span>
+<span class="tag" style="border-color:#fecaca;background:#fef2f2">:* Data Export <span style="color:#dc2626">&#10007;</span></span>
+</div>
+<div class="form-hint">预览模式下这些出站连接将被 NetworkPolicy 拒绝</div>
+</div>
+<div class="form-group">
+<label class="form-label">NetworkPolicy 执行模式</label>
+<select class="form-select" style="width:100%">
+<option selected>强制执行（阻断并记录）</option>
+<option>观察模式（仅记录不阻断）</option>
+<option>宽松模式（仅对高风险目标阻断）</option>
+</select>
+<div class="form-hint">建议使用"强制执行"模式，确保预览阶段零网络副作用</div>
+</div>
+</div>
+
+<!-- High-Risk Command Patterns -->
+<div class="config-section" style="grid-column:1/-1">
+<div class="cs-title">高风险命令模式 &mdash; ClawAegis Command Block (16 patterns)</div>
+<p style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:14px">
+以下 16 个 HIGH_RISK_COMMAND_PATTERNS 在预览模式中始终被拦截。在执行模式下，这些命令需要经过 Dispatch Guard 的额外确认。您可以配置每个模式的拦截策略和确认要求。
+</p>
+<table class="data-table">
+<thead>
+<tr><th>模式</th><th>风险等级</th><th>预览行为</th><th>执行要求</th><th>自定义消息</th></tr>
+</thead>
+<tbody>
+<tr><td><code>rm -rf /</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>递归删除根目录，将导致系统不可用</td></tr>
+<tr><td><code>DROP DATABASE</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>删除整个数据库，数据不可恢复</td></tr>
+<tr><td><code>DELETE FROM *</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>删除表中所有数据，不可逆操作</td></tr>
+<tr><td><code>format /</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>格式化磁盘，所有数据将丢失</td></tr>
+<tr><td><code>shutdown -h now</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>立即关闭系统</td></tr>
+<tr><td><code>reboot</code></td><td><span class="badge badge-high">高</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>双重确认</td><td>重启系统，所有运行中进程将中断</td></tr>
+<tr><td><code>iptables -F</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>清除所有防火墙规则，安全暴露</td></tr>
+<tr><td><code>chmod 777</code></td><td><span class="badge badge-high">高</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>双重确认</td><td>设置完全开放权限，安全风险极高</td></tr>
+<tr><td><code>kubectl delete ns</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>删除命名空间及其中所有资源</td></tr>
+<tr><td><code>docker rm -f $(docker ps -aq)</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>强制删除所有容器</td></tr>
+<tr><td><code>:(){ :|:& };:</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>Fork 炸弹，将耗尽系统资源</td></tr>
+<tr><td><code>dd if=/dev/zero of=/dev/sda</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>用零覆盖磁盘，数据完全损毁</td></tr>
+<tr><td><code>mv / /* /dev/null</code></td><td><span class="badge badge-critical">致命</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>三重确认</td><td>将所有文件移至 /dev/null，数据永久丢失</td></tr>
+<tr><td><code>crontab -r</code></td><td><span class="badge badge-high">高</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>双重确认</td><td>删除所有定时任务</td></tr>
+<tr><td><code>service * stop</code></td><td><span class="badge badge-high">高</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>双重确认</td><td>停止系统服务</td></tr>
+<tr><td><code>pkill -9 *</code></td><td><span class="badge badge-high">高</span></td><td><span class="badge badge-blocked">硬拦截</span></td><td>双重确认</td><td>强制终止所有匹配进程</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- Auto-Block Rules -->
+<div class="config-section">
+<div class="cs-title">自动阻断规则</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">预览模式自动阻断破坏性命令</div>
+<div class="desc">预览模式下自动拦截所有 HIGH_RISK_COMMAND_PATTERNS</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">预览模式自动阻断网络调用</div>
+<div class="desc">预览模式下 NetworkPolicy 自动拒绝非白名单 egress</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">预览模式自动阻断文件写入</div>
+<div class="desc">预览模式下所有文件写入自动重定向到内存</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">未确认命令自动超时取消</div>
+<div class="desc">超过确认超时时间的 InstanceCommand 自动取消</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">IdempotencyKey 重复检测</div>
+<div class="desc">相同 IdempotencyKey 的命令自动去重，防止重复执行</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+</div>
+
+<!-- Visual Distinction Settings -->
+<div class="config-section">
+<div class="cs-title">视觉区分设置</div>
+<div class="form-group">
+<label class="form-label">预览模式主色调</label>
+<div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+<div style="width:32px;height:32px;border-radius:8px;background:#3b82f6;border:2px solid #93c5fd"></div>
+<span style="font-size:12px;font-family:monospace;color:var(--text)">#3b82f6 (蓝色冷色调)</span>
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">执行模式主色调</label>
+<div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+<div style="width:32px;height:32px;border-radius:8px;background:#ef6b4a;border:2px solid #fdba74"></div>
+<span style="font-size:12px;font-family:monospace;color:var(--text)">#ef6b4a (珊瑚暖色调)</span>
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">预览水印文字</label>
+<input type="text" class="form-input" value="PREVIEW">
+<div class="form-hint">显示在预览界面背景中的水印文字</div>
+</div>
+<div class="form-group">
+<label class="form-label">执行水印文字</label>
+<input type="text" class="form-input" value="LIVE EXECUTION">
+<div class="form-hint">显示在执行界面背景中的水印文字</div>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">预览模式只读图标</div>
+<div class="desc">在预览界面显示锁图标和"只读"标签</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">执行确认对话框</div>
+<div class="desc">执行前弹出包含影响摘要的确认对话框</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+<div class="toggle-row">
+<div class="toggle-label">
+<div class="name">Dry-Run 结果标记</div>
+<div class="desc">预览结果标记 dry_run: true 标识，使用蓝色边框</div>
+</div>
+<label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

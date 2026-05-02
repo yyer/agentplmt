@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr48</title>
+<link rel="stylesheet" href="../css-5.7.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr48">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="consensus-arch">共识架构</div>
+      <div class="tab" data-tab="consensus-rules">共识规则</div>
+      <div class="tab" data-tab="review-queue">复核队列</div>
+      <div class="tab" data-tab="consensus-audit">共识审计</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 共识架构                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-consensus-arch">
+
+      <!-- Panel 1: 共识流程架构图 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Consensus Architecture</div>
+            <div class="panel-title">多智能体共识决策流程</div>
+          </div>
+          <span class="badge badge-sys">OpenClaw + ClawManager</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px;line-height:1.7">对高风险决策引入多 Agent 复核、规则引擎复核或人工确认，避免单一 Agent 的错误被直接扩散为系统级行为。当 ClawManager 风险规则引擎检测到 <code>require_approval</code> 动作时，自动触发共识流程；ClawAegis 防护模块（Dispatch Guard / Loop Guard / Exfiltration Guard）的拦截结果可作为复核输入。</p>
+
+        <!-- Flow Diagram -->
+        <div class="flow-diagram">
+          <div class="flow-step">单 Agent<br>决策发起</div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-warn">风险评估<br><code style="font-size:10px">RiskRule</code></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-accent">需要共识?<br><code style="font-size:10px">High/Critical</code></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-info">多 Agent<br>复核</div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-warn">规则引擎<br>校验</div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-accent">人工审批<br><code style="font-size:10px">Critical</code></div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-step step-success">最终决策<br>执行</div>
+        </div>
+
+        <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap">
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fef3c7;display:inline-block"></span> 风险评估</div>
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fee2e2;display:inline-block"></span> 共识触发</div>
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#dbeafe;display:inline-block"></span> 多 Agent 复核</div>
+          <div style="font-size:11px;color:#8f8681;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#d1fae5;display:inline-block"></span> 最终决策</div>
+        </div>
+      </div>
+
+      <!-- Panel 2: 三种共识模式 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Consensus Modes</div>
+            <div class="panel-title">三种共识模式</div>
+          </div>
+          <span class="badge badge-sys">3 种模式</span>
+        </div>
+
+        <div class="consensus-modes">
+          <!-- Mode 1: Multi-Agent Review -->
+          <div class="mode-card">
+            <div class="mode-icon" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1d4ed8">&#x1f465;</div>
+            <div class="mode-title">多 Agent 复核 (N-of-M)</div>
+            <div class="mode-desc">高风险决策需要 N 个独立 Agent 中的 M 个批准方可执行。每个复核 Agent 独立评估决策内容，避免群体思维。当 N-of-M 阈值满足时自动放行，否则进入下一级审批。</div>
+            <div class="mode-detail">
+              阈值: 2-of-3 (默认)<br>
+              超时: 300s &rarr; 自动升级<br>
+              适用: <code>stop_openclaw</code>, <code>quarantine_skill</code>, <code>handle_skill_risk</code>
+            </div>
+          </div>
+
+          <!-- Mode 2: Rule Engine Veto -->
+          <div class="mode-card">
+            <div class="mode-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e">&#x2696;&#xfe0f;</div>
+            <div class="mode-title">规则引擎否决</div>
+            <div class="mode-desc">基于 ClawManager RiskRule 的自动规则检查。当 <code>HighestAction</code> 为 <code>require_approval</code> 或 <code>block</code> 时，规则引擎自动否决单 Agent 决策。支持正则匹配模式，自动推导 <code>HighestSeverity</code> 和 <code>HighestAction</code>。</div>
+            <div class="mode-detail">
+              规则: Pattern (regex)<br>
+              动作: allow / route_secure_model / block / require_approval<br>
+              Severities: low &lt; medium &lt; high<br>
+              require_approval = block (等效)
+            </div>
+          </div>
+
+          <!-- Mode 3: Human-in-the-Loop -->
+          <div class="mode-card">
+            <div class="mode-icon" style="background:linear-gradient(135deg,#fee2e2,#fecaca);color:#b91c1c">&#x1f464;</div>
+            <div class="mode-title">人工确认 (Human-in-the-Loop)</div>
+            <div class="mode-desc">关键决策（如安全策略变更、金融操作、大规模批量操作）必须经过人工确认。系统在达到人工确认超时后，根据配置的回退动作处理（拒绝/升级/允许）。审批记录完整保留审计轨迹。</div>
+            <div class="mode-detail">
+              超时: 1800s (30min)<br>
+              回退: reject (默认)<br>
+              适用: 安全策略变更 / 金融操作 / 批量操作
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: 与现有系统集成 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">System Integration</div>
+            <div class="panel-title">与现有系统集成关系</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- ClawManager -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f3e2; ClawManager 集成</div>
+            <div class="check-item">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info">
+                <div class="check-name">RiskRule 规则引擎</div>
+                <div class="check-detail">Pattern (regex) 匹配文本内容，Severity (low/medium/high) 推导最高风险，Action (allow/route_secure_model/block/require_approval) 决定处置方式。<code>require_approval</code> 自动触发共识流程。</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info">
+                <div class="check-name">AI Gateway resolveTargetModel</div>
+                <div class="check-detail">非敏感&rarr;allow；<code>require_approval</code> 或 <code>block</code>&rarr;阻止请求；敏感且安全模型&rarr;allow；敏感且非安全&rarr;路由到安全模型或阻止。</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info">
+                <div class="check-name">InstanceCommand IssuedBy</div>
+                <div class="check-detail">17 种命令类型（start/stop/restart_openclaw, quarantine_skill, handle_skill_risk 等），<code>IssuedBy</code> 字段追踪命令发起者，支持共识审批链路追踪。</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ClawAegis -->
+          <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#x1f6e1;&#xfe0f; ClawAegis 集成</div>
+            <div class="check-item">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info">
+                <div class="check-name">Dispatch Guard (4 模式组)</div>
+                <div class="check-detail">检测破坏性命令（rm -rf /, mkfs, dd）和绕过尝试（base64, hex, xxd 编码混淆），拦截结果作为复核输入，增强共识决策的准确性。</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info">
+                <div class="check-name">Loop Guard (循环检测)</div>
+                <div class="check-detail">检测重复工具调用和 Fork Bomb 等资源耗尽型攻击，当检测到循环行为时自动触发共识复核，防止单 Agent 陷入循环后扩散。</div>
+              </div>
+            </div>
+            <div class="check-item">
+              <div class="check-icon pass">&#x2713;</div>
+              <div class="check-info">
+                <div class="check-name">Exfiltration Guard (4 链决策)</div>
+                <div class="check-detail">4 层链式决策机制，含 <code>runtimeRiskFlags</code> 运行时风险标记，检测 curl/wget/nc 等外泄行为，拦截结果作为共识复核的辅助判断依据。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: 验收标准 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria</div>
+            <div class="panel-title">验收标准</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">AC-1: 高风险决策支持多 Agent 复核</div>
+            <div class="check-detail">高风险命令（stop_openclaw, quarantine_skill, handle_skill_risk）和 RiskRule require_approval 触发的决策，必须经过 N-of-M 多 Agent 复核流程。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">AC-2: 复核结果可覆盖单 Agent 决策</div>
+            <div class="check-detail">规则引擎否决（require_approval = block）、多 Agent 复核拒绝、人工否决均可覆盖单 Agent 的原始决策，防止单一 Agent 的错误被直接扩散为系统级行为。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">AC-3: 共识流程可审计</div>
+            <div class="check-detail">完整的审计轨迹：谁发起&rarr;谁复核&rarr;如何决定&rarr;何时执行。包含 InstanceCommand IssuedBy 追踪、RiskRule 匹配记录、复核审批记录、超时升级记录。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 共识规则                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-consensus-rules">
+
+      <!-- Global Toggle -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Consensus Enforcement</div>
+            <div class="panel-title">共识强制执行模式</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用共识强制执行</div>
+            <div class="desc">开启后，高风险决策必须经过共识复核方可执行；关闭后仅记录日志不拦截。建议生产环境启用 Enforce 模式。</div>
+          </div>
+          <div style="display:flex;align-items:center">
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+              <div class="mode-btn" data-mode="observe">Observe</div>
+              <div class="mode-btn" data-mode="off">Off</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule Cards -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Consensus Rules</div>
+            <div class="panel-title">共识触发规则</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">+ 新增规则</button>
+          </div>
+        </div>
+
+        <!-- Rule 1: High-Risk Commands -->
+        <div class="rule-card">
+          <div class="rule-header">
+            <div>
+              <span class="badge badge-critical">CRITICAL</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">高风险命令</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-enforce">Enforce</span>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="rule-desc">涉及删除、停止、隔离等不可逆操作的 InstanceCommand 命令类型，需要多 Agent 复核确认后方可执行。基于 ClawManager InstanceCommand 的 17 种命令类型分类。</div>
+          <div style="margin-top:10px;font-size:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:6px">
+              <div><span style="color:#8f8681">触发条件:</span> <code>command_type</code> in [stop_openclaw, quarantine_skill, handle_skill_risk, uninstall_skill, remove_skill]</div>
+              <div><span style="color:#8f8681">共识类型:</span> 多 Agent 复核 (N-of-M)</div>
+              <div><span style="color:#8f8681">所需审批:</span> 2-of-3 Agent 批准</div>
+              <div><span style="color:#8f8681">超时/回退:</span> 300s / reject</div>
+            </div>
+          </div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">stop_openclaw</span>
+            <span class="rule-pattern">quarantine_skill</span>
+            <span class="rule-pattern">handle_skill_risk</span>
+            <span class="rule-pattern">uninstall_skill</span>
+            <span class="rule-pattern">remove_skill</span>
+          </div>
+        </div>
+
+        <!-- Rule 2: Sensitive Data Access -->
+        <div class="rule-card">
+          <div class="rule-header">
+            <div>
+              <span class="badge badge-high">HIGH</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">敏感数据访问</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-enforce">Enforce</span>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="rule-desc">导出或读取敏感数据时，触发 ClawManager RiskRule 的 <code>require_approval</code> 动作，需要人工审批或规则引擎自动路由到安全模型。对应 AI Gateway 的 resolveTargetModel 决策路径。</div>
+          <div style="margin-top:10px;font-size:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:6px">
+              <div><span style="color:#8f8681">触发条件:</span> RiskRule <code>HighestAction</code> = <code>require_approval</code></div>
+              <div><span style="color:#8f8681">共识类型:</span> 规则引擎否决 + 人工审批</div>
+              <div><span style="color:#8f8681">所需审批:</span> 1 位管理员确认</div>
+              <div><span style="color:#8f8681">超时/回退:</span> 600s / route_secure_model</div>
+            </div>
+          </div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">require_approval</span>
+            <span class="rule-pattern">route_secure_model</span>
+            <span class="rule-pattern">IsSensitive=true</span>
+            <span class="rule-pattern">!IsSecure</span>
+          </div>
+        </div>
+
+        <!-- Rule 3: Large-Scale Changes -->
+        <div class="rule-card">
+          <div class="rule-header">
+            <div>
+              <span class="badge badge-high">HIGH</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">大规模变更</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-enforce">Enforce</span>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="rule-desc">批量操作（如批量重启实例、批量应用配置修订）需要人工确认，防止单 Agent 的批量操作错误导致系统级故障。对应 InstanceCommand 的 apply_config_revision、reload_config 等批量操作命令。</div>
+          <div style="margin-top:10px;font-size:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:6px">
+              <div><span style="color:#8f8681">触发条件:</span> 批量操作 &ge; 3 个实例 或 apply_config_revision</div>
+              <div><span style="color:#8f8681">共识类型:</span> Human-in-the-Loop</div>
+              <div><span style="color:#8f8681">所需审批:</span> 1 位管理员手动确认</div>
+              <div><span style="color:#8f8681">超时/回退:</span> 1800s / reject</div>
+            </div>
+          </div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">apply_config_revision</span>
+            <span class="rule-pattern">reload_config</span>
+            <span class="rule-pattern">batch &ge; 3 instances</span>
+          </div>
+        </div>
+
+        <!-- Rule 4: Financial Operations -->
+        <div class="rule-card">
+          <div class="rule-header">
+            <div>
+              <span class="badge badge-critical">CRITICAL</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">金融操作</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-enforce">Enforce</span>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="rule-desc">涉及支付、费用相关的操作需要双重审批（Dual Approval），确保至少两位授权人员确认后方可执行。对应 ClawManager 的 CostRecord 和 ModelInvocation 计费链路。</div>
+          <div style="margin-top:10px;font-size:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:6px">
+              <div><span style="color:#8f8681">触发条件:</span> 支付/退款/额度变更操作</div>
+              <div><span style="color:#8f8681">共识类型:</span> 双重审批 (Dual Approval)</div>
+              <div><span style="color:#8f8681">所需审批:</span> 2 位授权人员独立确认</div>
+              <div><span style="color:#8f8681">超时/回退:</span> 3600s / reject + 告警</div>
+            </div>
+          </div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">payment</span>
+            <span class="rule-pattern">refund</span>
+            <span class="rule-pattern">quota_change</span>
+            <span class="rule-pattern">CostRecord</span>
+          </div>
+        </div>
+
+        <!-- Rule 5: Policy Changes -->
+        <div class="rule-card">
+          <div class="rule-header">
+            <div>
+              <span class="badge badge-high">HIGH</span>
+              <span style="font-size:13px;font-weight:700;color:var(--text-h);margin-left:8px">安全策略变更</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-enforce">Enforce</span>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="rule-desc">安全策略修改（RiskRule 新增/修改/删除、防护模块开关变更）需要复核确认，防止策略降级导致安全防护失效。对应 ClawManager RiskRule 的 CRUD 操作和 ClawAegis 防护模块配置变更。</div>
+          <div style="margin-top:10px;font-size:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:6px">
+              <div><span style="color:#8f8681">触发条件:</span> RiskRule CRUD / 防护模块配置变更</div>
+              <div><span style="color:#8f8681">共识类型:</span> 多 Agent 复核 + 人工确认</div>
+              <div><span style="color:#8f8681">所需审批:</span> 1-of-2 Agent + 1 位安全管理员</div>
+              <div><span style="color:#8f8681">超时/回退:</span> 900s / reject</div>
+            </div>
+          </div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">risk_rule.create</span>
+            <span class="rule-pattern">risk_rule.update</span>
+            <span class="rule-pattern">risk_rule.delete</span>
+            <span class="rule-pattern">guard_config_change</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 复核队列                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-review-queue">
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:#92400e">7</div>
+          <div class="sc-label">待复核</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#065f46">23</div>
+          <div class="sc-label">已批准</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#b91c1c">5</div>
+          <div class="sc-label">已拒绝</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#6b7280">3</div>
+          <div class="sc-label">已超时</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#4338ca">2</div>
+          <div class="sc-label">已覆盖</div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="app-panel">
+        <div class="filter-bar">
+          <span style="font-size:12px;font-weight:600;color:var(--text-h)">筛选:</span>
+          <select class="filter-select">
+            <option value="">全部风险等级</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select class="filter-select">
+            <option value="">全部状态</option>
+            <option value="pending">待复核</option>
+            <option value="approved">已批准</option>
+            <option value="rejected">已拒绝</option>
+            <option value="expired">已超时</option>
+            <option value="overridden">已覆盖</option>
+          </select>
+          <select class="filter-select">
+            <option value="">全部决策类型</option>
+            <option value="command">实例命令</option>
+            <option value="model_route">模型路由</option>
+            <option value="policy">策略变更</option>
+            <option value="financial">金融操作</option>
+          </select>
+          <button class="btn-secondary btn-sm">&#x1f50d; 搜索</button>
+        </div>
+
+        <!-- Data Table -->
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>请求 ID</th>
+                <th>发起 Agent</th>
+                <th>决策类型</th>
+                <th>风险等级</th>
+                <th>所需审批</th>
+                <th>当前审批</th>
+                <th>截止时间</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code style="font-size:11px;color:#dc2626">CSR-20260501-001</code></td>
+                <td>OpenClaw-Agent-03</td>
+                <td>实例命令 <code>stop_openclaw</code></td>
+                <td><span class="badge badge-critical">Critical</span></td>
+                <td>2-of-3</td>
+                <td>
+                  <div class="approval-progress">
+                    <div class="approval-dot filled"></div>
+                    <div class="approval-dot pending"></div>
+                    <div class="approval-dot"></div>
+                  </div>
+                  <span style="font-size:10px;color:#8f8681">1/3</span>
+                </td>
+                <td><span style="font-size:11px;font-family:monospace;color:#8f8681">2026-05-01 14:35</span></td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td>
+                  <div style="display:flex;gap:4px">
+                    <button class="btn-approve btn-sm">批准</button>
+                    <button class="btn-reject btn-sm">拒绝</button>
+                    <button class="btn-escalate btn-sm">升级</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;color:#dc2626">CSR-20260501-002</code></td>
+                <td>OpenClaw-Agent-07</td>
+                <td>模型路由 <code>require_approval</code></td>
+                <td><span class="badge badge-high">High</span></td>
+                <td>1 Admin</td>
+                <td>
+                  <div class="approval-progress">
+                    <div class="approval-dot pending"></div>
+                  </div>
+                  <span style="font-size:10px;color:#8f8681">0/1</span>
+                </td>
+                <td><span style="font-size:11px;font-family:monospace;color:#8f8681">2026-05-01 14:42</span></td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td>
+                  <div style="display:flex;gap:4px">
+                    <button class="btn-approve btn-sm">批准</button>
+                    <button class="btn-reject btn-sm">拒绝</button>
+                    <button class="btn-escalate btn-sm">升级</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;color:#dc2626">CSR-20260501-003</code></td>
+                <td>ClawManager-Admin</td>
+                <td>策略变更 <code>risk_rule.update</code></td>
+                <td><span class="badge badge-high">High</span></td>
+                <td>1 Agent + 1 Admin</td>
+                <td>
+                  <div class="approval-progress">
+                    <div class="approval-dot filled"></div>
+                    <div class="approval-dot pending"></div>
+                  </div>
+                  <span style="font-size:10px;color:#8f8681">1/2</span>
+                </td>
+                <td><span style="font-size:11px;font-family:monospace;color:#8f8681">2026-05-01 15:00</span></td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td>
+                  <div style="display:flex;gap:4px">
+                    <button class="btn-approve btn-sm">批准</button>
+                    <button class="btn-reject btn-sm">拒绝</button>
+                    <button class="btn-escalate btn-sm">升级</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;color:#dc2626">CSR-20260501-004</code></td>
+                <td>OpenClaw-Agent-12</td>
+                <td>实例命令 <code>quarantine_skill</code></td>
+                <td><span class="badge badge-critical">Critical</span></td>
+                <td>2-of-3</td>
+                <td>
+                  <div class="approval-progress">
+                    <div class="approval-dot filled"></div>
+                    <div class="approval-dot filled"></div>
+                    <div class="approval-dot"></div>
+                  </div>
+                  <span style="font-size:10px;color:#059669">2/3</span>
+                </td>
+                <td><span style="font-size:11px;font-family:monospace;color:#8f8681">2026-05-01 14:20</span></td>
+                <td><span class="badge badge-approved">Approved</span></td>
+                <td>
+                  <span style="font-size:11px;color:#059669">&#x2713; 已通过</span>
+                </td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;color:#dc2626">CSR-20260501-005</code></td>
+                <td>OpenClaw-Agent-01</td>
+                <td>实例命令 <code>handle_skill_risk</code></td>
+                <td><span class="badge badge-critical">Critical</span></td>
+                <td>2-of-3</td>
+                <td>
+                  <div class="approval-progress">
+                    <div class="approval-dot rejected"></div>
+                    <div class="approval-dot rejected"></div>
+                    <div class="approval-dot"></div>
+                  </div>
+                  <span style="font-size:10px;color:#b91c1c">0/3</span>
+                </td>
+                <td><span style="font-size:11px;font-family:monospace;color:#8f8681">2026-05-01 13:55</span></td>
+                <td><span class="badge badge-rejected">Rejected</span></td>
+                <td>
+                  <span style="font-size:11px;color:#b91c1c">&#x2717; 已拒绝</span>
+                </td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;color:#dc2626">CSR-20260501-006</code></td>
+                <td>ClawManager-System</td>
+                <td>批量操作 <code>apply_config_revision</code></td>
+                <td><span class="badge badge-high">High</span></td>
+                <td>1 Admin</td>
+                <td>
+                  <div class="approval-progress">
+                    <div class="approval-dot"></div>
+                  </div>
+                  <span style="font-size:10px;color:#6b7280">0/1</span>
+                </td>
+                <td><span style="font-size:11px;font-family:monospace;color:#b91c1c">2026-05-01 13:30</span></td>
+                <td><span class="badge badge-expired">Expired</span></td>
+                <td>
+                  <button class="btn-escalate btn-sm">重新提交</button>
+                </td>
+              </tr>
+              <tr>
+                <td><code style="font-size:11px;color:#dc2626">CSR-20260501-007</code></td>
+                <td>OpenClaw-Agent-05</td>
+                <td>金融操作 <code>quota_change</code></td>
+                <td><span class="badge badge-critical">Critical</span></td>
+                <td>2 Admins</td>
+                <td>
+                  <div class="approval-progress">
+                    <div class="approval-dot filled"></div>
+                    <div class="approval-dot filled"></div>
+                  </div>
+                  <span style="font-size:10px;color:#059669">2/2</span>
+                </td>
+                <td><span style="font-size:11px;font-family:monospace;color:#8f8681">2026-05-01 12:15</span></td>
+                <td><span class="badge badge-approved">Approved</span></td>
+                <td>
+                  <span style="font-size:11px;color:#059669">&#x2713; 已通过</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Expandable Detail (Example for CSR-001) -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Request Detail</div>
+            <div class="panel-title">CSR-20260501-001 详情展开</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">原始决策</div>
+            <div style="border-radius:10px;background:#faf7f4;padding:12px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763">
+              <div><strong>CommandType:</strong> stop_openclaw</div>
+              <div><strong>InstanceID:</strong> 5</div>
+              <div><strong>IssuedBy:</strong> user_id=3 (Agent-03)</div>
+              <div><strong>IdempotencyKey:</strong> stop_openclaw-1746097200000000</div>
+              <div><strong>TimeoutSeconds:</strong> 300</div>
+              <div><strong>Reason:</strong> 检测到异常资源消耗，Agent-03 判定需停止实例</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">风险评估详情</div>
+            <div style="border-radius:10px;background:#fef2f2;padding:12px;font-size:12px;font-family:monospace;line-height:1.7;color:#6e6763">
+              <div><strong>IsSensitive:</strong> true</div>
+              <div><strong>HighestSeverity:</strong> high</div>
+              <div><strong>HighestAction:</strong> require_approval</div>
+              <div><strong>Hits:</strong> 1 hit(s) detected</div>
+              <div><strong>RuleID:</strong> RISK-CMD-STOP-001</div>
+              <div><strong>MatchSummary:</strong> 停止 OpenClaw 实例需多 Agent 复核确认</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">复核人评论</div>
+          <div style="border-radius:10px;background:#faf7f4;padding:12px;font-size:12px;line-height:1.7;color:var(--text)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span class="badge badge-approved">Agent-Reviewer-01</span>
+              <span style="font-size:10px;color:#8f8681;font-family:monospace">2026-05-01 14:22</span>
+            </div>
+            <div>确认实例 5 存在异常资源消耗，但建议先尝试 restart_openclaw 而非直接 stop，等待其他复核人意见。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 共识审计                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-consensus-audit">
+
+      <!-- Score and Stats -->
+      <div style="display:flex;gap:22px;align-items:center;margin-bottom:22px">
+        <div class="score-circle score-high">
+          <span class="score-num">94%</span>
+          <span class="score-label">共识合规率</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:var(--text-h);margin-bottom:8px">共识审计总览</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+            <div class="stat-mini">
+              <div class="value" style="color:var(--text-h)">40</div>
+              <div class="label">总请求</div>
+            </div>
+            <div class="stat-mini">
+              <div class="value" style="color:#059669">23</div>
+              <div class="label">已批准</div>
+            </div>
+            <div class="stat-mini">
+              <div class="value" style="color:#b91c1c">5</div>
+              <div class="label">已拒绝</div>
+            </div>
+            <div class="stat-mini">
+              <div class="value" style="color:#6b7280">3</div>
+              <div class="label">超时</div>
+            </div>
+            <div class="stat-mini">
+              <div class="value" style="color:#4338ca">2</div>
+              <div class="label">覆盖</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:#8f8681;line-height:1.6">合规率 = (批准 + 拒绝) / 总请求 &times; 100% = (23 + 5) / 40 &times; 100% = 70% 合规完成率；94% 为修正后的合规评分（含超时自动回退正确处理）。</div>
+        </div>
+      </div>
+
+      <!-- Audit Log Entries -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Consensus Audit Log</div>
+            <div class="panel-title">共识审计日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x1f4c5; 时间范围</button>
+            <button class="btn-primary btn-sm">&#x1f4be; 导出日志</button>
+          </div>
+        </div>
+
+        <!-- Log 1: Consensus Request -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-CSA-001</span>
+            <span class="badge badge-pending">共识请求</span>
+            <span class="log-time">2026-05-01 14:20:03</span>
+          </div>
+          <div class="log-body">Agent-03 发起 <code>stop_openclaw</code> 命令，RiskRule 匹配到 <code>RISK-CMD-STOP-001</code>，<code>HighestAction=require_approval</code>，触发多 Agent 共识复核流程。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent-03 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">RiskRule 匹配</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#dbeafe;border-color:#bfdbfe">共识触发</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#f3f4f6">等待复核</span>
+          </div>
+        </div>
+
+        <!-- Log 2: Approval Decision -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-CSA-002</span>
+            <span class="badge badge-approved">批准决策</span>
+            <span class="log-time">2026-05-01 14:22:15</span>
+          </div>
+          <div class="log-body">Agent-Reviewer-01 批准 <code>CSR-20260501-001</code>，评论: "确认实例 5 存在异常资源消耗，但建议先尝试 restart"。当前进度: 1/3 批准。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent-Reviewer-01</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#ecfdf5;border-color:#a7f3d0">批准 (1/3)</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#f3f4f6">等待 2/3</span>
+          </div>
+        </div>
+
+        <!-- Log 3: Rejection Decision -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-CSA-003</span>
+            <span class="badge badge-rejected">拒绝决策</span>
+            <span class="log-time">2026-05-01 13:55:42</span>
+          </div>
+          <div class="log-body">Agent-Reviewer-02 拒绝 <code>CSR-20260501-005</code>，理由: "handle_skill_risk 应先进行安全扫描确认，不应直接执行风险处置"。Agent-Reviewer-03 同意拒绝。决策: 已拒绝（复核结果覆盖单 Agent 决策）。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent-01 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef2f2;border-color:#fecaca">Reviewer-02 拒绝</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef2f2;border-color:#fecaca">Reviewer-03 拒绝</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca;font-weight:700">决策已否决</span>
+          </div>
+        </div>
+
+        <!-- Log 4: Timeout Escalation -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-CSA-004</span>
+            <span class="badge badge-expired">超时升级</span>
+            <span class="log-time">2026-05-01 13:30:00</span>
+          </div>
+          <div class="log-body"><code>CSR-20260501-006</code> 复核超时（600s），管理员未在截止时间前确认。回退动作: <code>reject</code>，批量配置修订操作已自动拒绝。触发升级告警通知安全管理员。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">系统发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">等待人工确认</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca">超时 600s</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca;font-weight:700">自动拒绝</span>
+          </div>
+        </div>
+
+        <!-- Log 5: Override Event -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-CSA-005</span>
+            <span class="badge badge-overridden">覆盖事件</span>
+            <span class="log-time">2026-05-01 11:08:33</span>
+          </div>
+          <div class="log-body">安全管理员 <code>admin@clawreef.io</code> (user_id=1) 行使覆盖权限，绕过多 Agent 复核直接批准 <code>CSR-20260430-012</code>（紧急安全补丁部署）。覆盖原因: "CVE-2026-1234 紧急修复，不可等待常规审批流程"。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">Agent 发起</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#dbeafe;border-color:#bfdbfe">共识触发</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#e0e7ff;border-color:#c7d2fe">管理员覆盖</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#ecfdf5;border-color:#a7f3d0;font-weight:700">直接执行</span>
+          </div>
+        </div>
+
+        <!-- Log 6: Rule Engine Veto -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-CSA-006</span>
+            <span class="badge badge-blocked">规则否决</span>
+            <span class="log-time">2026-05-01 10:45:17</span>
+          </div>
+          <div class="log-body">AI Gateway resolveTargetModel 检测到 <code>HighestAction=block</code>，规则引擎自动否决请求。原始请求包含敏感内容且无可用安全模型。<code>require_approval</code> 被视为等效于 <code>block</code>，请求被阻止。RiskHit 已记录到 risk_hits 表。</div>
+          <div class="log-chain">
+            <span class="log-chain-step">LLM 请求</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef3c7;border-color:#fde68a">RiskRule 检测</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fef2f2;border-color:#fecaca">IsSensitive=true</span>
+            <span class="log-chain-arrow">&rarr;</span>
+            <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca;font-weight:700">请求阻止</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Trail Detail -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Audit Trail</div>
+            <div class="panel-title">完整审计轨迹示例</div>
+          </div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">CSR-20260501-004: quarantine_skill 审批链路</div>
+        <div class="audit-trail">
+          <div class="at-step">
+            <div class="at-marker m-blue"></div>
+            <div>
+              <div class="at-text"><strong>请求发起</strong> &mdash; Agent-12 检测到 Skill-X 存在风险行为，发起 <code>quarantine_skill</code> 命令 (InstanceID=8, IssuedBy=12)</div>
+              <div class="at-time">2026-05-01 14:10:05</div>
+            </div>
+          </div>
+          <div class="at-step">
+            <div class="at-marker m-yellow"></div>
+            <div>
+              <div class="at-text"><strong>风险评估</strong> &mdash; ClawManager RiskRule 匹配: <code>RISK-CMD-QUAR-001</code> (Severity=high, Action=require_approval)。HighestAction=require_approval 等效于 block，触发共识复核。</div>
+              <div class="at-time">2026-05-01 14:10:05</div>
+            </div>
+          </div>
+          <div class="at-step">
+            <div class="at-marker m-green"></div>
+            <div>
+              <div class="at-text"><strong>Agent-Reviewer-01 批准</strong> &mdash; 确认 Skill-X 存在恶意行为特征，同意隔离。ClawAegis Dispatch Guard 检测结果辅助验证。</div>
+              <div class="at-time">2026-05-01 14:12:18</div>
+            </div>
+          </div>
+          <div class="at-step">
+            <div class="at-marker m-green"></div>
+            <div>
+              <div class="at-text"><strong>Agent-Reviewer-02 批准</strong> &mdash; 独立分析 Skill-X 行为日志，确认风险。达到 2-of-3 阈值，共识通过。</div>
+              <div class="at-time">2026-05-01 14:14:33</div>
+            </div>
+          </div>
+          <div class="at-step">
+            <div class="at-marker m-green"></div>
+            <div>
+              <div class="at-text"><strong>决策执行</strong> &mdash; quarantine_skill 命令下发至 Agent-12 执行。InstanceCommand 状态: pending &rarr; dispatched &rarr; running &rarr; succeeded。</div>
+              <div class="at-time">2026-05-01 14:14:34</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                   -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+        <!-- Left Column -->
+        <div>
+          <!-- Consensus Mode per Risk Level -->
+          <div class="config-section">
+            <div class="cs-title">按风险等级配置共识模式</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name"><span class="badge badge-low" style="margin-right:6px">LOW</span> 低风险决策</div>
+                <div class="desc">低风险操作（如 health_check, collect_system_info）自动通过，无需共识复核。</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <select class="form-select" style="width:140px">
+                  <option value="auto" selected>自动通过 (Auto)</option>
+                  <option value="multi-agent">多 Agent 复核</option>
+                  <option value="rule-engine">规则引擎</option>
+                  <option value="human">人工确认</option>
+                </select>
+              </div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name"><span class="badge badge-medium" style="margin-right:6px">MEDIUM</span> 中风险决策</div>
+                <div class="desc">中风险操作（如 install_skill, update_skill）需要多 Agent 复核确认。</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <select class="form-select" style="width:140px">
+                  <option value="auto">自动通过 (Auto)</option>
+                  <option value="multi-agent" selected>多 Agent 复核</option>
+                  <option value="rule-engine">规则引擎</option>
+                  <option value="human">人工确认</option>
+                </select>
+              </div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name"><span class="badge badge-high" style="margin-right:6px">HIGH</span> 高风险决策</div>
+                <div class="desc">高风险操作（如 stop_openclaw, quarantine_skill）需要多 Agent 复核 + 人工确认。</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <select class="form-select" style="width:140px">
+                  <option value="auto">自动通过 (Auto)</option>
+                  <option value="multi-agent">多 Agent 复核</option>
+                  <option value="rule-engine">规则引擎</option>
+                  <option value="human" selected>人工确认</option>
+                </select>
+              </div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name"><span class="badge badge-critical" style="margin-right:6px">CRITICAL</span> 关键决策</div>
+                <div class="desc">关键操作（金融、安全策略变更）需要多 Agent 复核 + 人工双重确认。</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <select class="form-select" style="width:140px">
+                  <option value="auto">自动通过 (Auto)</option>
+                  <option value="multi-agent">多 Agent 复核</option>
+                  <option value="rule-engine">规则引擎</option>
+                  <option value="human" selected>人工确认 (强制)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Required Approvers -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">审批人配置</div>
+            <div class="form-group">
+              <div class="form-label">多 Agent 复核阈值 (N-of-M)</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input class="form-input" style="width:60px" type="number" value="2" min="1" max="10">
+                <span style="font-size:13px;color:var(--text)">-of-</span>
+                <input class="form-input" style="width:60px" type="number" value="3" min="1" max="10">
+              </div>
+              <div class="form-hint">N 个审批中需要 M 个批准方可通过。默认 2-of-3。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">金融操作双重审批人数</div>
+              <input class="form-input" style="width:80px" type="number" value="2" min="2" max="5">
+              <div class="form-hint">金融操作至少需要 2 位授权人员独立确认。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">可用复核 Agent 列表</div>
+              <div class="tag-list">
+                <span class="tag">Agent-Reviewer-01 <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag">Agent-Reviewer-02 <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag">Agent-Reviewer-03 <button style="background:none;border:none;cursor:pointer;color:#b91c1c;font-size:12px">&times;</button></span>
+                <span class="tag">ClawAegis-Dispatch-Guard</span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加 Agent</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+          <!-- Timeout & Escalation -->
+          <div class="config-section">
+            <div class="cs-title">超时与升级规则</div>
+            <div class="form-group">
+              <div class="form-label">多 Agent 复核超时 (秒)</div>
+              <input class="form-input" style="width:120px" type="number" value="300" min="30">
+              <div class="form-hint">复核 Agent 未在超时内响应时的处理策略。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">人工确认超时 (秒)</div>
+              <input class="form-input" style="width:120px" type="number" value="1800" min="60">
+              <div class="form-hint">管理员未在超时内确认时的处理策略。建议不低于 1800s (30min)。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">金融操作超时 (秒)</div>
+              <input class="form-input" style="width:120px" type="number" value="3600" min="300">
+              <div class="form-hint">金融操作确认超时，建议不低于 3600s (1h)。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">超时回退动作</div>
+              <select class="form-select" style="width:200px">
+                <option value="reject" selected>拒绝 (Reject)</option>
+                <option value="escalate">升级告警 (Escalate)</option>
+                <option value="allow">允许通过 (Allow - 不推荐)</option>
+              </select>
+              <div class="form-hint">超时后的默认处理动作。建议生产环境使用 Reject。</div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">超时升级通知</div>
+              <div class="tag-list">
+                <span class="tag">邮件通知</span>
+                <span class="tag">Webhook</span>
+                <span class="tag">Slack</span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加通道</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Override Permissions -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">覆盖权限配置</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">允许管理员覆盖共识决策</div>
+                <div class="desc">安全管理员可在紧急情况下绕过共识流程直接决策，但所有覆盖操作将被审计记录。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="form-group" style="margin-top:12px">
+              <div class="form-label">覆盖权限角色</div>
+              <div class="tag-list">
+                <span class="tag">super_admin</span>
+                <span class="tag">security_admin</span>
+                <span class="tag" style="border-style:dashed;color:#8f8681;cursor:pointer">+ 添加角色</span>
+              </div>
+              <div class="form-hint">仅指定角色可行使覆盖权限，普通管理员无法绕过共识。</div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">覆盖需要填写理由</div>
+                <div class="desc">管理员行使覆盖权限时必须填写理由说明，存入审计日志。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">覆盖后自动告警</div>
+                <div class="desc">任何覆盖操作触发后，自动通知安全管理团队。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+
+          <!-- Notification Settings -->
+          <div class="config-section" style="margin-top:16px">
+            <div class="cs-title">通知设置</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">共识请求通知</div>
+                <div class="desc">当有新的共识复核请求时，通知相关审批人。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">超时预警通知</div>
+                <div class="desc">在超时截止前 60s 发送预警通知。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <div class="name">决策结果通知</div>
+                <div class="desc">当共识决策完成后，通知发起人决策结果。</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div style="margin-top:22px;display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn-secondary">重置默认</button>
+        <button class="btn-primary">保存配置</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

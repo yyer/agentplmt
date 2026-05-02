@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr38</title>
+<link rel="stylesheet" href="../css-5.6.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr38">
+
+      <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">5.6 代码执行与执行链安全</div>
+      <div class="page-title">FR-38 | 执行链审计与文件变更留痕 | <span class="badge badge-p1">P1 优先级</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-secondary btn-sm">&#x21bb; 同步配置</button>
+      <button class="btn-primary btn-sm">&#x1f4be; 导出审计</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Stats Row -->
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-value">12,847</div><div class="stat-label">今日审计事件</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:#dc2626">37</div><div class="stat-label">拦截事件</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:#c2410c">142</div><div class="stat-label">文件变更记录</div></div>
+      <div class="stat-card"><div class="stat-value">3</div><div class="stat-label">活跃执行链</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="audit-config">审计配置</div>
+      <div class="tab" data-tab="chain-trace">执行链追踪</div>
+      <div class="tab" data-tab="file-change">文件变更留痕</div>
+      <div class="tab" data-tab="audit-query">审计查询</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 审计配置                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-audit-config">
+
+      <!-- Panel 1: KubeArmor eBPF审计 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor eBPF Audit</div>
+            <div class="panel-title">KubeArmor eBPF 审计配置</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">15 syscalls / 7 kprobes</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:18px">
+          <div class="form-label">监控 Syscall 列表</div>
+          <div class="tag-list">
+            <span class="tag"><code>open</code></span>
+            <span class="tag"><code>openat</code></span>
+            <span class="tag"><code>execve</code></span>
+            <span class="tag"><code>execveat</code></span>
+            <span class="tag"><code>unlink</code></span>
+            <span class="tag"><code>unlinkat</code></span>
+            <span class="tag"><code>rmdir</code></span>
+            <span class="tag"><code>socket</code></span>
+            <span class="tag"><code>connect</code></span>
+            <span class="tag"><code>mount</code></span>
+            <span class="tag"><code>umount</code></span>
+            <span class="tag"><code>ptrace</code></span>
+            <span class="tag"><code>chown</code></span>
+            <span class="tag"><code>setuid</code></span>
+            <span class="tag"><code>setgid</code></span>
+          </div>
+          <div class="form-hint">KubeArmor 通过 eBPF 追踪以上系统调用，捕获进程执行、文件操作和网络连接事件</div>
+        </div>
+
+        <div style="margin-bottom:18px">
+          <div class="form-label">Security Kprobes</div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>Kprobe</th><th>触发点</th><th>审计用途</th></tr></thead>
+              <tbody>
+                <tr><td><code>do_exit</code></td><td>进程退出</td><td>追踪进程生命周期结束</td></tr>
+                <tr><td><code>security_bprm_check</code></td><td>二进制执行前检查</td><td>拦截/审计进程执行</td></tr>
+                <tr><td><code>security_file_open</code></td><td>文件打开安全检查</td><td>审计文件访问（读写）</td></tr>
+                <tr><td><code>security_path_mknod</code></td><td>文件创建</td><td>检测新文件创建行为</td></tr>
+                <tr><td><code>security_path_unlink</code></td><td>文件删除</td><td>检测文件删除行为</td></tr>
+                <tr><td><code>security_path_rmdir</code></td><td>目录删除</td><td>检测目录删除行为</td></tr>
+                <tr><td><code>security_ptrace_access_check</code></td><td>ptrace 访问检查</td><td>检测调试/注入行为</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <div class="form-label">gRPC 日志流</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:260px;border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:14px">
+              <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:6px">WatchAlerts</div>
+              <div style="font-size:12px;color:var(--text);line-height:1.6">实时告警流 — 策略匹配后产生 Alert 事件，包含操作类型、资源、动作、策略名、严重级别等完整信息</div>
+              <div style="margin-top:8px;font-size:11px;font-family:monospace;color:#8f8681">protobuf: Alert message (44 fields)</div>
+            </div>
+            <div style="flex:1;min-width:260px;border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:14px">
+              <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:6px">WatchLogs</div>
+              <div style="font-size:12px;color:var(--text);line-height:1.6">实时日志流 — 记录所有允许/审计的系统调用日志，用于执行链追踪和行为基线建立</div>
+              <div style="margin-top:8px;font-size:11px;font-family:monospace;color:#8f8681">protobuf: Log message (34 fields)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: KSecure审计日志 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KSecure Audit Log</div>
+            <div class="panel-title">KSecure 审计日志配置</div>
+          </div>
+          <span class="badge badge-sys">eBPF ringbuf</span>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">审计日志采集</div>
+            <div class="desc">KSecure eBPF 审计事件采集开关</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div style="padding:12px 0;border-bottom:1px solid #f1e7e1">
+          <div class="form-label">SecLogChannelSize</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <code style="font-size:14px;background:#f5f1ed;padding:4px 12px;border-radius:8px;color:#c2410c;font-weight:600">8192</code>
+            <span style="font-size:12px;color:#8f8681">(1 &lt;&lt; 13)</span>
+            <span style="font-size:12px;color:var(--text)">&#x2014; 日志通道容量</span>
+          </div>
+          <div class="form-hint">eBPF 用户态与内核态之间的日志通道缓冲区大小</div>
+        </div>
+
+        <div style="padding:12px 0;border-bottom:1px solid #f1e7e1">
+          <div class="form-label">Ring Buffer 大小</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <code style="font-size:14px;background:#f5f1ed;padding:4px 12px;border-radius:8px;color:#c2410c;font-weight:600">256KB</code>
+            <span style="font-size:12px;color:#8f8681">(256 * 1024)</span>
+            <span style="font-size:12px;color:var(--text)">&#x2014; eBPF ringbuf 大小</span>
+          </div>
+          <div class="form-hint">eBPF ring buffer 用于内核态向用户态高效传递审计事件</div>
+        </div>
+
+        <div style="padding:12px 0;border-bottom:1px solid #f1e7e1">
+          <div class="form-label">模块 ID 映射</div>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <span class="tag"><code>1</code> = 文件保护</span>
+            <span class="tag"><code>2</code> = 勒索防护</span>
+          </div>
+          <div class="form-hint">sec_event_t.module_id 标识事件来源的安全模块</div>
+        </div>
+
+        <div style="padding:12px 0">
+          <div class="form-label">sec_event_t 事件结构</div>
+          <div style="border-radius:12px;background:#faf7f4;border:1px solid #f1e7e1;padding:14px;font-size:12px;font-family:monospace;line-height:1.8;color:#6e6763;overflow-x:auto">
+struct sec_event_t {<br>
+&nbsp;&nbsp;u32 <strong style="color:var(--text-h)">module_id</strong>;&nbsp;&nbsp;&nbsp;// 1=file_protect, 2=ransomware<br>
+&nbsp;&nbsp;u32 <strong style="color:var(--text-h)">event_id</strong>;&nbsp;&nbsp;&nbsp;// 事件类型 ID<br>
+&nbsp;&nbsp;u32 <strong style="color:var(--text-h)">pid</strong>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 进程 ID<br>
+&nbsp;&nbsp;u32 <strong style="color:var(--text-h)">tgid</strong>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 线程组 ID<br>
+&nbsp;&nbsp;u32 <strong style="color:var(--text-h)">uid</strong>;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 用户 ID<br>
+&nbsp;&nbsp;char <strong style="color:var(--text-h)">comm</strong>[16];&nbsp;&nbsp;// 进程名<br>
+&nbsp;&nbsp;char <strong style="color:var(--text-h)">path</strong>[256];&nbsp;&nbsp;// 文件路径<br>
+};
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: ClawManager AI Gateway审计 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager AI Gateway</div>
+            <div class="panel-title">ClawManager AI Gateway 审计模型</div>
+          </div>
+          <span class="badge badge-sys">3 审计模型</span>
+        </div>
+
+        <!-- AuditEvent -->
+        <div style="margin-bottom:18px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#fee2e2,#fecaca);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#b91c1c">1</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text-h)">AuditEvent</span>
+            <span class="badge badge-sys">核心审计事件</span>
+          </div>
+          <div class="form-hint" style="margin-bottom:8px">记录 AI Gateway 每次请求的完整审计链路信息</div>
+          <div class="field-grid">
+            <div class="field-item"><span class="field-name">trace_id</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">session_id</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">request_id</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">user_id</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">instance_id</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">invocation_id</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">event_type</span><span class="field-type">enum</span></div>
+          </div>
+        </div>
+
+        <!-- RiskHit -->
+        <div style="margin-bottom:18px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#ffedd5,#fed7aa);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#c2410c">2</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text-h)">RiskHit</span>
+            <span class="badge badge-sys">风险命中记录</span>
+          </div>
+          <div class="form-hint" style="margin-bottom:8px">记录安全风险规则命中详情，与 AuditEvent 关联</div>
+          <div class="field-grid">
+            <div class="field-item"><span class="field-name">rule_id</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">rule_name</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">severity</span><span class="field-type">enum</span></div>
+            <div class="field-item"><span class="field-name">action</span><span class="field-type">enum</span></div>
+            <div class="field-item"><span class="field-name">match_summary</span><span class="field-type">text</span></div>
+          </div>
+        </div>
+
+        <!-- CostRecord -->
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#92400e">3</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text-h)">CostRecord</span>
+            <span class="badge badge-sys">成本与调用记录</span>
+          </div>
+          <div class="form-hint" style="margin-bottom:8px">记录 Token 消耗和模型调用详情，支持成本核算与异常检测</div>
+          <div class="field-grid">
+            <div class="field-item"><span class="field-name">prompt_tokens</span><span class="field-type">int</span></div>
+            <div class="field-item"><span class="field-name">completion_tokens</span><span class="field-type">int</span></div>
+            <div class="field-item"><span class="field-name">total_tokens</span><span class="field-type">int</span></div>
+            <div class="field-item"><span class="field-name">model_name</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">invocation_id</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">latency_ms</span><span class="field-type">int</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-audit-config -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 执行链追踪                                              -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-chain-trace">
+
+      <!-- Panel 1: 执行链可视化 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Execution Chain Visualization</div>
+            <div class="panel-title">执行链可视化</div>
+          </div>
+          <span class="badge badge-sys">trace: TRC-7f3a</span>
+        </div>
+        <div class="form-hint" style="margin-bottom:14px">完整的 AI 代码生成攻击链审计链路：从用户输入到内核审计的端到端追踪</div>
+
+        <div style="border-radius:18px;border:1px solid #ead8cf;background:rgba(255,255,255,0.85);padding:20px;overflow-x:auto">
+          <div class="log-chain" style="justify-content:center;gap:8px">
+            <span class="log-chain-step" style="border-color:#3b82f6;color:#3b82f6;background:#eff6ff;padding:6px 14px;font-weight:700">&#x1f4ac; 用户输入</span>
+            <span class="log-chain-arrow" style="font-size:18px">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#8b5cf6;color:#8b5cf6;background:#f5f3ff;padding:6px 14px;font-weight:700">&#x1f916; AI生成脚本</span>
+            <span class="log-chain-arrow" style="font-size:18px">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#f59e0b;color:#f59e0b;background:#fffbeb;padding:6px 14px;font-weight:700">&#x270d;&#xfe0f; write工具写入</span>
+            <span class="log-chain-arrow" style="font-size:18px">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#10b981;color:#10b981;background:#ecfdf5;padding:6px 14px;font-weight:700">&#x1f4d6; Script Artifact</span>
+            <span class="log-chain-arrow" style="font-size:18px">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#ef4444;color:#ef4444;background:#fef2f2;padding:6px 14px;font-weight:700">&#x26a0;&#xfe0f; exec执行</span>
+            <span class="log-chain-arrow" style="font-size:18px">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#c2410c;color:#c2410c;background:#fff7ed;padding:6px 14px;font-weight:700">&#x1f6e1;&#xfe0f; KubeArmor审计</span>
+            <span class="log-chain-arrow" style="font-size:18px">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#9333ea;color:#9333ea;background:#faf5ff;padding:6px 14px;font-weight:700">&#x1f50d; 文件变更检测</span>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <div class="log-entry">
+            <div class="log-header">
+              <span class="log-time">2026-05-01 10:23:14.001</span>
+              <span class="log-id">TRC-7f3a</span>
+              <span class="badge badge-observed">AUDITED</span>
+            </div>
+            <div class="log-body">
+              <strong>Step 1</strong>: 用户 <code>user-01</code> 输入: "帮我写一个清理临时文件的脚本"
+            </div>
+          </div>
+          <div class="log-entry">
+            <div class="log-header">
+              <span class="log-time">2026-05-01 10:23:14.523</span>
+              <span class="log-id">TRC-7f3a</span>
+              <span class="badge badge-observed">AUDITED</span>
+            </div>
+            <div class="log-body">
+              <strong>Step 2</strong>: AI 模型 <code>gpt-4o</code> 生成脚本内容，包含 <code>rm -rf /tmp/*</code> 命令
+            </div>
+          </div>
+          <div class="log-entry">
+            <div class="log-header">
+              <span class="log-time">2026-05-01 10:23:14.887</span>
+              <span class="log-id">TRC-7f3a</span>
+              <span class="badge badge-observed">AUDITED</span>
+            </div>
+            <div class="log-body">
+              <strong>Step 3</strong>: <code>write</code> 工具将脚本写入 <code>/tmp/cleanup.sh</code>，Script Artifact 记录 source=ai_generated
+            </div>
+          </div>
+          <div class="log-entry">
+            <div class="log-header">
+              <span class="log-time">2026-05-01 10:23:15.102</span>
+              <span class="log-id">TRC-7f3a</span>
+              <span class="badge badge-allowed">ALLOWED</span>
+            </div>
+            <div class="log-body">
+              <strong>Step 4</strong>: <code>exec</code> 工具执行 <code>/bin/bash /tmp/cleanup.sh</code>，KubeArmor <code>security_bprm_check</code> 捕获 <code>execve</code>
+            </div>
+          </div>
+          <div class="log-entry">
+            <div class="log-header">
+              <span class="log-time">2026-05-01 10:23:15.305</span>
+              <span class="log-id">TRC-7f3a</span>
+              <span class="badge badge-blocked">BLOCKED</span>
+              <span class="badge badge-critical">Critical</span>
+            </div>
+            <div class="log-body">
+              <strong>Step 5</strong>: KubeArmor 审计检测到 <code>rm -rf /tmp/*</code> 匹配策略 <code>command_block</code>，操作被阻止
+            </div>
+            <div class="log-detail">
+trace_id: TRC-7f3a | session_id: S-2b4c | request_id: R-9e1f<br>
+instance: openclaw-01 | pid: 28451 | container: openclaw-28a<br>
+policy: command_block | operation: execve | action: Block
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: KubeArmor Log/Alert结构 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Protobuf</div>
+            <div class="panel-title">KubeArmor Log/Alert 结构</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-sys">Alert: 44 字段</span>
+            <span class="badge badge-sys">Log: 34 字段</span>
+          </div>
+        </div>
+
+        <!-- Alert Fields -->
+        <div style="margin-bottom:18px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-size:14px;font-weight:700;color:var(--text-h)">Alert 消息 (44 字段)</span>
+            <span class="badge badge-blocked">策略匹配触发</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td><code>Timestamp</code></td><td>int64</td><td>事件时间戳</td></tr>
+                <tr><td><code>ClusterName</code></td><td>string</td><td>集群名称</td></tr>
+                <tr><td><code>HostName</code></td><td>string</td><td>主机名</td></tr>
+                <tr><td><code>NamespaceName</code></td><td>string</td><td>命名空间</td></tr>
+                <tr><td><code>PodName</code></td><td>string</td><td>Pod 名称</td></tr>
+                <tr><td><code>ContainerID</code></td><td>string</td><td>容器 ID</td></tr>
+                <tr><td><code>ContainerName</code></td><td>string</td><td>容器名称</td></tr>
+                <tr><td><code>HostPID</code></td><td>int32</td><td>宿主机 PID</td></tr>
+                <tr><td><code>PID</code></td><td>int32</td><td>进程 PID</td></tr>
+                <tr><td><code>UID</code></td><td>int32</td><td>用户 UID</td></tr>
+                <tr><td><code>PolicyName</code></td><td>string</td><td>匹配策略名</td></tr>
+                <tr><td><code>Severity</code></td><td>string</td><td>严重级别</td></tr>
+                <tr><td><code>Tags</code></td><td>string</td><td>策略标签</td></tr>
+                <tr><td><code>Message</code></td><td>string</td><td>告警消息</td></tr>
+                <tr><td><code>Type</code></td><td>string</td><td>告警类型</td></tr>
+                <tr><td><code>Source</code></td><td>string</td><td>事件来源</td></tr>
+                <tr><td><code>Resource</code></td><td>string</td><td>目标资源</td></tr>
+                <tr><td><code>Operation</code></td><td>string</td><td>操作类型 (Process/File/Network)</td></tr>
+                <tr><td><code>Action</code></td><td>string</td><td>动作 (Allow/Block/Audit)</td></tr>
+                <tr><td><code>Result</code></td><td>string</td><td>执行结果</td></tr>
+                <tr><td><code>ProcessHash</code></td><td>string</td><td>进程哈希</td></tr>
+                <tr><td><code>ParentHash</code></td><td>string</td><td>父进程哈希</td></tr>
+                <tr><td><code>ResourceHash</code></td><td>string</td><td>资源哈希</td></tr>
+                <tr><td><code>HashAlgo</code></td><td>string</td><td>哈希算法</td></tr>
+                <tr><td><code>ExecEvent</code></td><td>ExecEnv</td><td>执行环境信息</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="form-hint">以上为核心字段示例，完整 Alert 包含 44 个字段，覆盖审计追踪所有维度</div>
+        </div>
+
+        <!-- Log Fields -->
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-size:14px;font-weight:700;color:var(--text-h)">Log 消息 (34 字段)</span>
+            <span class="badge badge-observed">系统调用记录</span>
+          </div>
+          <div class="form-hint" style="margin-bottom:8px">Log 消息结构与 Alert 类似但更精简，记录所有被审计的系统调用，无需策略匹配即可产生</div>
+          <div class="field-grid">
+            <div class="field-item"><span class="field-name">Timestamp</span><span class="field-type">int64</span></div>
+            <div class="field-item"><span class="field-name">ClusterName</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">HostName</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">NamespaceName</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">PodName</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">ContainerID</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">ContainerName</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">HostPID</span><span class="field-type">int32</span></div>
+            <div class="field-item"><span class="field-name">PID</span><span class="field-type">int32</span></div>
+            <div class="field-item"><span class="field-name">UID</span><span class="field-type">int32</span></div>
+            <div class="field-item"><span class="field-name">Source</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">Resource</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">Operation</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">Result</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">ProcessHash</span><span class="field-type">string</span></div>
+            <div class="field-item"><span class="field-name">ParentHash</span><span class="field-type">string</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: 最近执行链记录 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Recent Execution Chains</div>
+            <div class="panel-title">最近执行链记录</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-secondary btn-sm">&#x1f504; 刷新</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>时间</th><th>PID</th><th>命令</th><th>来源</th><th>操作</th><th>结果</th><th>策略</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:23:15</td>
+                <td style="font-family:monospace;font-size:12px">28451</td>
+                <td><code>/bin/bash</code></td>
+                <td><code>pod:openclaw-01</code></td>
+                <td><span class="badge badge-observed">execve</span></td>
+                <td><span class="badge badge-allowed">ALLOWED</span></td>
+                <td>default</td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:23:16</td>
+                <td style="font-family:monospace;font-size:12px">28452</td>
+                <td><code>/usr/bin/curl</code></td>
+                <td><code>pod:openclaw-01</code></td>
+                <td><span class="badge badge-observed">execve</span></td>
+                <td><span class="badge badge-blocked">BLOCKED</span></td>
+                <td><code>network-block</code></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:24:01</td>
+                <td style="font-family:monospace;font-size:12px">28460</td>
+                <td><code>/bin/rm</code></td>
+                <td><code>pod:openclaw-01</code></td>
+                <td><span class="badge badge-observed">execve</span></td>
+                <td><span class="badge badge-blocked">BLOCKED</span></td>
+                <td><code>command_block</code></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:25:30</td>
+                <td style="font-family:monospace;font-size:12px">28470</td>
+                <td><code>/usr/bin/python3</code></td>
+                <td><code>pod:openclaw-01</code></td>
+                <td><span class="badge badge-observed">execve</span></td>
+                <td><span class="badge badge-allowed">ALLOWED</span></td>
+                <td><code>exec-preset</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /tab-chain-trace -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 文件变更留痕                                            -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-file-change">
+
+      <!-- Panel 1: 文件变更检测机制 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">File Change Detection</div>
+            <div class="panel-title">文件变更检测机制</div>
+          </div>
+          <span class="badge badge-sys">KubeArmor + KSecure</span>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>来源</th><th>检测点 / Hook</th><th>检测能力</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>KubeArmor</code></td>
+                <td><code>security_file_open</code></td>
+                <td>检测文件写操作 — 追踪以写模式打开文件的行为</td>
+                <td><span class="badge badge-enforce">Enforce</span></td>
+              </tr>
+              <tr>
+                <td><code>KubeArmor</code></td>
+                <td><code>security_path_mknod</code></td>
+                <td>检测文件创建 — 追踪新文件/设备节点创建行为</td>
+                <td><span class="badge badge-enforce">Enforce</span></td>
+              </tr>
+              <tr>
+                <td><code>KubeArmor</code></td>
+                <td><code>security_path_unlink</code></td>
+                <td>检测文件删除 — 追踪文件删除/取消链接行为</td>
+                <td><span class="badge badge-enforce">Enforce</span></td>
+              </tr>
+              <tr>
+                <td><code>KubeArmor</code></td>
+                <td><code>security_path_rmdir</code></td>
+                <td>检测目录删除 — 追踪目录删除行为</td>
+                <td><span class="badge badge-enforce">Enforce</span></td>
+              </tr>
+              <tr>
+                <td><code>KSecure</code></td>
+                <td><code>inode_unlink</code></td>
+                <td>诱饵文件删除检测 — 检测勒索软件对诱饵文件的删除/加密行为</td>
+                <td><span class="badge badge-enforce">Enforce</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="log-chain" style="flex-wrap:wrap;gap:8px">
+            <span class="log-chain-step" style="border-color:#10b981;color:#10b981;background:#ecfdf5">&#x1f4c2; security_file_open</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#3b82f6;color:#3b82f6;background:#eff6ff">&#x1f4dd; 记录写操作</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#f59e0b;color:#f59e0b;background:#fffbeb">&#x1f50d; 变更对比</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#8b5cf6;color:#8b5cf6;background:#f5f3ff">&#x1f4ca; 留痕归档</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: ClawManager Config Revision -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Config Revision Tracking</div>
+            <div class="panel-title">ClawManager Config Revision 追踪</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-sys">SHA256 checksum</span>
+            <button class="btn-secondary btn-sm" onclick="toggleDiff()">&#x1f4ca; Diff 对比</button>
+          </div>
+        </div>
+
+        <div class="form-hint" style="margin-bottom:14px">InstanceConfigRevision 通过 SHA256 校验和追踪每次配置变更，支持 diff 审计对比两个 revision 的 content_json 差异</div>
+
+        <div class="revision-card">
+          <div class="revision-header">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="revision-id">rev-003</span>
+              <span class="badge badge-allowed">activated</span>
+            </div>
+            <span class="revision-hash">sha256:f8a3b2...</span>
+          </div>
+          <div class="revision-detail">
+            当前生效配置 &#x2014; 2026-05-01 09:15:00 激活<br>
+            变更内容: 新增 <code>network-policy</code> 限制出站规则 + 修改 <code>resource-limit</code> 内存上限
+          </div>
+        </div>
+
+        <div class="revision-card">
+          <div class="revision-header">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="revision-id">rev-002</span>
+              <span class="badge badge-off">superseded</span>
+            </div>
+            <span class="revision-hash">sha256:7c1d9e...</span>
+          </div>
+          <div class="revision-detail">
+            已被替代 &#x2014; 2026-04-30 14:22:00 激活，2026-05-01 09:15:00 被替代<br>
+            变更内容: 修改 <code>resource-limit</code> CPU 上限从 2 核到 4 核
+          </div>
+        </div>
+
+        <div class="revision-card">
+          <div class="revision-header">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="revision-id">rev-001</span>
+              <span class="badge badge-off">superseded</span>
+            </div>
+            <span class="revision-hash">sha256:a4e5c6...</span>
+          </div>
+          <div class="revision-detail">
+            已被替代 &#x2014; 2026-04-28 10:00:00 初始配置<br>
+            初始实例配置创建
+          </div>
+        </div>
+
+        <!-- Diff Panel (toggle) -->
+        <div id="diff-panel" style="display:none;margin-top:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-size:13px;font-weight:700;color:var(--text-h)">Diff 对比:</span>
+            <select class="form-select" style="width:140px"><option>rev-002</option><option>rev-001</option></select>
+            <span style="color:#c4b0a2">&#x2192;</span>
+            <select class="form-select" style="width:140px"><option>rev-003</option><option>rev-002</option></select>
+          </div>
+          <div class="diff-block">
+<span class="diff-del">- "cpu_limit": "4"</span><br>
+<span class="diff-add">+ "cpu_limit": "2"</span><br>
+<span class="diff-del">- "memory_limit": "8Gi"</span><br>
+<span class="diff-add">+ "memory_limit": "4Gi"</span><br>
+<span class="diff-add">+ "network_policy": {</span><br>
+<span class="diff-add">+   "egress": [{</span><br>
+<span class="diff-add">+     "ports": ["53/udp", "53/tcp", "80/tcp", "443/tcp"],</span><br>
+<span class="diff-add">+     "to": ["kube-system"]</span><br>
+<span class="diff-add">+   }]</span><br>
+<span class="diff-add">+ }</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: 文件变更记录 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">File Change Records</div>
+            <div class="panel-title">文件变更记录</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn-secondary btn-sm">&#x1f504; 刷新</button>
+            <button class="btn-secondary btn-sm">&#x1f4e5; 导出</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>时间</th><th>文件</th><th>操作</th><th>进程</th><th>Diff 摘要</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:23:15</td>
+                <td><code>/etc/config.yaml</code></td>
+                <td><span class="badge badge-observed">MODIFY</span></td>
+                <td><code>python3</code></td>
+                <td><span class="diff-add">+5</span>/<span class="diff-del">-2</span> lines</td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:24:01</td>
+                <td><code>/tmp/output.log</code></td>
+                <td><span class="badge badge-allowed">CREATE</span></td>
+                <td><code>bash</code></td>
+                <td style="color:#15803d">new file</td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:25:30</td>
+                <td><code>/home/user/.bashrc</code></td>
+                <td><span class="badge badge-observed">MODIFY</span></td>
+                <td><code>vim</code></td>
+                <td><span class="diff-add">+1</span> line <span class="badge badge-critical" style="font-size:9px;padding:1px 6px">suspicious</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:26:00</td>
+                <td><code>/opt/app/deploy.sh</code></td>
+                <td><span class="badge badge-blocked">DELETE</span></td>
+                <td><code>rm</code></td>
+                <td style="color:#b91c1c">file removed</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /tab-file-change -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 审计查询                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-audit-query">
+
+      <!-- Panel 1: 查询条件 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Audit Query</div>
+            <div class="panel-title">审计查询条件</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm" onclick="resetQuery()">&#x21bb; 重置</button>
+            <button class="btn-primary btn-sm" onclick="runQuery()">&#x1f50d; 查询</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="form-group">
+            <label class="form-label">时间范围</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="form-input" type="datetime-local" value="2026-05-01T00:00">
+              <span style="color:#c4b0a2">~</span>
+              <input class="form-input" type="datetime-local" value="2026-05-01T23:59">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">PID / 进程名</label>
+            <input class="form-input" type="text" placeholder="输入 PID 或进程名，如: bash, 28451">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">操作类型</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item checked"><input type="checkbox" checked> execve</label>
+              <label class="checkbox-item checked"><input type="checkbox" checked> open</label>
+              <label class="checkbox-item"><input type="checkbox"> unlink</label>
+              <label class="checkbox-item"><input type="checkbox"> connect</label>
+              <label class="checkbox-item"><input type="checkbox"> mount</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">结果</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item checked"><input type="checkbox" checked> ALLOWED</label>
+              <label class="checkbox-item checked"><input type="checkbox" checked> BLOCKED</label>
+              <label class="checkbox-item"><input type="checkbox"> AUDITED</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">命名空间 / Pod</label>
+            <select class="form-select">
+              <option value="">全部</option>
+              <option value="default" selected>default</option>
+              <option value="kube-system">kube-system</option>
+              <option value="production">production</option>
+              <option value="staging">staging</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">策略名</label>
+            <input class="form-input" type="text" placeholder="输入策略名，如: command_block">
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: 查询结果 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Query Results</div>
+            <div class="panel-title">查询结果</div>
+          </div>
+          <span class="badge badge-sys">3 条记录</span>
+        </div>
+        <div style="overflow-x:auto" id="query-results">
+          <table class="data-table">
+            <thead>
+              <tr><th>时间</th><th>PID</th><th>命令/资源</th><th>来源</th><th>操作</th><th>结果</th><th>策略</th><th>详情</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:23:15</td>
+                <td style="font-family:monospace;font-size:12px">28451</td>
+                <td><code>/bin/bash</code></td>
+                <td><code>pod:openclaw-01</code></td>
+                <td><span class="badge badge-observed">execve</span></td>
+                <td><span class="badge badge-allowed">ALLOWED</span></td>
+                <td><code>default</code></td>
+                <td><button class="btn-secondary btn-sm" style="padding:2px 8px;font-size:10px">详情</button></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:23:16</td>
+                <td style="font-family:monospace;font-size:12px">28452</td>
+                <td><code>/usr/bin/curl</code></td>
+                <td><code>pod:openclaw-01</code></td>
+                <td><span class="badge badge-observed">execve</span></td>
+                <td><span class="badge badge-blocked">BLOCKED</span></td>
+                <td><code>network-block</code></td>
+                <td><button class="btn-secondary btn-sm" style="padding:2px 8px;font-size:10px">详情</button></td>
+              </tr>
+              <tr>
+                <td style="font-family:monospace;font-size:12px">10:24:01</td>
+                <td style="font-family:monospace;font-size:12px">28460</td>
+                <td><code>/bin/rm</code></td>
+                <td><code>pod:openclaw-01</code></td>
+                <td><span class="badge badge-observed">execve</span></td>
+                <td><span class="badge badge-blocked">BLOCKED</span></td>
+                <td><code>command_block</code></td>
+                <td><button class="btn-secondary btn-sm" style="padding:2px 8px;font-size:10px">详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Panel 3: 导出 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Export</div>
+            <div class="panel-title">审计数据导出</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <button class="btn-primary" onclick="exportData('json')">&#x1f4c4; 导出 JSON</button>
+          <button class="btn-secondary" onclick="exportData('csv')">&#x1f4ca; 导出 CSV</button>
+          <span style="font-size:12px;color:#8f8681;margin-left:8px">导出当前查询条件的匹配结果，预计 3 条记录</span>
+        </div>
+        <div style="margin-top:14px;border-radius:12px;background:#faf7f4;border:1px solid #f1e7e1;padding:12px 16px;font-size:12px;color:#6e6763">
+          <strong>导出范围:</strong> 时间 2026-05-01 00:00 ~ 23:59 | 操作: execve, open | 结果: ALLOWED, BLOCKED | 命名空间: default
+        </div>
+      </div>
+
+    </div><!-- /tab-audit-query -->
+
+  </div><!-- /content-area -->
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

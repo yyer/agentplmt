@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr41</title>
+<link rel="stylesheet" href="../css-5.7.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr41">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="sign-arch">签名架构</div>
+      <div class="tab" data-tab="sign-rules">消息签名规则</div>
+      <div class="tab" data-tab="integrity-fp">完整性指纹</div>
+      <div class="tab" data-tab="verify-logs">验证日志</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 签名架构                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-sign-arch">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">FR-41 消息签名架构</div>
+            <div class="panel-title">多智能体消息签名与完整性保护流程</div>
+          </div>
+          <span class="badge badge-p0">P0 关键</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          对代理消息、调度命令、注册描述、能力声明和上下文传递结果进行签名与完整性校验，防止中间人篡改、消息伪造和隐藏语义注入。承载系统为 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">ClawManager</code>（命令签名 + 状态报告校验）+ <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">KSecure/KubeArmor</code>（数字签名与完整性校验）。
+        </p>
+        <div class="config-summary">
+          <div class="config-stat"><div class="val" style="color:#15803d">3</div><div class="lbl">签名通道</div></div>
+          <div class="config-stat"><div class="val" style="color:#1d4ed8">17</div><div class="lbl">受保护命令类型</div></div>
+          <div class="config-stat"><div class="val" style="color:#c2410c">12</div><div class="lbl">完整性文件</div></div>
+          <div class="config-stat"><div class="val" style="color:#7c3aed">RSA-2048</div><div class="lbl">签名算法</div></div>
+        </div>
+      </div>
+
+      <!-- Architecture Flow: Command Dispatch -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">通道 1 / Channel-1</div>
+            <div class="panel-title">命令分发签名流程 (ClawManager InstanceCommand)</div>
+          </div>
+          <span class="badge badge-enforce">enforce</span>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          ClawManager 作为命令签发方 (Issuer)，对 InstanceCommand 进行数字签名。Agent 在接收命令时验证签名，确保命令来源可信且未被篡改。IdempotencyKey 机制防止命令重放。
+        </p>
+        <div class="arch-flow">
+          <div class="arch-lane">
+            <div class="arch-lane-title"><span class="dot" style="background:#7c3aed"></span><span style="color:#7c3aed">ISSUER 签发端 (ClawManager)</span></div>
+            <div class="flow-diagram">
+              <div class="flow-node dispatch"><div>管理员/调度器</div><div class="flow-desc">下发命令</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node sign"><div>签名引擎</div><div class="flow-desc">RSA-SHA256</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node store"><div>InstanceCommand</div><div class="flow-desc">附带签名+IdempotencyKey</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node checksum"><div>Checksum</div><div class="flow-desc">PayloadJSON SHA256</div></div>
+            </div>
+          </div>
+          <div class="arch-lane">
+            <div class="arch-lane-title"><span class="dot" style="background:#15803d"></span><span style="color:#15803d">VERIFIER 验证端 (Agent)</span></div>
+            <div class="flow-diagram">
+              <div class="flow-node dispatch"><div>接收命令</div><div class="flow-desc">含签名载荷</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node verify"><div>验签</div><div class="flow-desc">RSA公钥验证</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node verify"><div>IdempotencyKey</div><div class="flow-desc">幂等性检查</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node verify"><div>执行命令</div><div class="flow-desc">签名通过</div></div>
+            </div>
+          </div>
+          <div class="arch-lane" style="border-color:#fca5a5">
+            <div class="arch-lane-title"><span class="dot" style="background:#b91c1c"></span><span style="color:#b91c1c">REJECT 拒绝路径</span></div>
+            <div class="flow-diagram">
+              <div class="flow-node reject"><div>签名无效</div><div class="flow-desc">RSA验签失败</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node alert"><div>触发告警</div><div class="flow-desc">SIG_VERIFY_FAIL</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node reject"><div>拒绝执行</div><div class="flow-desc">丢弃命令</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="code-block" style="margin-top:16px">
+<span class="cmt">// ClawManager InstanceCommand 签名字段范围</span>
+<span class="kw">type</span> <span class="tp">InstanceCommand</span> <span class="kw">struct</span> {
+    ID             <span class="tp">int</span>        <span class="cmt">// 命令唯一标识</span>
+    InstanceID     <span class="tp">int</span>        <span class="cmt">// 目标实例ID</span>
+    AgentID        <span class="tp">*string</span>    <span class="cmt">// 目标AgentID</span>
+    CommandType    <span class="tp">string</span>     <span class="cmt">// 命令类型 (17种)</span>
+    PayloadJSON    <span class="tp">*string</span>    <span class="cmt">// 命令载荷 (签名输入)</span>
+    Status         <span class="tp">string</span>     <span class="cmt">// 命令状态</span>
+    IdempotencyKey <span class="tp">string</span>     <span class="cmt">// 幂等键 (防重放)</span>
+    IssuedBy       <span class="tp">*int</span>      <span class="cmt">// 签发人ID</span>
+    IssuedAt       <span class="tp">time.Time</span>  <span class="cmt">// 签发时间戳</span>
+    TimeoutSeconds <span class="tp">int</span>        <span class="cmt">// 超时阈值</span>
+}
+<span class="cmt">// 签名覆盖: CommandType + PayloadJSON + IdempotencyKey + IssuedAt + InstanceID</span>
+<span class="cmt">// 算法: SHA256(RSA-SHA256, 签发方私钥) → signature_base64</span>
+        </div>
+      </div>
+
+      <!-- Architecture Flow: State Report -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">通道 2 / Channel-2</div>
+            <div class="panel-title">状态报告签名流程 (Agent → ClawManager)</div>
+          </div>
+          <span class="badge badge-enforce">enforce</span>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          Agent 向 ClawManager 上报状态时，使用自身密钥对状态报告进行签名。ClawManager 验证签名后接受状态更新，防止恶意 Agent 伪造状态报告或中间人篡改运行时数据。
+        </p>
+        <div class="arch-flow">
+          <div class="arch-lane">
+            <div class="arch-lane-title"><span class="dot" style="background:#1d4ed8"></span><span style="color:#1d4ed8">SIGNER 签名端 (Agent)</span></div>
+            <div class="flow-diagram">
+              <div class="flow-node dispatch"><div>Agent 运行时</div><div class="flow-desc">采集状态</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node sign"><div>签名</div><div class="flow-desc">HMAC-SHA256</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node store"><div>StateReport</div><div class="flow-desc">含签名+时间戳</div></div>
+            </div>
+          </div>
+          <div class="arch-lane">
+            <div class="arch-lane-title"><span class="dot" style="background:#15803d"></span><span style="color:#15803d">VERIFIER 验证端 (ClawManager)</span></div>
+            <div class="flow-diagram">
+              <div class="flow-node dispatch"><div>接收报告</div><div class="flow-desc">含签名载荷</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node verify"><div>HMAC验签</div><div class="flow-desc">共享密钥验证</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node verify"><div>时间戳校验</div><div class="flow-desc">时效性检查</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node store"><div>接受状态</div><div class="flow-desc">更新数据库</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Architecture Flow: Config Revision -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">通道 3 / Channel-3</div>
+            <div class="panel-title">配置版本签名与校验流程 (ConfigRevision Checksum)</div>
+          </div>
+          <span class="badge badge-enforce">enforce</span>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          ClawManager 发布配置版本时，计算 ContentJSON 的 SHA256 校验和并存储到 Checksum 字段。Agent 接收配置后重新计算校验和比对，确保配置内容在传输过程中未被篡改。格式为 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">sha256:&lt;64-hex-chars&gt;</code>。
+        </p>
+        <div class="arch-flow">
+          <div class="arch-lane">
+            <div class="arch-lane-title"><span class="dot" style="background:#c2410c"></span><span style="color:#c2410c">PUBLISHER 发布端 (ClawManager)</span></div>
+            <div class="flow-diagram">
+              <div class="flow-node dispatch"><div>管理员</div><div class="flow-desc">发布配置</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node sign"><div>SHA256</div><div class="flow-desc">计算ContentJSON哈希</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node store"><div>ConfigRevision</div><div class="flow-desc">Checksum=sha256:abc...</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node sign"><div>RSA签名</div><div class="flow-desc">对Checksum签名</div></div>
+            </div>
+          </div>
+          <div class="arch-lane">
+            <div class="arch-lane-title"><span class="dot" style="background:#15803d"></span><span style="color:#15803d">VERIFIER 验证端 (Agent)</span></div>
+            <div class="flow-diagram">
+              <div class="flow-node dispatch"><div>接收配置</div><div class="flow-desc">ContentJSON+Checksum</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node verify"><div>重算SHA256</div><div class="flow-desc">本地ContentJSON</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node verify"><div>比对Checksum</div><div class="flow-desc">本地vs远程</div></div>
+              <div class="flow-arrow">&#10140;</div>
+              <div class="flow-node verify"><div>验签Checksum</div><div class="flow-desc">RSA公钥</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="code-block" style="margin-top:16px">
+<span class="cmt">// ClawManager InstanceConfigRevision 校验和模型</span>
+<span class="kw">type</span> <span class="tp">InstanceConfigRevision</span> <span class="kw">struct</span> {
+    ID               <span class="tp">int</span>        <span class="cmt">// 版本ID</span>
+    InstanceID       <span class="tp">int</span>        <span class="cmt">// 实例ID</span>
+    RevisionNo       <span class="tp">int</span>        <span class="cmt">// 版本号</span>
+    ContentJSON      <span class="tp">string</span>     <span class="cmt">// 配置内容 (校验和输入)</span>
+    Checksum         <span class="tp">string</span>     <span class="cmt">// 格式: "sha256:&lt;64-hex-chars&gt;"</span>
+    Status           <span class="tp">string</span>     <span class="cmt">// published</span>
+    PublishedBy      <span class="tp">*int</span>      <span class="cmt">// 发布人ID</span>
+    PublishedAt      <span class="tp">*time.Time</span> <span class="cmt">// 发布时间</span>
+    ActivatedAt      <span class="tp">*time.Time</span> <span class="cmt">// 激活时间</span>
+}
+<span class="cmt">// Checksum = "sha256:" + SHA256(ContentJSON)</span>
+<span class="cmt">// 签名覆盖: Checksum + RevisionNo + PublishedBy + PublishedAt</span>
+        </div>
+      </div>
+
+      <!-- ClawAegis Self Integrity Architecture -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis 自完整性架构</div>
+            <div class="panel-title">SelfIntegrityRecord 指纹保护模型</div>
+          </div>
+          <span class="badge badge-sys">claw-aegis</span>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          ClawAegis 插件在启动时对自身核心文件计算 SHA-256 指纹，存储到 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">self-integrity.json</code>。运行时周期性重算指纹并比对，检测插件自身是否被篡改。受保护文件列表为 SELF_INTEGRITY_FILES 常量定义的 12 个核心文件。
+        </p>
+        <div class="code-block">
+<span class="cmt">// ClawAegis SelfIntegrityRecord 数据模型</span>
+<span class="kw">type</span> <span class="tp">SelfIntegrityRecord</span> = {
+  pluginId: <span class="tp">string</span>;          <span class="cmt">// "claw-aegis"</span>
+  stateDir: <span class="tp">string</span>;          <span class="cmt">// 状态目录路径</span>
+  rootDir?: <span class="tp">string</span>;          <span class="cmt">// 插件根目录</span>
+  rootRealPath?: <span class="tp">string</span>;    <span class="cmt">// 解析后的真实路径</span>
+  protectedRoots: <span class="tp">string</span>[];  <span class="cmt">// 受保护根目录列表</span>
+  fingerprints: <span class="tp">Record</span>&lt;<span class="tp">string</span>, <span class="tp">string</span>&gt;; <span class="cmt">// 文件→SHA256哈希映射</span>
+  updatedAt: <span class="tp">number</span>;         <span class="cmt">// 最后更新时间戳</span>
+}
+<span class="cmt">// 持久化路径: {stateDir}/plugins/claw-aegis/self-integrity.json</span>
+<span class="cmt">// 12个受保护文件 (SELF_INTEGRITY_FILES):</span>
+<span class="cmt">//   index.ts, runtime-api.ts, openclaw.plugin.json, package.json,</span>
+<span class="cmt">//   src/config.ts, src/types.ts, src/state.ts, src/rules.ts,</span>
+<span class="cmt">//   src/scan-service.ts, src/scan-worker.ts, src/scan-worker.js, src/handlers.ts</span>
+        </div>
+      </div>
+
+    </div><!-- /tab-sign-arch -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 消息签名规则                                            -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-sign-rules">
+
+      <!-- Rule: InstanceCommand -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">消息类型 1</div>
+            <div class="panel-title">InstanceCommand 命令签名规则</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-enforce">enforce</span>
+            <span class="badge badge-p0">P0</span>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:12px;line-height:1.7">
+          ClawManager 下发的所有 InstanceCommand 均须由 Issuer (签发方) 使用 RSA-SHA256 签名。Agent 验证签名后执行命令，签名验证失败则拒绝执行并触发告警。IdempotencyKey 字段防止命令重放。
+        </p>
+        <div class="rule-card">
+          <div class="rule-header">
+            <div><span class="rule-flag">InstanceCommand</span> <span style="font-size:12px;color:var(--text);margin-left:8px">RSA-SHA256 数字签名</span></div>
+            <span class="badge badge-enforce">强制签名</span>
+          </div>
+          <div class="rule-desc">签名字段范围: CommandType + PayloadJSON + IdempotencyKey + IssuedAt + InstanceID + AgentID + TimeoutSeconds</div>
+          <div class="rule-patterns" style="margin-top:8px">
+            <span class="rule-pattern">start_openclaw</span>
+            <span class="rule-pattern">stop_openclaw</span>
+            <span class="rule-pattern">restart_openclaw</span>
+            <span class="rule-pattern">collect_system_info</span>
+            <span class="rule-pattern">apply_config_revision</span>
+            <span class="rule-pattern">reload_config</span>
+            <span class="rule-pattern">health_check</span>
+            <span class="rule-pattern">install_skill</span>
+            <span class="rule-pattern">update_skill</span>
+            <span class="rule-pattern">uninstall_skill</span>
+            <span class="rule-pattern">remove_skill</span>
+            <span class="rule-pattern">disable_skill</span>
+            <span class="rule-pattern">quarantine_skill</span>
+            <span class="rule-pattern">handle_skill_risk</span>
+            <span class="rule-pattern">sync_skill_inventory</span>
+            <span class="rule-pattern">refresh_skill_inventory</span>
+            <span class="rule-pattern">collect_skill_package</span>
+          </div>
+        </div>
+        <table class="data-table" style="margin-top:12px">
+          <thead><tr><th>字段</th><th>类型</th><th>签名包含</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">ID</code></td><td>int</td><td><span class="badge badge-match">&#10003;</span></td><td>命令唯一标识</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">InstanceID</code></td><td>int</td><td><span class="badge badge-match">&#10003;</span></td><td>目标实例ID</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">AgentID</code></td><td>*string</td><td><span class="badge badge-match">&#10003;</span></td><td>目标AgentID (可选)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">CommandType</code></td><td>string</td><td><span class="badge badge-match">&#10003;</span></td><td>命令类型 (17种之一)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">PayloadJSON</code></td><td>*string</td><td><span class="badge badge-match">&#10003;</span></td><td>命令载荷 (签名核心输入)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">IdempotencyKey</code></td><td>string</td><td><span class="badge badge-match">&#10003;</span></td><td>幂等键 (防重放攻击)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">IssuedBy</code></td><td>*int</td><td><span class="badge badge-match">&#10003;</span></td><td>签发人ID</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">IssuedAt</code></td><td>time.Time</td><td><span class="badge badge-match">&#10003;</span></td><td>签发时间戳</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#c2410c">TimeoutSeconds</code></td><td>int</td><td><span class="badge badge-match">&#10003;</span></td><td>超时阈值</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#8f8681">Status</code></td><td>string</td><td><span class="badge badge-unknown">&#10005;</span></td><td>运行时状态 (不参与签名)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#8f8681">DispatchedAt</code></td><td>*time.Time</td><td><span class="badge badge-unknown">&#10005;</span></td><td>派发时间 (不参与签名)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#8f8681">StartedAt</code></td><td>*time.Time</td><td><span class="badge badge-unknown">&#10005;</span></td><td>启动时间 (不参与签名)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#8f8681">FinishedAt</code></td><td>*time.Time</td><td><span class="badge badge-unknown">&#10005;</span></td><td>完成时间 (不参与签名)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#8f8681">ResultJSON</code></td><td>*string</td><td><span class="badge badge-unknown">&#10005;</span></td><td>执行结果 (不参与签名)</td></tr>
+            <tr><td><code style="font-family:monospace;font-size:12px;color:#8f8681">ErrorMessage</code></td><td>*string</td><td><span class="badge badge-unknown">&#10005;</span></td><td>错误信息 (不参与签名)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Rule: AgentHeartbeat -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">消息类型 2</div>
+            <div class="panel-title">AgentHeartbeat 心跳签名规则</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-enforce">enforce</span>
+            <span class="badge badge-p0">P0</span>
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header">
+            <div><span class="rule-flag">AgentHeartbeat</span> <span style="font-size:12px;color:var(--text);margin-left:8px">HMAC-SHA256 对称签名</span></div>
+            <span class="badge badge-enforce">强制签名</span>
+          </div>
+          <div class="rule-desc">Agent 定期向 ClawManager 发送心跳，包含 AgentID、时间戳、运行状态。使用 HMAC-SHA256 共享密钥签名，防止伪造心跳和状态欺骗。</div>
+          <div class="rule-patterns" style="margin-top:8px">
+            <span class="rule-pattern">agent_id</span>
+            <span class="rule-pattern">timestamp</span>
+            <span class="rule-pattern">status</span>
+            <span class="rule-pattern">instance_id</span>
+            <span class="rule-pattern">session_count</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule: AgentRegister -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">消息类型 3</div>
+            <div class="panel-title">AgentRegister 注册签名规则</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-enforce">enforce</span>
+            <span class="badge badge-p0">P0</span>
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header">
+            <div><span class="rule-flag">AgentRegister</span> <span style="font-size:12px;color:var(--text);margin-left:8px">RSA-SHA256 非对称签名</span></div>
+            <span class="badge badge-enforce">强制签名</span>
+          </div>
+          <div class="rule-desc">Agent 启动时向 ClawManager 注册，使用 Bootstrap Token + RSA 签名证明身份。注册消息包含 AgentID、能力声明、公钥证书。ClawManager 验证签名后存储 Agent 公钥用于后续消息验签。</div>
+          <div class="rule-patterns" style="margin-top:8px">
+            <span class="rule-pattern">agent_id</span>
+            <span class="rule-pattern">bootstrap_token</span>
+            <span class="rule-pattern">capabilities</span>
+            <span class="rule-pattern">public_key</span>
+            <span class="rule-pattern">agent_card</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule: ConfigRevision -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">消息类型 4</div>
+            <div class="panel-title">ConfigRevision 配置校验规则</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-enforce">enforce</span>
+            <span class="badge badge-p0">P0</span>
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header">
+            <div><span class="rule-flag">ConfigRevision</span> <span style="font-size:12px;color:var(--text);margin-left:8px">SHA256 校验和 + RSA 签名</span></div>
+            <span class="badge badge-enforce">强制校验</span>
+          </div>
+          <div class="rule-desc">配置发布时计算 ContentJSON 的 SHA256 校验和 (格式: sha256:&lt;64-hex-chars&gt;)，并对校验和本身进行 RSA 签名。Agent 接收配置后重新计算 ContentJSON 哈希并与 Checksum 比对，同时验签确认校验和未被替换。</div>
+          <div class="rule-patterns" style="margin-top:8px">
+            <span class="rule-pattern">ContentJSON</span>
+            <span class="rule-pattern">Checksum=sha256:...</span>
+            <span class="rule-pattern">RevisionNo</span>
+            <span class="rule-pattern">PublishedBy</span>
+            <span class="rule-pattern">PublishedAt</span>
+            <span class="rule-pattern">ActivatedAt</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule: StateReport -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">消息类型 5</div>
+            <div class="panel-title">StateReport 状态报告签名规则</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-enforce">enforce</span>
+            <span class="badge badge-p0">P0</span>
+          </div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header">
+            <div><span class="rule-flag">StateReport</span> <span style="font-size:12px;color:var(--text);margin-left:8px">HMAC-SHA256 对称签名</span></div>
+            <span class="badge badge-enforce">强制签名</span>
+          </div>
+          <div class="rule-desc">Agent 向 ClawManager 上报运行状态 (CPU/内存/会话/工具调用统计)，使用 HMAC-SHA256 签名确保状态数据来源可信。包含 AgentID、时间戳、状态快照。ClawManager 验签后更新数据库记录。</div>
+          <div class="rule-patterns" style="margin-top:8px">
+            <span class="rule-pattern">agent_id</span>
+            <span class="rule-pattern">timestamp</span>
+            <span class="rule-pattern">runtime_status</span>
+            <span class="rule-pattern">resource_usage</span>
+            <span class="rule-pattern">session_stats</span>
+            <span class="rule-pattern">tool_call_stats</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toggle Controls -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">签名执行控制</div>
+            <div class="panel-title">消息签名策略开关</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">强制命令签名 (Enforce Command Signature)</div>
+            <div class="desc">InstanceCommand 必须携带有效数字签名，验签失败拒绝执行。覆盖全部 17 种命令类型。</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce" onclick="setMode(this,'enforce')">enforce</div>
+            <div class="mode-btn" onclick="setMode(this,'observe')">observe</div>
+            <div class="mode-btn" onclick="setMode(this,'off')">off</div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">强制状态报告签名 (Enforce State Report Signature)</div>
+            <div class="desc">Agent 上报的 StateReport 必须包含 HMAC-SHA256 签名，验签失败丢弃状态更新。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-state-sig" checked>
+            <label class="toggle-slider" for="toggle-state-sig"></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">强制配置校验和 (Enforce Config Checksum)</div>
+            <div class="desc">ConfigRevision 的 ContentJSON 必须与 Checksum 一致 (sha256:&lt;64-hex&gt;)，校验失败拒绝应用配置。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-config-checksum" checked>
+            <label class="toggle-slider" for="toggle-config-checksum"></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">强制心跳签名 (Enforce Heartbeat Signature)</div>
+            <div class="desc">AgentHeartbeat 必须携带 HMAC-SHA256 签名，防止伪造心跳导致状态欺骗。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-hb-sig" checked>
+            <label class="toggle-slider" for="toggle-hb-sig"></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">强制注册签名 (Enforce Register Signature)</div>
+            <div class="desc">AgentRegister 必须使用 RSA-SHA256 签名 + Bootstrap Token，防止未授权 Agent 注册。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-reg-sig" checked>
+            <label class="toggle-slider" for="toggle-reg-sig"></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">签名失败自动告警 (Alert on Signature Failure)</div>
+            <div class="desc">任何签名验证失败事件自动触发安全告警，告警包含消息类型、签名者ID、失败原因。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-sig-alert" checked>
+            <label class="toggle-slider" for="toggle-sig-alert"></label>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-sign-rules -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 完整性指纹                                              -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-integrity-fp">
+
+      <!-- ClawAegis Self Integrity -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis 自完整性监控</div>
+            <div class="panel-title">SelfIntegrityRecord 指纹数据库</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-sys">claw-aegis</span>
+            <span class="badge badge-match">12 文件监控中</span>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          ClawAegis 插件在启动时对 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">SELF_INTEGRITY_FILES</code> 列表中的 12 个核心文件计算 SHA-256 指纹，持久化到 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">self-integrity.json</code>。运行时周期性重算并比对，检测文件篡改。指纹模型为 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">Record&lt;string, string&gt;</code> (相对路径 → SHA-256 哈希)。
+        </p>
+
+        <div class="code-block" style="margin-bottom:16px">
+<span class="cmt">// SELF_INTEGRITY_FILES 常量定义 (ClawAegis src/handlers.ts)</span>
+<span class="kw">const</span> SELF_INTEGRITY_FILES = [
+  <span class="str">"index.ts"</span>,
+  <span class="str">"runtime-api.ts"</span>,
+  <span class="str">"openclaw.plugin.json"</span>,
+  <span class="str">"package.json"</span>,
+  <span class="str">"src/config.ts"</span>,
+  <span class="str">"src/types.ts"</span>,
+  <span class="str">"src/state.ts"</span>,
+  <span class="str">"src/rules.ts"</span>,
+  <span class="str">"src/scan-service.ts"</span>,
+  <span class="str">"src/scan-worker.ts"</span>,
+  <span class="str">"src/scan-worker.js"</span>,
+  <span class="str">"src/handlers.ts"</span>,
+] <span class="kw">as const</span>;
+        </div>
+
+        <table class="data-table">
+          <thead><tr><th>文件 (相对路径)</th><th>SHA-256 (前16位)</th><th>最后验证时间</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;font-size:12px">index.ts</td><td style="font-family:monospace;font-size:12px;color:#6e6763">a3f7c2e9b1d4...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">runtime-api.ts</td><td style="font-family:monospace;font-size:12px;color:#6e6763">e8b1d4f2c7a3...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">openclaw.plugin.json</td><td style="font-family:monospace;font-size:12px;color:#6e6763">5c9e1a7b3f2d...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">package.json</td><td style="font-family:monospace;font-size:12px;color:#6e6763">d2f8b4e6a1c3...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">src/config.ts</td><td style="font-family:monospace;font-size:12px;color:#6e6763">7a2c9e5b1d4f...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">src/types.ts</td><td style="font-family:monospace;font-size:12px;color:#6e6763">f1d3b5e7a2c8...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">src/state.ts</td><td style="font-family:monospace;font-size:12px;color:#6e6763">b4e6a8c1d3f5...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">src/rules.ts</td><td style="font-family:monospace;font-size:12px;color:#6e6763">c9e2a5b7d1f3...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">src/scan-service.ts</td><td style="font-family:monospace;font-size:12px;color:#b91c1c">e1a3c5b7d9f2...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-tampered">&#10007; 篡改</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">src/scan-worker.ts</td><td style="font-family:monospace;font-size:12px;color:#6e6763">3b5d7e9a1c2f...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">src/scan-worker.js</td><td style="font-family:monospace;font-size:12px;color:#6e6763">6d8f1a3c5e7b...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">src/handlers.ts</td><td style="font-family:monospace;font-size:12px;color:#6e6763">8a2c4e6b9d1f...</td><td>2026-05-01 14:23:07</td><td><span class="badge badge-match">&#10003; 匹配</span></td></tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:16px;padding:14px;border-radius:14px;background:#fee2e2;border:1px solid #fecaca">
+          <div style="font-size:13px;font-weight:600;color:#b91c1c;margin-bottom:4px">&#9888; 检测到文件篡改</div>
+          <div style="font-size:12px;color:#b91c1c;line-height:1.6">
+            文件 <code style="background:rgba(255,255,255,0.6);border-radius:4px;padding:1px 5px;font-family:monospace">src/scan-service.ts</code> 的 SHA-256 指纹与基线不匹配。当前哈希: <code style="background:rgba(255,255,255,0.6);border-radius:4px;padding:1px 5px;font-family:monospace">e1a3c5b7d9f2...</code>，基线哈希: <code style="background:rgba(255,255,255,0.6);border-radius:4px;padding:1px 5px;font-family:monospace">9c2d4e6f8a1b...</code>。建议立即审查该文件变更并确认是否为授权修改。
+          </div>
+        </div>
+      </div>
+
+      <!-- KubeArmor IMA Section -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor IMA 集成</div>
+            <div class="panel-title">内核级完整性度量架构 (IMA + BPF LSM)</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="badge badge-sys">kubearmor</span>
+            <span class="badge badge-enforce">enforce</span>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          KubeArmor 通过 BPF LSM hook <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">bprm_check_security</code> 拦截可执行文件加载，调用 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">bpf_ima_file_hash()</code> 计算文件哈希，填充 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">HashContext</code> 结构体进行进程级完整性校验。<code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">enableIMA</code> 标志控制是否启用 IMA 哈希采集。
+        </p>
+
+        <div class="integrity-grid">
+          <div>
+            <div class="code-block">
+<span class="cmt">// KubeArmor HashContext 结构 (monitor/systemMonitor.go)</span>
+<span class="kw">type</span> <span class="tp">HashContext</span> <span class="kw">struct</span> {
+    ProcessHash  <span class="tp">string</span> <span class="cmt">// 进程可执行文件SHA256</span>
+    ParentHash   <span class="tp">string</span> <span class="cmt">// 父进程可执行文件SHA256</span>
+    ResourceHash <span class="tp">string</span> <span class="cmt">// 资源文件SHA256</span>
+    HashAlgo     <span class="tp">uint32</span> <span class="cmt">// 哈希算法标识</span>
+}
+
+<span class="cmt">// ContextCombined 组合上下文</span>
+<span class="kw">type</span> <span class="tp">ContextCombined</span> <span class="kw">struct</span> {
+    ContainerID <span class="tp">string</span>
+    ContextSys  <span class="tp">SyscallContext</span>
+    HashData    <span class="tp">HashContext</span>
+    ContextArgs []<span class="tp">any</span>
+}
+
+<span class="cmt">// BPF LSM Hook 点</span>
+<span class="cmt">// bprm_check_security: 可执行文件加载拦截</span>
+<span class="cmt">// bpf_ima_file_hash(): IMA哈希计算</span>
+            </div>
+          </div>
+
+          <div>
+            <table class="data-table">
+              <thead><tr><th>IMA 字段</th><th>值示例</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td style="font-family:monospace;font-size:12px">ProcessHash</td><td style="font-family:monospace;font-size:11px;color:#6e6763">sha256:a1b2c3d4e5f6...</td><td>进程可执行文件哈希</td></tr>
+                <tr><td style="font-family:monospace;font-size:12px">ParentHash</td><td style="font-family:monospace;font-size:11px;color:#6e6763">sha256:f6e5d4c3b2a1...</td><td>父进程可执行文件哈希</td></tr>
+                <tr><td style="font-family:monospace;font-size:12px">ResourceHash</td><td style="font-family:monospace;font-size:11px;color:#6e6763">sha256:7a8b9c0d1e2f...</td><td>资源文件哈希</td></tr>
+                <tr><td style="font-family:monospace;font-size:12px">HashAlgo</td><td style="font-family:monospace;font-size:11px;color:#6e6763">2 (SHA256)</td><td>哈希算法标识 (uint32)</td></tr>
+              </tbody>
+            </table>
+
+            <div style="margin-top:16px">
+              <div class="toggle-row">
+                <div class="toggle-label">
+                  <div class="name">启用 IMA 集成 (Enable IMA)</div>
+                  <div class="desc">启用 KubeArmor BPF LSM bprm_check_security hook 和 bpf_ima_file_hash() 进程哈希采集。enableIMA 标志控制。</div>
+                </div>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="toggle-ima" checked>
+                  <label class="toggle-slider" for="toggle-ima"></label>
+                </div>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-label">
+                  <div class="name">进程哈希强制验证 (Enforce Process Hash)</div>
+                  <div class="desc">验证 HashContext.ProcessHash 与已知基线比对，不匹配则阻止进程执行并告警。</div>
+                </div>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="toggle-proc-hash" checked>
+                  <label class="toggle-slider" for="toggle-proc-hash"></label>
+                </div>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-label">
+                  <div class="name">父进程链验证 (Parent Hash Chain)</div>
+                  <div class="desc">验证 HashContext.ParentHash，检测进程链注入和异常父进程替换。</div>
+                </div>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="toggle-parent-hash">
+                  <label class="toggle-slider" for="toggle-parent-hash"></label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KubeArmor Cert -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor 证书管理</div>
+            <div class="panel-title">RSA 2048 自签名证书 (GenerateSelfSignedCert)</div>
+          </div>
+          <span class="badge badge-sys">kubearmor</span>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          KubeArmor 使用 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">GenerateSelfSignedCert()</code> 生成 RSA 2048 密钥对和 x509 证书，用于组件间通信的 TLS 加密和消息签名验证。<code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">CertKeyPair</code> 包含 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">Crt *x509.Certificate</code> + <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">Key *rsa.PrivateKey</code>。
+        </p>
+        <div class="code-block">
+<span class="cmt">// KubeArmor 证书生成 (cert/cert.go)</span>
+<span class="kw">type</span> <span class="tp">CertKeyPair</span> <span class="kw">struct</span> {
+    Crt *<span class="tp">x509.Certificate</span>   <span class="cmt">// X.509 证书</span>
+    Key *<span class="tp">rsa.PrivateKey</span>     <span class="cmt">// RSA 2048 私钥</span>
+}
+
+<span class="kw">type</span> <span class="tp">CertConfig</span> <span class="kw">struct</span> {
+    CN           <span class="tp">string</span>            <span class="cmt">// Common Name: "kubearmor"</span>
+    Organization <span class="tp">string</span>            <span class="cmt">// ORG: "kubearmor"</span>
+    DNS          []<span class="tp">string</span>
+    IPs          []<span class="tp">string</span>
+    IsCa         <span class="tp">bool</span>
+    KeyUsage     <span class="tp">x509.KeyUsage</span>     <span class="cmt">// KeyEncipherment | DigitalSignature</span>
+    ExtKeyUsage  []<span class="tp">x509.ExtKeyUsage</span> <span class="cmt">// ServerAuth / ClientAuth</span>
+    NotAfter     <span class="tp">time.Time</span>
+}
+
+<span class="cmt">// GenerateSelfSignedCert: 生成CA签名证书</span>
+<span class="cmt">// RSA 2048 密钥生成: rsa.GenerateKey(rand.Reader, 2048)</span>
+<span class="cmt">// 证书签名: x509.CreateCertificate(rand.Reader, cert, ca, pub, caKey)</span>
+        </div>
+        <table class="data-table" style="margin-top:12px">
+          <thead><tr><th>证书类型</th><th>密钥用途</th><th>扩展用途</th><th>路径</th></tr></thead>
+          <tbody>
+            <tr><td>CA 证书</td><td>KeyEncipherment + DigitalSignature + CertSign + CRLSign</td><td>—</td><td style="font-family:monospace;font-size:11px">ca.crt / ca.key</td></tr>
+            <tr><td>Server 证书</td><td>KeyEncipherment + DigitalSignature</td><td>ServerAuth</td><td style="font-family:monospace;font-size:11px">server.crt / server.key</td></tr>
+            <tr><td>Client 证书</td><td>KeyEncipherment + DigitalSignature</td><td>ClientAuth</td><td style="font-family:monospace;font-size:11px">client.crt / client.key</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /tab-integrity-fp -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 验证日志                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-verify-logs">
+
+      <!-- Score & Summary -->
+      <div class="app-panel-warm">
+        <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+          <div class="score-circle score-high">96%</div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:1.05rem;font-weight:700;color:var(--text-h);margin-bottom:4px">完整性验证通过率</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.7">
+              过去 24 小时内共验证 <strong>1,847</strong> 条消息签名，其中 <strong>1,773</strong> 条通过，<strong>74</strong> 条验证失败（含 3 条签名无效、2 条校验和不匹配、69 条 IMA 哈希异常）。
+            </div>
+          </div>
+          <div class="config-summary" style="margin:0;flex:1;min-width:300px">
+            <div class="config-stat"><div class="val" style="color:#15803d">1,773</div><div class="lbl">验证通过</div></div>
+            <div class="config-stat"><div class="val" style="color:#b91c1c">74</div><div class="lbl">验证失败</div></div>
+            <div class="config-stat"><div class="val" style="color:#92400e">12</div><div class="lbl">校验和异常</div></div>
+            <div class="config-stat"><div class="val" style="color:#7c3aed">1,847</div><div class="lbl">总验证数</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Entries -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">签名验证日志</div>
+            <div class="panel-title">实时验证事件流</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#8635; 刷新</button>
+        </div>
+
+        <!-- Log 1: Success -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:23:07.412</span>
+            <span class="log-id pass">SIG_PASS</span>
+            <span class="badge badge-match">InstanceCommand</span>
+            <span class="badge badge-enforce">enforce</span>
+          </div>
+          <div class="log-body">
+            InstanceCommand <code>start_openclaw</code> 签名验证通过。签发方: <code>admin@clawmanager</code> (ID: 3)，签名算法: RSA-SHA256，IdempotencyKey: <code>ik-20260501-142307-a3f7</code>。
+          </div>
+          <div class="log-detail">
+{
+  "command_id": 1247,
+  "command_type": "start_openclaw",
+  "instance_id": 42,
+  "agent_id": "agent-prod-01",
+  "signer": "admin@clawmanager",
+  "signer_id": 3,
+  "algorithm": "RSA-SHA256",
+  "idempotency_key": "ik-20260501-142307-a3f7",
+  "verification": "PASS",
+  "latency_ms": 2.3
+}
+          </div>
+        </div>
+
+        <!-- Log 2: Failure -->
+        <div class="log-entry" style="border-color:#fca5a5">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:18:33.891</span>
+            <span class="log-id fail">SIG_FAIL</span>
+            <span class="badge badge-tampered">InstanceCommand</span>
+            <span class="badge badge-enforce">enforce</span>
+          </div>
+          <div class="log-body">
+            InstanceCommand <code>apply_config_revision</code> 签名验证失败！签名不匹配，疑似消息被篡改。命令已被拒绝执行，触发安全告警 <code>ALERT-SIG-20260501-001</code>。
+          </div>
+          <div class="log-detail">
+{
+  "command_id": 1243,
+  "command_type": "apply_config_revision",
+  "instance_id": 38,
+  "agent_id": "agent-staging-02",
+  "signer": "admin@clawmanager",
+  "signer_id": 5,
+  "algorithm": "RSA-SHA256",
+  "idempotency_key": "ik-20260501-141833-b2e9",
+  "verification": "FAIL",
+  "failure_reason": "signature_mismatch",
+  "expected_hash": "sha256:a1b2c3d4e5f67890...",
+  "actual_hash": "sha256:f0e9d8c7b6a54321...",
+  "alert_id": "ALERT-SIG-20260501-001",
+  "action": "REJECTED"
+}
+          </div>
+        </div>
+
+        <!-- Log 3: Checksum mismatch -->
+        <div class="log-entry" style="border-color:#fcd34d">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:15:22.567</span>
+            <span class="log-id warn">CHK_MISMATCH</span>
+            <span class="badge badge-observe">ConfigRevision</span>
+            <span class="badge badge-enforce">enforce</span>
+          </div>
+          <div class="log-body">
+            ConfigRevision 校验和不匹配。InstanceID: 42，RevisionNo: 17。本地计算 ContentJSON SHA256 与 Checksum 字段不一致，配置未被应用。
+          </div>
+          <div class="log-detail">
+{
+  "instance_id": 42,
+  "revision_no": 17,
+  "stored_checksum": "sha256:c4d5e6f7a8b9c0d1...",
+  "computed_checksum": "sha256:1a2b3c4d5e6f7a8b...",
+  "verification": "CHECKSUM_MISMATCH",
+  "action": "CONFIG_REJECTED",
+  "published_by": 3,
+  "published_at": "2026-05-01T13:45:00Z"
+}
+          </div>
+        </div>
+
+        <!-- Log 4: IMA hash -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:10:45.123</span>
+            <span class="log-id pass">IMA_PASS</span>
+            <span class="badge badge-sys">kubearmor</span>
+            <span class="badge badge-enforce">enforce</span>
+          </div>
+          <div class="log-body">
+            KubeArmor IMA 进程哈希验证通过。容器 <code>openclaw-agent-prod</code>，进程 <code>/usr/bin/node</code>，ProcessHash 与基线匹配。HashAlgo: SHA256 (2)。
+          </div>
+          <div class="log-detail">
+{
+  "container_id": "abc123def456",
+  "container_name": "openclaw-agent-prod",
+  "executable": "/usr/bin/node",
+  "process_hash": "sha256:7b8c9d0e1f2a3b4c...",
+  "parent_hash": "sha256:d5e6f7a8b9c0d1e2...",
+  "resource_hash": "sha256:3f4a5b6c7d8e9f0a...",
+  "hash_algo": 2,
+  "verification": "PASS",
+  "bpf_hook": "bprm_check_security",
+  "ima_function": "bpf_ima_file_hash"
+}
+          </div>
+        </div>
+
+        <!-- Log 5: Self integrity tampered -->
+        <div class="log-entry" style="border-color:#fca5a5">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:05:18.901</span>
+            <span class="log-id fail">SELF_TAMPERED</span>
+            <span class="badge badge-sys">claw-aegis</span>
+            <span class="badge badge-tampered">篡改检测</span>
+          </div>
+          <div class="log-body">
+            ClawAegis 自完整性检测发现 <code>src/scan-service.ts</code> 被篡改！当前指纹 <code>e1a3c5b7d9f2...</code> 与基线 <code>9c2d4e6f8a1b...</code> 不匹配。SelfIntegrityRecord.updatedAt: 2026-05-01T14:05:18Z。
+          </div>
+          <div class="log-detail">
+{
+  "event": "self_integrity_failed",
+  "plugin_id": "claw-aegis",
+  "tampered_file": "src/scan-service.ts",
+  "baseline_hash": "9c2d4e6f8a1b3c5d7e9f0a2b4c6d8e0f1a3b5c7d9e1f2a4b6c8d0e2f4a6b8c0d",
+  "current_hash": "e1a3c5b7d9f2a4b6c8d0e2f4a6b8c0d1e3f5a7b9c1d3e5f7a9b1c3d5e7f9a1b3",
+  "protected_roots": ["/opt/openclaw/extensions/claw-aegis"],
+  "fingerprint_count": 12,
+  "tampered_count": 1,
+  "updated_at": 1746103518901,
+  "alert_id": "ALERT-INTEGRITY-20260501-001"
+}
+          </div>
+        </div>
+
+        <!-- Log 6: Heartbeat success -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 14:00:01.234</span>
+            <span class="log-id pass">HB_PASS</span>
+            <span class="badge badge-match">AgentHeartbeat</span>
+            <span class="badge badge-enforce">enforce</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-prod-01</code> 心跳签名验证通过。HMAC-SHA256 签名有效，时间戳在允许窗口内 (±30s)。InstanceID: 42，状态: running，会话数: 3。
+          </div>
+          <div class="log-detail">
+{
+  "agent_id": "agent-prod-01",
+  "instance_id": 42,
+  "algorithm": "HMAC-SHA256",
+  "timestamp": "2026-05-01T14:00:01Z",
+  "timestamp_window": "±30s",
+  "status": "running",
+  "session_count": 3,
+  "verification": "PASS"
+}
+          </div>
+        </div>
+
+        <!-- Log 7: StateReport success -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 13:55:44.567</span>
+            <span class="log-id pass">STATE_PASS</span>
+            <span class="badge badge-match">StateReport</span>
+            <span class="badge badge-enforce">enforce</span>
+          </div>
+          <div class="log-body">
+            Agent <code>agent-staging-01</code> StateReport 签名验证通过。HMAC-SHA256 签名有效，CPU: 23%, Memory: 45%, 工具调用: 127次/5min。
+          </div>
+          <div class="log-detail">
+{
+  "agent_id": "agent-staging-01",
+  "instance_id": 38,
+  "algorithm": "HMAC-SHA256",
+  "cpu_percent": 23,
+  "memory_percent": 45,
+  "tool_calls_5min": 127,
+  "verification": "PASS",
+  "timestamp": "2026-05-01T13:55:44Z"
+}
+          </div>
+        </div>
+
+        <!-- Log 8: IMA anomaly -->
+        <div class="log-entry" style="border-color:#fcd34d">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 13:50:12.345</span>
+            <span class="log-id warn">IMA_ANOMALY</span>
+            <span class="badge badge-sys">kubearmor</span>
+            <span class="badge badge-observe">observe</span>
+          </div>
+          <div class="log-body">
+            KubeArmor IMA 检测到未知进程哈希。容器 <code>openclaw-agent-dev</code>，进程 <code>/tmp/.hidden/worker</code> 的 ProcessHash 不在已知基线中。当前模式为 observe，仅记录未阻止。
+          </div>
+          <div class="log-detail">
+{
+  "container_id": "dev789ghi012",
+  "container_name": "openclaw-agent-dev",
+  "executable": "/tmp/.hidden/worker",
+  "process_hash": "sha256:unknown_baseline_hash...",
+  "parent_hash": "sha256:bash_process_hash...",
+  "hash_algo": 2,
+  "verification": "UNKNOWN_BASELINE",
+  "mode": "observe",
+  "action": "LOGGED_ONLY",
+  "bpf_hook": "bprm_check_security"
+}
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /tab-verify-logs -->
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <!-- Signature Algorithm -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">签名算法配置</div>
+            <div class="panel-title">数字签名与完整性校验算法</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">命令签名算法 (Command Signature Algorithm)</label>
+          <select class="form-select" id="sig-algo">
+            <option value="rsa-sha256" selected>RSA-SHA256 (推荐 — KubeArmor CertKeyPair 兼容)</option>
+            <option value="hmac-sha256">HMAC-SHA256 (对称 — 适用于 Agent-Manager 通道)</option>
+            <option value="ecdsa-p256">ECDSA-P256 (高性能 — 适用于高频消息)</option>
+          </select>
+          <div class="form-hint">RSA-SHA256 使用 KubeArmor GenerateSelfSignedCert 生成的 RSA 2048 密钥对 (CertKeyPair: Crt *x509.Certificate + Key *rsa.PrivateKey)。ECDSA-P256 适用于对延迟敏感的消息通道。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">状态报告签名算法 (State Report Algorithm)</label>
+          <select class="form-select" id="state-algo">
+            <option value="hmac-sha256" selected>HMAC-SHA256 (推荐 — Agent-Manger 共享密钥)</option>
+            <option value="rsa-sha256">RSA-SHA256 (非对称 — 适用于跨信任域)</option>
+          </select>
+          <div class="form-hint">HMAC-SHA256 使用 Agent 注册时分配的共享密钥，性能优于非对称签名。跨信任域场景建议使用 RSA-SHA256。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">配置校验和算法 (Config Checksum Algorithm)</label>
+          <select class="form-select" id="checksum-algo">
+            <option value="sha256" selected>SHA-256 (ClawManager InstanceConfigRevision.Checksum 格式: sha256:&lt;64-hex-chars&gt;)</option>
+            <option value="sha384">SHA-384 (增强安全性)</option>
+            <option value="sha512">SHA-512 (最高安全性)</option>
+          </select>
+          <div class="form-hint">当前 ClawManager InstanceConfigRevision.Checksum 使用 SHA-256 格式 "sha256:&lt;64-hex-chars&gt;"。切换算法需同步更新 ClawManager Checksum 计算逻辑。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">IMA 哈希算法 (IMA Hash Algorithm)</label>
+          <select class="form-select" id="ima-algo">
+            <option value="sha256" selected>SHA-256 (HashContext.HashAlgo = 2)</option>
+            <option value="sha1">SHA-1 (HashContext.HashAlgo = 1, 已弃用)</option>
+          </select>
+          <div class="form-hint">KubeArmor HashContext.HashAlgo 字段 (uint32) 控制哈希算法。SHA-256 (值=2) 为推荐配置。bpf_ima_file_hash() 函数支持此算法选择。</div>
+        </div>
+      </div>
+
+      <!-- Key Rotation -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">密钥轮转配置</div>
+            <div class="panel-title">签名密钥生命周期管理</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">RSA 密钥轮转周期 (Key Rotation Interval)</label>
+          <select class="form-select" id="rotation-interval">
+            <option value="24h">24 小时</option>
+            <option value="7d" selected>7 天 (推荐)</option>
+            <option value="30d">30 天</option>
+            <option value="90d">90 天</option>
+          </select>
+          <div class="form-hint">RSA 2048 密钥对 (KubeArmor CertKeyPair) 的轮转周期。轮转时 GenerateSelfSignedCert 生成新密钥对和 x509 证书，旧密钥保留 grace period 用于验签过渡。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">密钥轮转过渡期 (Grace Period)</label>
+          <select class="form-select" id="grace-period">
+            <option value="1h">1 小时</option>
+            <option value="6h" selected>6 小时 (推荐)</option>
+            <option value="24h">24 小时</option>
+          </select>
+          <div class="form-hint">轮转后旧密钥仍可验签的过渡时间，确保在途消息不会因密钥轮转而验证失败。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">HMAC 共享密钥轮转周期</label>
+          <select class="form-select" id="hmac-rotation">
+            <option value="1h">1 小时</option>
+            <option value="24h" selected>24 小时 (推荐)</option>
+            <option value="7d">7 天</option>
+          </select>
+          <div class="form-hint">Agent-Manager HMAC-SHA256 共享密钥的轮转周期。密钥通过注册时安全通道分发，轮转后需通知所有相关 Agent。</div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">自动密钥轮转 (Auto Key Rotation)</div>
+            <div class="desc">到达轮转周期后自动生成新密钥对并平滑切换，无需人工干预。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-auto-rotation" checked>
+            <label class="toggle-slider" for="toggle-auto-rotation"></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">轮转告警通知 (Rotation Alert)</div>
+            <div class="desc">密钥轮转时发送通知到安全运营团队，确保轮转事件可审计。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-rotation-alert" checked>
+            <label class="toggle-slider" for="toggle-rotation-alert"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fingerprint Verification -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">指纹验证配置</div>
+            <div class="panel-title">完整性指纹检查周期与策略</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">自完整性验证间隔 (Self-Integrity Check Interval)</label>
+          <select class="form-select" id="integrity-interval">
+            <option value="30s">30 秒</option>
+            <option value="1m" selected>1 分钟 (推荐)</option>
+            <option value="5m">5 分钟</option>
+            <option value="15m">15 分钟</option>
+          </select>
+          <div class="form-hint">ClawAegis SelfIntegrityRecord 指纹重算和比对的间隔。频率越高检测越及时，但 CPU 开销越大。12 个文件 (SELF_INTEGRITY_FILES) 的 SHA-256 计算约耗时 5ms。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">IMA 哈希采集间隔 (IMA Hash Collection Interval)</label>
+          <select class="form-select" id="ima-interval">
+            <option value="realtime" selected>实时 (BPF LSM Hook 触发)</option>
+            <option value="10s">10 秒轮询</option>
+            <option value="30s">30 秒轮询</option>
+          </select>
+          <div class="form-hint">IMA 哈希通过 BPF LSM hook bprm_check_security 实时触发 bpf_ima_file_hash() 计算，无需轮询。轮询模式为降级方案。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Config 校验和验证时机 (Config Checksum Verification Timing)</label>
+          <select class="form-select" id="checksum-timing">
+            <option value="on-receive" selected>接收时验证 (推荐)</option>
+            <option value="on-apply">应用时验证</option>
+            <option value="both">接收时 + 应用时双重验证</option>
+          </select>
+          <div class="form-hint">Agent 接收 ConfigRevision 时立即验证 ContentJSON 的 SHA-256 与 Checksum 是否一致。"both" 模式提供双重保护，防止存储后篡改。</div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用 IMA 集成 (enableIMA Flag)</div>
+            <div class="desc">KubeArmor enableIMA 标志。启用后 BPF LSM hook bprm_check_security 触发 bpf_ima_file_hash() 计算 HashContext。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-ima-config" checked>
+            <label class="toggle-slider" for="toggle-ima-config"></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">篡改时自动告警 (Alert on Tampering)</div>
+            <div class="desc">SelfIntegrityRecord 指纹不匹配或 IMA HashContext 异常时自动触发告警。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-tamper-alert" checked>
+            <label class="toggle-slider" for="toggle-tamper-alert"></label>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">篡改时自动隔离 (Auto Quarantine on Tampering)</div>
+            <div class="desc">检测到自完整性篡改时，自动触发 Agent 隔离 (quarantine_skill 命令) 并暂停相关会话。</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-tamper-quarantine">
+            <label class="toggle-slider" for="toggle-tamper-quarantine"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Self-Integrity File List Management -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">SELF_INTEGRITY_FILES 管理</div>
+            <div class="panel-title">ClawAegis 自完整性监控文件列表</div>
+          </div>
+          <span class="badge badge-sys">claw-aegis</span>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.7">
+          以下文件为 ClawAegis 插件核心文件，启动时计算 SHA-256 指纹并持久化到 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">self-integrity.json</code> (SELF_INTEGRITY_FILENAME 常量)。protectedRoots 包含插件根目录，fingerprints 为 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">Record&lt;string, string&gt;</code> 映射。
+        </p>
+
+        <table class="data-table">
+          <thead><tr><th>#</th><th>文件路径</th><th>类型</th><th>保护状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td style="font-family:monospace;font-size:12px">index.ts</td><td>入口文件</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>2</td><td style="font-family:monospace;font-size:12px">runtime-api.ts</td><td>运行时 API</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>3</td><td style="font-family:monospace;font-size:12px">openclaw.plugin.json</td><td>插件声明</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>4</td><td style="font-family:monospace;font-size:12px">package.json</td><td>包配置</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>5</td><td style="font-family:monospace;font-size:12px">src/config.ts</td><td>配置模块</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>6</td><td style="font-family:monospace;font-size:12px">src/types.ts</td><td>类型定义</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>7</td><td style="font-family:monospace;font-size:12px">src/state.ts</td><td>状态管理</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>8</td><td style="font-family:monospace;font-size:12px">src/rules.ts</td><td>规则引擎</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>9</td><td style="font-family:monospace;font-size:12px">src/scan-service.ts</td><td>扫描服务</td><td><span class="badge badge-tampered">已篡改</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>10</td><td style="font-family:monospace;font-size:12px">src/scan-worker.ts</td><td>扫描 Worker</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>11</td><td style="font-family:monospace;font-size:12px">src/scan-worker.js</td><td>编译产物</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+            <tr><td>12</td><td style="font-family:monospace;font-size:12px">src/handlers.ts</td><td>事件处理</td><td><span class="badge badge-match">受保护</span></td><td><button class="btn-secondary btn-sm">移除</button></td></tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+          <input class="form-input" style="flex:1" placeholder="添加文件路径 (如 src/new-module.ts)">
+          <button class="btn-primary btn-sm">+ 添加文件</button>
+        </div>
+        <div class="form-hint">添加文件后，下次完整性检查时将计算该文件的 SHA-256 指纹并加入 SelfIntegrityRecord.fingerprints 映射。修改后需重新生成基线 (self-integrity.json)。</div>
+      </div>
+
+      <!-- Advanced Config -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">高级配置</div>
+            <div class="panel-title">签名与完整性保护参数</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">签名验证超时 (Signature Verification Timeout)</label>
+          <input class="form-input" type="number" value="5000" style="max-width:200px">
+          <div class="form-hint">毫秒。超过此时间的签名验证视为失败，防止 DoS 攻击。InstanceCommand.TimeoutSeconds 独立控制命令执行超时。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">心跳时间窗口 (Heartbeat Timestamp Window)</label>
+          <input class="form-input" type="number" value="30" style="max-width:200px">
+          <div class="form-hint">秒。AgentHeartbeat 时间戳与服务器时间的允许偏差。超出窗口的心跳视为过期，验签失败。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">IdempotencyKey 保留时间 (Idempotency Key TTL)</label>
+          <input class="form-input" type="number" value="3600" style="max-width:200px">
+          <div class="form-hint">秒。已使用的 IdempotencyKey 保留时间，用于检测命令重放。FR-43 Anti-replay 功能依赖此参数。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">自完整性基线路径 (Self-Integrity Baseline Path)</label>
+          <input class="form-input" type="text" value="{stateDir}/plugins/claw-aegis/self-integrity.json" readonly style="max-width:500px">
+          <div class="form-hint">SelfIntegrityRecord 持久化路径。由 SELF_INTEGRITY_FILENAME 常量和 resolveClawAegisStateDir() 函数确定。修改此路径需同步更新 ClawAegis 配置。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">RSA 密钥长度 (RSA Key Size)</label>
+          <select class="form-select" id="rsa-key-size" style="max-width:300px">
+            <option value="2048" selected>RSA 2048 (KubeArmor 默认 — rsa.GenerateKey(rand.Reader, 2048))</option>
+            <option value="3072">RSA 3072 (增强安全性)</option>
+            <option value="4096">RSA 4096 (最高安全性)</option>
+          </select>
+          <div class="form-hint">与 KubeArmor GenerateCert (rsa.GenerateKey(rand.Reader, 2048)) 保持一致。增大密钥长度会增加签名/验签延迟。</div>
+        </div>
+      </div>
+
+    </div><!-- /tab-config -->
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

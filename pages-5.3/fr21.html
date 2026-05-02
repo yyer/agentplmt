@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr21</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr21">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-21 &middot; P0</div><div class="page-title">凭据与密钥安全管理</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">运行审计</button><button class="btn-primary btn-sm">一键加固</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-low">45</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Credential Security Score</div>
+          <div class="panel-title" style="margin-bottom:6px;">当前凭据安全评分：45 / 100</div>
+          <div style="font-size:13px;color:var(--text);">通过 SecureClaw SC-CRED-001~008 审计检查验证凭据存储安全。上次审计时间：2026-04-30 14:00 | 8 项检查中 5 项未通过</div>
+        </div>
+        <div style="display:flex;gap:20px;">
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">1</div><div class="label">CRITICAL</div></div>
+          <div class="stat-mini"><div class="value" style="color:#c2410c;">4</div><div class="label">HIGH</div></div>
+          <div class="stat-mini"><div class="value" style="color:#15803d;">3</div><div class="label">PASS</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="fr21-checks">审计检查</div>
+      <div class="tab" data-tab="fr21-models">模型凭据管理</div>
+      <div class="tab" data-tab="fr21-hardening">一键加固</div>
+    </div>
+
+    <div id="fr21-checks" class="tab-content active">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">SC-CRED Audit Checks</div><div class="panel-title">凭据安全审计检查</div></div><span class="badge-sys">secureclaw</span></div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">记忆文件中存在 API Key</div>
+            <div class="check-id">SC-CRED-007 &middot; CRITICAL &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+            <div class="check-detail">MEMORY.md 中包含 <code>sk-ant-api03-...</code> 模式。凭据泄露到 LLM 上下文中。</div>
+            <div style="margin-top:6px;font-size:12px;color:#8f8681;">修复: 从记忆文件中移除 API Key，使用 <code>secureclaw credential-hardening</code> 脱敏 | autoFixable: true</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">.env 文件包含明文 API Key</div>
+            <div class="check-id">SC-CRED-003 &middot; HIGH &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+                       <div class="check-detail">.env 中发现 <code>sk-ant-api03-...</code>、<code>sk-proj-...</code> 模式，成为信息窃取器目标。</div>
+            <div style="margin-top:6px;font-size:12px;color:#8f8681;">修复: 使用 <code>secureclaw credential-hardening</code> 加密 .env 为 .env.enc | autoFixable: true</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">状态目录权限过宽</div>
+            <div class="check-id">SC-CRED-001 &middot; HIGH &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+            <div class="check-detail">~/.openclaw/ 权限为 755，应为 700（仅所有者可访问）。</div>
+            <div style="margin-top:6px;font-size:12px;color:#8f8681;">修复: <code>chmod 700 ~/.openclaw/</code> | autoFixable: true</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">配置文件权限过宽</div>
+            <div class="check-id">SC-CRED-002 &middot; HIGH &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+            <div class="check-detail">openclaw.json 权限允许 group/other 读取。</div>
+            <div style="margin-top:6px;font-size:12px;color:#8f8681;">修复: <code>chmod 600 ~/.openclaw/openclaw.json</code> | autoFixable: true</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">凭据文件权限过宽</div>
+            <div class="check-id">SC-CRED-004 &middot; HIGH &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+            <div class="check-detail">credentials/*.json 文件允许 group/other 读取。</div>
+            <div style="margin-top:6px;font-size:12px;color:#8f8681;">修复: <code>chmod 600</code> 所有凭据文件 | autoFixable: true</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">Auth Profile 权限合规</div>
+            <div class="check-id">SC-CRED-005</div>
+            <div class="check-detail">所有 auth-profiles.json 权限为 600。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">OAuth Token 存储</div>
+            <div class="check-id">SC-CRED-006</div>
+            <div class="check-detail">未发现明文 OAuth Token。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">配置文件 API Key</div>
+            <div class="check-id">SC-CRED-008</div>
+            <div class="check-detail">配置文件中未发现额外 API Key 模式。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">API Key Detection Patterns</div><div class="panel-title">API Key 检测正则</div></div><span class="badge-sys">secureclaw</span></div>
+        <table class="data-table">
+          <thead><tr><th>前缀</th><th>正则模式</th><th>服务商</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;font-weight:600;">sk-ant-</td><td style="font-family:monospace;font-size:12px;">/sk-ant-[a-zA-Z0-9_-]{20,}/</td><td>Anthropic</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">sk-proj-</td><td style="font-family:monospace;font-size:12px;">/sk-proj-[a-zA-Z0-9_-]{20,}/</td><td>OpenAI Project</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">sk-</td><td style="font-family:monospace;font-size:12px;">/sk-[a-zA-Z0-9_-]{20,}/</td><td>OpenAI Generic</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">xoxb-</td><td style="font-family:monospace;font-size:12px;">/xoxb-[a-zA-Z0-9_-]{20,}/</td><td>Slack Bot Token</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">xoxp-</td><td style="font-family:monospace;font-size:12px;">/xoxp-[a-zA-Z0-9_-]{20,}/</td><td>Slack User Token</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr21-models" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">LLM Model Credentials</div><div class="panel-title">模型凭据管理</div></div><span class="badge-sys">clawmanager</span></div>
+        <table class="data-table">
+          <thead><tr><th>模型</th><th>Provider</th><th>api_key</th><th>api_key_secret_ref</th><th>is_secure</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">claude-3-5-sonnet</td><td>Anthropic</td><td style="color:#dc2626;">sk-ant-*** (明文)</td><td>—</td><td><span class="badge badge-off">false</span></td></tr>
+            <tr><td style="font-weight:600;">claude-3-5-sonnet-secure</td><td>Anthropic</td><td>—</td><td style="color:#15803d;font-family:monospace;font-size:12px;">clawreef/llm-keys:anthropic</td><td><span class="badge badge-green">true</span></td></tr>
+            <tr><td style="font-weight:600;">gpt-4o</td><td>OpenAI</td><td style="color:#dc2626;">sk-proj-*** (明文)</td><td>—</td><td><span class="badge badge-off">false</span></td></tr>
+            <tr><td style="font-weight:600;">gpt-4o-secure</td><td>OpenAI</td><td>—</td><td style="color:#15803d;font-family:monospace;font-size:12px;">clawreef/llm-keys:openai</td><td><span class="badge badge-green">true</span></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;padding:12px;background:#fef3c7;border-radius:12px;font-size:12px;color:#92400e;">
+          <strong>建议:</strong> 2 个模型使用明文 API Key 存储，建议迁移到 K8s Secret 引用（<code>api_key_secret_ref</code>），降低凭据泄露风险。
+        </div>
+      </div>
+    </div>
+
+    <div id="fr21-hardening" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">One-Click Hardening</div><div class="panel-title">一键凭据加固</div></div><span class="badge-sys">secureclaw</span></div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:14px;">执行 SecureClaw 凭据加固模块（优先级 2），自动修复 SC-CRED-001~007 问题</div>
+        <table class="data-table">
+          <thead><tr><th>操作</th><th>修复目标</th><th>检查项</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">chmod 700 ~/.openclaw/</td><td>状态目录权限</td><td>SC-CRED-001</td><td><span class="badge badge-medium">待执行</span></td></tr>
+            <tr><td style="font-weight:600;">chmod 600 openclaw.json</td><td>配置文件权限</td><td>SC-CRED-002</td><td><span class="badge badge-medium">待执行</span></td></tr>
+            <tr><td style="font-weight:600;">chmod 600 credentials/*.json</td><td>凭据文件权限</td><td>SC-CRED-004</td><td><span class="badge badge-medium">待执行</span></td></tr>
+            <tr><td style="font-weight:600;">chmod 600 auth-profiles.json</td><td>认证配置权限</td><td>SC-CRED-005</td><td><span class="badge badge-green">已合规</span></td></tr>
+            <tr><td style="font-weight:600;">.env → .env.enc (AES-256-GCM)</td><td>明文 API Key 加密</td><td>SC-CRED-003</td><td><span class="badge badge-medium">待执行</span></td></tr>
+            <tr><td style="font-weight:600;">API Key → [REDACTED_BY_SECURECLAW]</td><td>记忆文件凭据脱敏</td><td>SC-CRED-007</td><td><span class="badge badge-medium">待执行</span></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:16px;display:flex;gap:8px;">
+          <button class="btn-primary">执行一键加固</button>
+          <button class="btn-secondary">预览变更</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

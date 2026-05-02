@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr30</title>
+<link rel="stylesheet" href="../css-5.5.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr30">
+
+      <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">FR-30 | 宿主机安全加固与攻击面收敛 | P1 优先级</div>
+      <div class="page-title">宿主机安全加固与攻击面收敛</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-secondary btn-sm">导出报告</button>
+      <button class="btn-primary btn-sm">一键加固</button>
+    </div>
+  </div>
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="fr30-overview">基线概览</div>
+      <div class="tab" data-tab="fr30-ssh">SSH加固</div>
+      <div class="tab" data-tab="fr30-pam">PAM密码策略</div>
+      <div class="tab" data-tab="fr30-fileperm">文件权限</div>
+      <div class="tab" data-tab="fr30-ops">加固操作</div>
+    </div>
+
+    <!-- ═══════════════ Tab: 基线概览 ═══════════════ -->
+    <div id="fr30-overview" class="tab-content active">
+
+      <!-- Panel 1: 合规评分 -->
+      <div class="app-panel-warm">
+        <div style="display:flex;align-items:center;gap:24px;">
+          <div class="score-circle score-med">72</div>
+          <div style="flex:1">
+            <div class="panel-eyebrow">Compliance Score</div>
+            <div class="panel-title" style="margin-bottom:6px;">合规评分：72 / 100</div>
+            <div style="font-size:13px;color:var(--text);">KSecure 38项基线安全检查，覆盖密码复杂度、密码策略、SSH加固、文件权限与会话控制五大类</div>
+          </div>
+          <div style="display:flex;gap:24px;">
+            <div class="stat-mini"><div class="value" style="color:#c2410c;">5</div><div class="label">检查类别</div></div>
+            <div class="stat-mini"><div class="value" style="color:#dc2626;">38</div><div class="label">基线项</div></div>
+            <div class="stat-mini"><div class="value" style="color:#15803d;">23</div><div class="label">通过</div></div>
+            <div class="stat-mini"><div class="value" style="color:#d97706;">15</div><div class="label">待修复</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: KSecure 38项基线脚本分类 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">KSecure Baseline Scripts</div><div class="panel-title">KSecure 38项基线脚本分类</div></div>
+          <span class="badge-sys">ksecure</span>
+        </div>
+
+        <!-- Category 1: 密码复杂度 -->
+        <div class="category-header">
+          <div class="cat-icon cat-passwd">&#x1f511;</div>
+          <div class="cat-name">1. 密码复杂度</div>
+          <div class="cat-count">5 项</div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>配置项</th><th>基线值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;font-family:monospace;">minlen</td><td><span class="badge badge-p1">8</span></td><td>密码最小长度</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">ucredit</td><td><span class="badge badge-p1">-1</span></td><td>至少包含1个大写字母</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">lcredit</td><td><span class="badge badge-p1">-1</span></td><td>至少包含1个小写字母</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">dcredit</td><td><span class="badge badge-p1">-1</span></td><td>至少包含1个数字</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">ocredit</td><td><span class="badge badge-p1">-1</span></td><td>至少包含1个特殊字符</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Category 2: 密码策略 -->
+        <div class="category-header">
+          <div class="cat-icon cat-passwd">&#x1f512;</div>
+          <div class="cat-name">2. 密码策略</div>
+          <div class="cat-count">9 项</div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>配置项</th><th>基线值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;font-family:monospace;">deny</td><td><span class="badge badge-p1">5</span></td><td>登录失败锁定前允许的尝试次数</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">unlock_time</td><td><span class="badge badge-p1">600</span></td><td>账户锁定时间（秒）</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">maxdays</td><td><span class="badge badge-p1">90</span></td><td>密码最大使用天数</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">warnage</td><td><span class="badge badge-p1">7</span></td><td>密码过期前警告天数</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">mindays</td><td><span class="badge badge-p1">7</span></td><td>密码修改最小间隔天数</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">remember</td><td><span class="badge badge-p1">5</span></td><td>密码历史记录数（防止重复使用）</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">enforce_for_root</td><td><span class="badge badge-enforce">true</span></td><td>对root用户同样强制密码策略</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">sha512</td><td><span class="badge badge-pass">sha512</span></td><td>使用SHA-512算法加密密码</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">emptypassword</td><td><span class="badge badge-p1">0</span></td><td>禁止空密码登录</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Category 3: SSH加固 -->
+        <div class="category-header">
+          <div class="cat-icon cat-ssh">&#x1f5a5;</div>
+          <div class="cat-name">3. SSH加固</div>
+          <div class="cat-count">9 项</div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>配置项</th><th>基线值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;font-family:monospace;">PermitEmptyPasswords</td><td><span class="badge badge-enforce">no</span></td><td>禁止空密码SSH登录</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">IgnoreRhosts</td><td><span class="badge badge-enforce">yes</span></td><td>忽略 .rhosts 文件</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">MaxAuthTries</td><td><span class="badge badge-p1">4</span></td><td>最大认证尝试次数</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">MaxStartups</td><td><span class="badge badge-p1">10:30:60</span></td><td>最大并发未认证连接</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">LoginGraceTime</td><td><span class="badge badge-p1">60</span></td><td>登录超时时间（秒）</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">MaxSessions</td><td><span class="badge badge-p1">10</span></td><td>每个网络连接最大会话数</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">PermitUserEnvironment</td><td><span class="badge badge-enforce">no</span></td><td>禁止用户环境变量</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">ClientAliveInterval + CountMax</td><td><span class="badge badge-p1">15 / 3</span></td><td>客户端存活检测间隔与最大计数</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">Banner</td><td><span class="badge badge-pass">true</span></td><td>显示SSH登录横幅</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Category 4: 文件权限 -->
+        <div class="category-header">
+          <div class="cat-icon cat-file">&#x1f4c1;</div>
+          <div class="cat-name">4. 文件权限</div>
+          <div class="cat-count">12 项</div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>文件/目录</th><th>基线权限</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;font-family:monospace;">/etc/passwd</td><td><span class="badge badge-info">644</span></td><td>用户信息文件</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">/etc/group</td><td><span class="badge badge-info">644</span></td><td>组信息文件</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">/etc/shadow</td><td><span class="badge badge-enforce">600</span></td><td>密码哈希文件</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">/etc/gshadow</td><td><span class="badge badge-enforce">600</span></td><td>组密码哈希文件</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">/etc/ssh/sshd_config</td><td><span class="badge badge-enforce">600</span></td><td>SSH服务配置文件</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">cron 目录</td><td><span class="badge badge-enforce">700</span></td><td>cron.monthly/hourly/weekly/daily/d</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">/etc/crontab</td><td><span class="badge badge-enforce">600</span></td><td>系统定时任务文件</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">/etc/systemd/system</td><td><span class="badge badge-info">755</span></td><td>systemd 服务目录</td></tr>
+          </tbody>
+        </table>
+
+        <!-- Category 5: 会话控制 -->
+        <div class="category-header">
+          <div class="cat-icon cat-session">&#x23f1;</div>
+          <div class="cat-name">5. 会话控制</div>
+          <div class="cat-count">3 项</div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>配置项</th><th>基线值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;font-family:monospace;">su command (pam_wheel)</td><td><span class="badge badge-enforce">启用</span></td><td>限制 su 命令仅 wheel 组可用</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">TMOUT</td><td><span class="badge badge-p1">900</span></td><td>会话超时时间（秒）</td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;">umask</td><td><span class="badge badge-p1">027</span></td><td>默认文件创建权限掩码</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel 3: KubeArmor CIS合规策略 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">KubeArmor CIS Compliance Policies</div><div class="panel-title">KubeArmor CIS合规策略</div></div>
+          <span class="badge-sys">kubearmor</span>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-flag">harden-cronjob-cfg</span>
+            <span class="badge badge-medium">CIS_5.1</span>
+          </div>
+          <div class="rule-desc">Cron 目录审计 — 保护 cron 配置目录和 crontab 文件不被未授权修改，确保定时任务完整性</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">/etc/cron.d/</span>
+            <span class="rule-pattern">/etc/cron.daily/</span>
+            <span class="rule-pattern">/etc/crontab</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-flag">harden-write-etc-dir</span>
+            <span class="badge badge-high">NIST_SI-7</span>
+          </div>
+          <div class="rule-desc">/etc/ 写保护 — 阻止未授权进程对 /etc 目录的写入操作，保护系统配置文件完整性</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">/etc/passwd</span>
+            <span class="rule-pattern">/etc/shadow</span>
+            <span class="rule-pattern">/etc/ssh/</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-flag">harden-impair-defense</span>
+            <span class="badge badge-critical">MITRE_T1562</span>
+          </div>
+          <div class="rule-desc">安全工具保护 — 防止攻击者禁用或修改安全工具（KSecure、KubeArmor、审计守护进程）</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">/opt/KSec/</span>
+            <span class="rule-pattern">/usr/bin/kubearmor</span>
+            <span class="rule-pattern">auditd</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-flag">harden-trusted-cert-mod</span>
+            <span class="badge badge-critical">MITRE_T1552</span>
+          </div>
+          <div class="rule-desc">证书目录保护 — 阻止对受信证书存储目录的未授权修改，防止证书信任链攻击</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">/etc/pki/</span>
+            <span class="rule-pattern">/etc/ssl/</span>
+            <span class="rule-pattern">/usr/local/share/ca-certificates/</span>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-flag">harden-file-integrity-monitoring</span>
+            <span class="badge badge-high">NIST_AU-2/SI-4</span>
+          </div>
+          <div class="rule-desc">系统二进制只读 — 将关键系统二进制文件标记为只读，防止恶意篡改和后门植入</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">/usr/bin/</span>
+            <span class="rule-pattern">/usr/sbin/</span>
+            <span class="rule-pattern">/bin/</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════ Tab: SSH加固 ═══════════════ -->
+    <div id="fr30-ssh" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">SSH Hardening Checks</div><div class="panel-title">SSH加固检查项（9项）</div></div>
+          <span class="badge-sys">ksecure</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">PermitEmptyPasswords = no</div>
+            <div class="check-id">Item3.1 &middot; 禁止空密码SSH登录</div>
+            <div class="check-detail">当前值: no — 符合基线要求</div>
+          </div>
+          <div class="check-action"><span class="badge badge-pass">PASS</span></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">IgnoreRhosts = yes</div>
+            <div class="check-id">Item3.2 &middot; 忽略 .rhosts 文件</div>
+            <div class="check-detail">当前值: yes — 符合基线要求</div>
+          </div>
+          <div class="check-action"><span class="badge badge-pass">PASS</span></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">MaxAuthTries = 4</div>
+            <div class="check-id">Item3.3 &middot; 最大认证尝试次数</div>
+            <div class="check-detail">当前值: 4 — 符合基线要求</div>
+          </div>
+          <div class="check-action"><span class="badge badge-pass">PASS</span></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">MaxStartups = 10:30:60</div>
+            <div class="check-id">Item3.4 &middot; 最大并发未认证连接</div>
+            <div class="check-detail">当前值: 10:30:60 — 符合基线要求</div>
+          </div>
+          <div class="check-action"><span class="badge badge-pass">PASS</span></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">LoginGraceTime = 60</div>
+            <div class="check-id">Item3.5 &middot; 登录超时时间（秒）</div>
+            <div class="check-detail">当前值: 60 — 符合基线要求</div>
+          </div>
+          <div class="check-action"><span class="badge badge-pass">PASS</span></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">MaxSessions = 10</div>
+            <div class="check-id">Item3.6 &middot; 每个网络连接最大会话数</div>
+            <div class="check-detail">当前值: <strong style="color:#b91c1c;">unlimited</strong> — 不符合基线要求 (基线: 10)</div>
+          </div>
+          <div class="check-action">
+            <span class="badge badge-fail">FAIL</span>
+            <button class="btn-harden" style="margin-left:8px;">加固</button>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">PermitUserEnvironment = no</div>
+            <div class="check-id">Item3.7 &middot; 禁止用户环境变量</div>
+            <div class="check-detail">当前值: no — 符合基线要求</div>
+          </div>
+          <div class="check-action"><span class="badge badge-pass">PASS</span></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">ClientAliveInterval = 15, CountMax = 3</div>
+            <div class="check-id">Item3.8 &middot; 客户端存活检测</div>
+            <div class="check-detail">当前值: <strong style="color:#b91c1c;">0</strong>（未启用） — 不符合基线要求 (基线: 15/3)</div>
+          </div>
+          <div class="check-action">
+            <span class="badge badge-fail">FAIL</span>
+            <button class="btn-harden" style="margin-left:8px;">加固</button>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">Banner = true</div>
+            <div class="check-id">Item3.9 &middot; SSH登录横幅</div>
+            <div class="check-detail">当前值: <strong style="color:#b91c1c;">none</strong> — 不符合基线要求 (基线: 启用)</div>
+          </div>
+          <div class="check-action">
+            <span class="badge badge-fail">FAIL</span>
+            <button class="btn-harden" style="margin-left:8px;">加固</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-panel" style="background:linear-gradient(135deg,rgba(254,242,242,0.6),rgba(255,249,245,0.4));border-color:#fecaca;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#b91c1c;">SSH加固总结</div>
+            <div style="font-size:12px;color:var(--text);margin-top:2px;">9 项检查中 <strong>6 项通过</strong>，<strong style="color:#b91c1c;">3 项待修复</strong>。未通过项涉及 MaxSessions、ClientAliveInterval 和 Banner 配置，建议逐一加固。</div>
+          </div>
+          <button class="btn-primary btn-sm" style="margin-left:auto;">一键加固SSH</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ Tab: PAM密码策略 ═══════════════ -->
+    <div id="fr30-pam" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">PAM Password Policy Checks</div><div class="panel-title">PAM密码策略检查项（14项）</div></div>
+          <span class="badge-sys">ksecure</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>检查项ID</th><th>配置项</th><th>当前值</th><th>基线值</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item1.1</td>
+              <td>minlen</td>
+              <td style="color:#b91c1c;font-weight:600;">6</td>
+              <td>8</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item1.2</td>
+              <td>ucredit</td>
+              <td style="color:#b91c1c;font-weight:600;">0</td>
+              <td>-1</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item1.3</td>
+              <td>lcredit</td>
+              <td style="color:#b91c1c;font-weight:600;">0</td>
+              <td>-1</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item1.4</td>
+              <td>dcredit</td>
+              <td style="color:#b91c1c;font-weight:600;">0</td>
+              <td>-1</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item1.5</td>
+              <td>ocredit</td>
+              <td style="color:#b91c1c;font-weight:600;">0</td>
+              <td>-1</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item2.2</td>
+              <td>deny</td>
+              <td style="color:#b91c1c;font-weight:600;">10</td>
+              <td>5</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">KOS1.8</td>
+              <td>unlock_time</td>
+              <td style="color:#b91c1c;font-weight:600;">900</td>
+              <td>600</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item2.4</td>
+              <td>PASS_MAX_DAYS</td>
+              <td style="color:#b91c1c;font-weight:600;">99999</td>
+              <td>90</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item2.5</td>
+              <td>PASS_WARN_AGE</td>
+              <td style="color:#15803d;font-weight:600;">7</td>
+              <td>7</td>
+              <td><span class="badge badge-pass">PASS</span></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item2.6</td>
+              <td>PASS_MIN_DAYS</td>
+              <td style="color:#b91c1c;font-weight:600;">0</td>
+              <td>7</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item2.7</td>
+              <td>remember</td>
+              <td style="color:#b91c1c;font-weight:600;">3</td>
+              <td>5</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item2.8</td>
+              <td>enforce_for_root</td>
+              <td style="color:#b91c1c;font-weight:600;">false</td>
+              <td>true</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">KOS1.6</td>
+              <td>sha512</td>
+              <td style="color:#15803d;font-weight:600;">sha512</td>
+              <td>sha512</td>
+              <td><span class="badge badge-pass">PASS</span></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">—</td>
+              <td>emptypassword</td>
+              <td style="color:#15803d;font-weight:600;">0</td>
+              <td>0</td>
+              <td><span class="badge badge-pass">PASS</span></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="app-panel" style="background:linear-gradient(135deg,rgba(254,242,242,0.6),rgba(255,249,245,0.4));border-color:#fecaca;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#b91c1c;">PAM密码策略总结</div>
+            <div style="font-size:12px;color:var(--text);margin-top:2px;">14 项检查中 <strong>3 项通过</strong>，<strong style="color:#b91c1c;">11 项待修复</strong>。密码复杂度、登录锁定和密码有效期策略均需加固。PASS_MAX_DAYS=99999 尤为严重。</div>
+          </div>
+          <button class="btn-primary btn-sm" style="margin-left:auto;">一键加固PAM</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ Tab: 文件权限 ═══════════════ -->
+    <div id="fr30-fileperm" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">File Permission Checks</div><div class="panel-title">文件权限检查项（12项）</div></div>
+          <span class="badge-sys">ksecure</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>检查项ID</th><th>文件/目录</th><th>当前权限</th><th>基线权限</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.1</td>
+              <td style="font-family:monospace;">/etc/passwd</td>
+              <td style="color:#15803d;font-weight:600;">644</td>
+              <td>644</td>
+              <td><span class="badge badge-pass">PASS</span></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.2</td>
+              <td style="font-family:monospace;">/etc/group</td>
+              <td style="color:#15803d;font-weight:600;">644</td>
+              <td>644</td>
+              <td><span class="badge badge-pass">PASS</span></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.3</td>
+              <td style="font-family:monospace;">/etc/shadow</td>
+              <td style="color:#15803d;font-weight:600;">600</td>
+              <td>600</td>
+              <td><span class="badge badge-pass">PASS</span></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.4</td>
+              <td style="font-family:monospace;">/etc/gshadow</td>
+              <td style="color:#15803d;font-weight:600;">600</td>
+              <td>600</td>
+              <td><span class="badge badge-pass">PASS</span></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.5</td>
+              <td style="font-family:monospace;">/etc/ssh/sshd_config</td>
+              <td style="color:#b91c1c;font-weight:600;">644</td>
+              <td>600</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.6</td>
+              <td style="font-family:monospace;">/etc/cron.monthly/</td>
+              <td style="color:#b91c1c;font-weight:600;">755</td>
+              <td>700</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.7</td>
+              <td style="font-family:monospace;">/etc/cron.hourly/</td>
+              <td style="color:#b91c1c;font-weight:600;">755</td>
+              <td>700</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.8</td>
+              <td style="font-family:monospace;">/etc/cron.weekly/</td>
+              <td style="color:#b91c1c;font-weight:600;">755</td>
+              <td>700</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.9</td>
+              <td style="font-family:monospace;">/etc/cron.daily/</td>
+              <td style="color:#b91c1c;font-weight:600;">755</td>
+              <td>700</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.10</td>
+              <td style="font-family:monospace;">/etc/cron.d/</td>
+              <td style="color:#b91c1c;font-weight:600;">755</td>
+              <td>700</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.11</td>
+              <td style="font-family:monospace;">/etc/crontab</td>
+              <td style="color:#b91c1c;font-weight:600;">644</td>
+              <td>600</td>
+              <td><span class="badge badge-fail">FAIL</span></td>
+              <td><button class="btn-harden">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;">Item4.12</td>
+              <td style="font-family:monospace;">/etc/systemd/system/</td>
+              <td style="color:#15803d;font-weight:600;">755</td>
+              <td>755</td>
+              <td><span class="badge badge-pass">PASS</span></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="app-panel" style="background:linear-gradient(135deg,rgba(254,242,242,0.6),rgba(255,249,245,0.4));border-color:#fecaca;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#b91c1c;">文件权限总结</div>
+            <div style="font-size:12px;color:var(--text);margin-top:2px;">12 项检查中 <strong>5 项通过</strong>，<strong style="color:#b91c1c;">7 项待修复</strong>。sshd_config 和 cron 相关目录权限过宽，建议集中加固。</div>
+          </div>
+          <button class="btn-primary btn-sm" style="margin-left:auto;">一键修复权限</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ Tab: 加固操作 ═══════════════ -->
+    <div id="fr30-ops" class="tab-content">
+
+      <!-- Panel 1: G_MODE操作模式 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">G_MODE Operation Mode</div><div class="panel-title">G_MODE 操作模式</div></div>
+          <span class="badge-sys">ksecure</span>
+        </div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:14px;">选择 KSecure 运行模式：<strong>c (check)</strong> 仅检查不修改，<strong>s (reinforce)</strong> 检查并自动修复，<strong>b (rollback)</strong> 回退到加固前状态</div>
+        <div class="mode-selector-lg">
+          <div class="mode-btn-lg active-check" data-gmode="check" onclick="selectGMode(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+            check (c)
+          </div>
+          <div class="mode-btn-lg" data-gmode="reinforce" onclick="selectGMode(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            reinforce (s)
+          </div>
+          <div class="mode-btn-lg" data-gmode="rollback" onclick="selectGMode(this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            rollback (b)
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: 批量操作 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">Batch Operations</div><div class="panel-title">批量操作</div></div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn-primary" onclick="batchOp('check')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+            一键检查
+          </button>
+          <button class="btn-primary" style="background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 4px 14px -4px rgba(245,158,11,0.4);" onclick="batchOp('reinforce')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            一键加固
+          </button>
+          <button class="btn-primary" style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px -4px rgba(99,102,241,0.4);" onclick="batchOp('rollback')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            一键回退
+          </button>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:#8f8681;">
+          一键检查: 以 check 模式运行全部38项基线检查 &nbsp;|&nbsp;
+          一键加固: 以 reinforce 模式自动修复所有不合规项 &nbsp;|&nbsp;
+          一键回退: 以 rollback 模式恢复所有修改到加固前状态
+        </div>
+      </div>
+
+      <!-- Panel 3: KSecure路径 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">KSecure Paths</div><div class="panel-title">KSecure 路径配置</div></div>
+          <span class="badge-sys">ksecure</span>
+        </div>
+        <div class="path-list">
+          <div class="path-item">
+            <div class="path-label">策略缓存</div>
+            <div class="path-value">/opt/KSec/policy/.cache/</div>
+            <div style="font-size:11px;color:#8f8681;">基线策略缓存目录</div>
+          </div>
+          <div class="path-item">
+            <div class="path-label">回退数据</div>
+            <div class="path-value">/opt/KSec/compliance/rollback/</div>
+            <div style="font-size:11px;color:#8f8681;">加固前配置备份，用于rollback</div>
+          </div>
+          <div class="path-item">
+            <div class="path-label">PID文件</div>
+            <div class="path-value">/opt/KSec/KSec.pid</div>
+            <div style="font-size:11px;color:#8f8681;">KSecure守护进程PID</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: KubeArmor策略应用 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div><div class="panel-eyebrow">KubeArmor Policy Application</div><div class="panel-title">KubeArmor策略应用</div></div>
+          <span class="badge-sys">kubearmor</span>
+        </div>
+
+        <div class="ka-policy-card">
+          <div class="ka-policy-left">
+            <div class="ka-policy-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <div class="ka-policy-name">harden-cronjob-cfg</div>
+              <div class="ka-policy-ref">CIS_5.1</div>
+              <div class="ka-policy-desc">Cron 目录审计 — 保护定时任务配置完整性</div>
+            </div>
+          </div>
+          <button class="btn-apply" onclick="applyPolicy('harden-cronjob-cfg')">应用策略</button>
+        </div>
+
+        <div class="ka-policy-card">
+          <div class="ka-policy-left">
+            <div class="ka-policy-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <div class="ka-policy-name">harden-write-etc-dir</div>
+              <div class="ka-policy-ref">NIST_SI-7</div>
+              <div class="ka-policy-desc">/etc/ 写保护 — 阻止未授权修改系统配置</div>
+            </div>
+          </div>
+          <button class="btn-apply" onclick="applyPolicy('harden-write-etc-dir')">应用策略</button>
+        </div>
+
+        <div class="ka-policy-card">
+          <div class="ka-policy-left">
+            <div class="ka-policy-icon" style="background:linear-gradient(135deg,#fee2e2,#fecaca);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+              <div class="ka-policy-name">harden-impair-defense</div>
+              <div class="ka-policy-ref">MITRE_T1562</div>
+              <div class="ka-policy-desc">安全工具保护 — 防止攻击者禁用安全防护</div>
+            </div>
+          </div>
+          <button class="btn-apply" onclick="applyPolicy('harden-impair-defense')">应用策略</button>
+        </div>
+
+        <div class="ka-policy-card">
+          <div class="ka-policy-left">
+            <div class="ka-policy-icon" style="background:linear-gradient(135deg,#fee2e2,#fecaca);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+              <div class="ka-policy-name">harden-trusted-cert-mod</div>
+              <div class="ka-policy-ref">MITRE_T1552</div>
+              <div class="ka-policy-desc">证书目录保护 — 防止证书信任链攻击</div>
+            </div>
+          </div>
+          <button class="btn-apply" onclick="applyPolicy('harden-trusted-cert-mod')">应用策略</button>
+        </div>
+
+        <div class="ka-policy-card">
+          <div class="ka-policy-left">
+            <div class="ka-policy-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <div class="ka-policy-name">harden-file-integrity-monitoring</div>
+              <div class="ka-policy-ref">NIST_AU-2/SI-4</div>
+              <div class="ka-policy-desc">系统二进制只读 — 防止恶意篡改和后门植入</div>
+            </div>
+          </div>
+          <button class="btn-apply" onclick="applyPolicy('harden-file-integrity-monitoring')">应用策略</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr37</title>
+<link rel="stylesheet" href="../css-5.6.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr37">
+
+      <div class="subheader">
+    <span>FR-37</span><span style="opacity:.3">|</span>
+    <strong>安全解释器与危险执行机制禁用</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-p1">P1 优先级</span>
+  </div>
+  <div class="content-area">
+
+    <div class="tabs" data-tabgroup="fr37">
+      <div class="tab active" data-tab="fr37-policy">禁用策略</div>
+      <div class="tab" data-tab="fr37-executors">危险执行器</div>
+      <div class="tab" data-tab="fr37-whitelist">进程白名单</div>
+      <div class="tab" data-tab="fr37-log">禁用日志</div>
+    </div>
+
+    <!-- ── Tab: 禁用策略 ── -->
+    <div class="tab-content active" id="fr37-policy">
+
+      <!-- Panel 1: ClawAegis危险执行拦截 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis Agent</div>
+            <div class="panel-title">ClawAegis 危险执行拦截</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">commandBlock</span>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">commandBlockEnabled</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">命令拦截功能开关 — 拦截危险命令执行，防止系统破坏和代码注入</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="mode-selector">
+              <div class="mode-btn active enforce">Enforce</div>
+              <div class="mode-btn">Observe</div>
+              <div class="mode-btn">Off</div>
+            </div>
+            <div class="toggle-switch on"></div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">commandBlockMode</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">拦截模式 — <code>enforce</code> 直接阻断, <code>observe</code> 仅记录告警</div>
+          </div>
+          <div class="mode-selector">
+            <div class="mode-btn active enforce">enforce</div>
+            <div class="mode-btn">observe</div>
+          </div>
+        </div>
+
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div class="form-label">拦截命令模式 (Blocked Patterns)</div>
+          <div class="tag-list" style="margin-top:6px">
+            <span class="tag mitre"><code>rm -rf /</code></span>
+            <span class="tag mitre"><code>curl|sh</code></span>
+            <span class="tag mitre"><code>wget|sh</code></span>
+            <span class="tag mitre"><code>while true</code> (无限循环)</span>
+            <span class="tag mitre"><code>shutdown</code></span>
+            <span class="tag mitre"><code>reboot</code></span>
+            <span class="tag mitre"><code>halt</code></span>
+            <span class="tag mitre"><code>mkfs</code></span>
+            <span class="tag mitre"><code>format</code></span>
+          </div>
+          <div class="form-hint mt-8">以上命令模式将被 ClawAegis commandBlock 策略拦截，阻止执行</div>
+        </div>
+
+        <div style="padding:12px 0">
+          <div class="form-label">自我保护 (Self Protection)</div>
+          <div class="tag-list" style="margin-top:6px">
+            <span class="tag" style="background:#fef2f2;color:#b91c1c">拦截对 ClawAegis 自身的禁用操作</span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c">拦截对 ClawAegis 配置的修改操作</span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c">拦截对 ClawAegis 的绕过操作</span>
+          </div>
+          <div class="form-hint mt-8">阻止任何试图禁用、修改或绕过 ClawAegis 安全防护的操作</div>
+        </div>
+      </div>
+
+      <!-- Panel 2: 禁用配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Disable Configuration</div>
+            <div class="panel-title">禁用配置</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <button class="btn-secondary btn-sm">保存配置</button>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">disableEval</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">禁用 <code>eval()</code> 动态执行 — 阻止 Python/JS/Ruby 等语言的动态代码执行</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">disableExec</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">禁用 <code>exec()</code> 动态执行 — 阻止 Python 的 <code>exec()</code> 动态代码执行</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">disablePickleDeserialize</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">禁用 <code>pickle</code> 反序列化 — 阻止 <code>pickle.load()</code> / <code>pickle.loads()</code> 不安全反序列化</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">disableDynamicImport</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">禁用动态 <code>import</code> — 阻止 <code>__import__()</code> / <code>importlib.import_module()</code> 等动态导入</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name" style="font-size:.87rem;font-weight:600;color:var(--text-h)">disableShellPipeExec</div>
+            <div class="desc" style="font-size:.78rem;color:var(--text);margin-top:2px">禁用 Shell 管道执行 — 阻止 <code>curl | sh</code> / <code>wget | sh</code> 等管道执行模式</div>
+          </div>
+          <div class="toggle-switch on"></div>
+        </div>
+
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div class="form-label">allowedInterpreters (允许的解释器白名单)</div>
+          <div class="tag-list" style="margin-top:6px">
+            <span class="tag" style="background:#ecfdf5;color:#065f46"><code>python3</code></span>
+            <span class="tag" style="background:#ecfdf5;color:#065f46"><code>node</code></span>
+            <span class="tag" style="background:#ecfdf5;color:#065f46"><code>bash</code></span>
+            <span class="tag" style="background:#ecfdf5;color:#065f46"><code>sh</code></span>
+            <span class="tag editable">+ 添加解释器</span>
+          </div>
+          <div class="form-hint mt-8">仅允许白名单内的解释器执行脚本，其他解释器将被拦截</div>
+        </div>
+
+        <div style="padding:12px 0">
+          <div class="form-label">blockedInterpreters (阻止的解释器)</div>
+          <div class="tag-list" style="margin-top:6px">
+            <span class="tag" style="background:#fef2f2;color:#b91c1c"><code>perl</code></span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c"><code>ruby</code></span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c"><code>php</code></span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c"><code>powershell</code></span>
+            <span class="tag editable">+ 添加解释器</span>
+          </div>
+          <div class="form-hint mt-8">以下解释器被明确阻止执行，任何调用将被拦截</div>
+        </div>
+      </div>
+
+      <!-- Panel 3: KubeArmor进程执行控制 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Process Control</div>
+            <div class="panel-title">KubeArmor 进程执行控制</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">ProcessPolicy</span>
+          </div>
+        </div>
+
+        <div class="sub-title">ProcessPathType 字段定义</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th><th>示例</th></tr></thead>
+            <tbody>
+              <tr><td><code>path</code></td><td>string</td><td>进程可执行文件路径</td><td><code>/usr/bin/python3</code></td></tr>
+              <tr><td><code>execName</code></td><td>string</td><td>进程执行名称 (无需完整路径)</td><td><code>python3</code></td></tr>
+              <tr><td><code>ownerOnly</code></td><td>bool</td><td>仅允许文件所有者执行</td><td><code>true</code></td></tr>
+              <tr><td><code>fromSource</code></td><td>[]string</td><td>限制执行源进程路径</td><td><code>["/usr/bin/bash"]</code></td></tr>
+              <tr><td><code>allowedArgs</code></td><td>[]string</td><td>允许的命令行参数</td><td><code>["--version","-m"]</code></td></tr>
+              <tr><td><code>action</code></td><td>string</td><td>执行动作 (Allow/Block/Audit)</td><td><code>"Block"</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-title mt-16">ProcessDirectoryType 字段定义</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th><th>示例</th></tr></thead>
+            <tbody>
+              <tr><td><code>directory</code></td><td>string</td><td>进程所在目录</td><td><code>/usr/bin/</code></td></tr>
+              <tr><td><code>recursive</code></td><td>bool</td><td>递归匹配子目录</td><td><code>true</code></td></tr>
+              <tr><td><code>ownerOnly</code></td><td>bool</td><td>仅允许文件所有者执行</td><td><code>true</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-title mt-16">ProcessPatternType 字段定义</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th><th>示例</th></tr></thead>
+            <tbody>
+              <tr><td><code>pattern</code></td><td>string</td><td>正则表达式匹配进程路径</td><td><code>/usr/bin/python*</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-title mt-16">Action 类型</div>
+        <div class="tag-list">
+          <span class="tag" style="background:#ecfdf5;color:#065f46;font-weight:600">Allow</span>
+          <span class="tag" style="background:#fef2f2;color:#b91c1c;font-weight:600">Block</span>
+          <span class="tag" style="background:#eff6ff;color:#1d4ed8;font-weight:600">Audit</span>
+        </div>
+
+      </div>
+
+    </div><!-- /fr37-policy -->
+
+    <!-- ── Tab: 危险执行器 ── -->
+    <div class="tab-content" id="fr37-executors">
+
+      <!-- Panel 1: 动态执行机制 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Dangerous Execution Mechanisms</div>
+            <div class="panel-title">动态执行机制 (需要禁用或限制)</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">8 机制</span>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>机制</th><th>语言</th><th>危险等级</th><th>状态</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>eval()</code></td>
+                <td>Python / JS / Ruby</td>
+                <td><span class="badge badge-critical">CRITICAL</span></td>
+                <td><span class="badge" style="background:#7f1d1d;color:#fecaca">禁用</span></td>
+                <td>动态代码执行</td>
+              </tr>
+              <tr>
+                <td><code>exec()</code></td>
+                <td>Python</td>
+                <td><span class="badge badge-critical">CRITICAL</span></td>
+                <td><span class="badge" style="background:#7f1d1d;color:#fecaca">禁用</span></td>
+                <td>动态代码执行</td>
+              </tr>
+              <tr>
+                <td><code>execve()</code></td>
+                <td>C / Shell</td>
+                <td><span class="badge badge-high">HIGH</span></td>
+                <td><span class="badge badge-observed">限制</span></td>
+                <td>进程替换</td>
+              </tr>
+              <tr>
+                <td><code>pickle.load()</code></td>
+                <td>Python</td>
+                <td><span class="badge badge-critical">CRITICAL</span></td>
+                <td><span class="badge" style="background:#7f1d1d;color:#fecaca">禁用</span></td>
+                <td>不安全反序列化</td>
+              </tr>
+              <tr>
+                <td><code>yaml.load()</code></td>
+                <td>Python</td>
+                <td><span class="badge badge-high">HIGH</span></td>
+                <td><span class="badge badge-observed">限制</span></td>
+                <td>不安全反序列化 (需 yaml.safe_load)</td>
+              </tr>
+              <tr>
+                <td><code>subprocess shell=True</code></td>
+                <td>Python</td>
+                <td><span class="badge badge-high">HIGH</span></td>
+                <td><span class="badge badge-observed">限制</span></td>
+                <td>Shell 注入风险</td>
+              </tr>
+              <tr>
+                <td><code>new Function()</code></td>
+                <td>JavaScript</td>
+                <td><span class="badge badge-high">HIGH</span></td>
+                <td><span class="badge badge-observed">限制</span></td>
+                <td>动态函数构造</td>
+              </tr>
+              <tr>
+                <td><code>-enc / -encodedcommand</code></td>
+                <td>PowerShell</td>
+                <td><span class="badge badge-critical">CRITICAL</span></td>
+                <td><span class="badge" style="background:#7f1d1d;color:#fecaca">禁用</span></td>
+                <td>编码命令执行</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-hint mt-12">CRITICAL 等级机制已被完全禁用，HIGH 等级机制已被限制 (仅允许特定安全用法)</div>
+      </div>
+
+      <!-- Panel 2: KubeArmor ModelArmor -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor ModelArmor</div>
+            <div class="panel-title">KubeArmor ModelArmor — AI/ML 工作负载保护</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">ModelArmor</span>
+          </div>
+        </div>
+
+        <div class="form-hint mb-12">保护 AI/ML 工作负载免受 pickle 注入攻击</div>
+
+        <div class="detect-category">
+          <div class="dc-num">Protection 1</div>
+          <div class="dc-title">拦截 PickleInject 类</div>
+          <div class="dc-desc">阻止 pickle 反序列化过程中触发恶意代码执行，拦截以下危险调用</div>
+          <div class="dc-patterns">
+            <span class="dc-pattern">os.system</span>
+            <span class="dc-pattern">os.exec</span>
+            <span class="dc-pattern">os.eval</span>
+            <span class="dc-pattern">runpy._run_module_code</span>
+          </div>
+        </div>
+
+        <div class="detect-category">
+          <div class="dc-num">Protection 2</div>
+          <div class="dc-title">阻止未授权进程执行</div>
+          <div class="dc-desc">阻止在 ML 工作负载中执行未授权的 Shell 和包管理器进程</div>
+          <div class="dc-patterns">
+            <span class="dc-pattern">/bin/sh</span>
+            <span class="dc-pattern">/usr/bin/pip</span>
+          </div>
+        </div>
+
+        <div class="detect-category">
+          <div class="dc-num">Protection 3</div>
+          <div class="dc-title">限制文件写入</div>
+          <div class="dc-desc">阻止向临时目录和共享内存写入可执行文件，防止恶意代码驻留</div>
+          <div class="dc-patterns">
+            <span class="dc-pattern">/tmp/</span>
+            <span class="dc-pattern">/dev/shm/</span>
+          </div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);margin-top:8px">
+          <div class="form-label">使用预设 (Applied Presets)</div>
+          <div class="tag-list" style="margin-top:6px">
+            <span class="tag" style="background:#fef2f2;color:#b91c1c;font-weight:600"><code>protectEnv</code></span>
+            <span class="tag" style="background:#fef2f2;color:#b91c1c;font-weight:600"><code>filelessExec</code></span>
+          </div>
+          <div class="form-hint mt-8">ModelArmor 使用 protectEnv + filelessExec 预设策略保护 AI/ML 工作负载</div>
+        </div>
+      </div>
+
+      <!-- Panel 3: KSecure进程控制 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KSecure eBPF LSM</div>
+            <div class="panel-title">KSecure 进程控制</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">ProcessControl</span>
+          </div>
+        </div>
+
+        <div class="sub-title">ProcessProtectType 字段定义</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>path</code></td><td>string</td><td>受保护进程路径</td></tr>
+              <tr><td><code>mode</code></td><td>int</td><td>保护模式 (阻止执行/限制参数)</td></tr>
+              <tr><td><code>desc</code></td><td>string</td><td>进程说明</td></tr>
+              <tr><td><code>action</code></td><td>string</td><td>执行动作 (block/allow/audit)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-title mt-16">ProcessBlackType 字段定义 (进程黑名单)</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>path</code></td><td>string</td><td>黑名单进程路径</td></tr>
+              <tr><td><code>desc</code></td><td>string</td><td>进程说明</td></tr>
+              <tr><td><code>action</code></td><td>string</td><td>执行动作 (block)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sub-title mt-16">FilePreType 字段定义</div>
+        <div style="overflow-x:auto">
+          <table class="fi-field-table">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>switch</code></td><td>bool</td><td>FilePreType 开关</td></tr>
+              <tr><td><code>paths[]</code></td><td>[]string</td><td>受保护文件路径列表</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /fr37-executors -->
+
+    <!-- ── Tab: 进程白名单 ── -->
+    <div class="tab-content" id="fr37-whitelist">
+
+      <!-- Panel 1: KubeArmor进程策略示例 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Policy Example</div>
+            <div class="panel-title">KubeArmor 进程策略示例</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-enforce">Enforce</span>
+            <span class="badge badge-sys">ProcessPolicy</span>
+          </div>
+        </div>
+
+        <div class="code-block"><span class="kw">spec</span>:
+  <span class="kw">process</span>:
+    <span class="kw">matchPaths</span>:
+    - <span class="kw">path</span>: <span class="str">/usr/bin/python3</span>
+      <span class="kw">action</span>: <span class="str">Allow</span>
+    - <span class="kw">path</span>: <span class="str">/bin/bash</span>
+      <span class="kw">action</span>: <span class="str">Allow</span>
+    - <span class="kw">path</span>: <span class="str">/usr/bin/curl</span>
+      <span class="kw">action</span>: <span class="str">Block</span>
+  <span class="kw">action</span>: <span class="str">Block</span>  <span class="cm"># 默认阻断</span></div>
+        <div class="form-hint mt-12">默认动作 Block — 未明确 Allow 的进程将被阻断，实现白名单机制</div>
+      </div>
+
+      <!-- Panel 2: 允许的执行器清单 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Interpreter Whitelist</div>
+            <div class="panel-title">允许的执行器清单</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-green">4 允许</span>
+            <span class="badge" style="background:#7f1d1d;color:#fecaca">4 阻断</span>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div style="flex:1">
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)"><code>/usr/bin/python3</code></div>
+            <div style="font-size:.78rem;color:var(--text)">Python3 解释器 <span class="badge badge-allowed" style="margin-left:6px">允许</span></div>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div style="flex:1">
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)"><code>/usr/bin/node</code></div>
+            <div style="font-size:.78rem;color:var(--text)">Node.js 运行时 <span class="badge badge-allowed" style="margin-left:6px">允许</span></div>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div style="flex:1">
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)"><code>/bin/bash</code></div>
+            <div style="font-size:.78rem;color:var(--text)">Bash Shell <span class="badge badge-allowed" style="margin-left:6px">允许</span></div>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div style="flex:1">
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)"><code>/bin/sh</code></div>
+            <div style="font-size:.78rem;color:var(--text)">POSIX Shell <span class="badge badge-allowed" style="margin-left:6px">允许</span></div>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div style="flex:1">
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)"><code>/usr/bin/perl</code></div>
+            <div style="font-size:.78rem;color:var(--text)">Perl 解释器 <span class="badge badge-blocked" style="margin-left:6px">阻断</span></div>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div style="flex:1">
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)"><code>/usr/bin/ruby</code></div>
+            <div style="font-size:.78rem;color:var(--text)">Ruby 解释器 <span class="badge badge-blocked" style="margin-left:6px">阻断</span></div>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div style="flex:1">
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)"><code>/usr/bin/php</code></div>
+            <div style="font-size:.78rem;color:var(--text)">PHP 解释器 <span class="badge badge-blocked" style="margin-left:6px">阻断</span></div>
+          </div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div style="flex:1">
+            <div style="font-size:.87rem;font-weight:600;color:var(--text-h)"><code>/usr/bin/pwsh</code></div>
+            <div style="font-size:.78rem;color:var(--text)">PowerShell <span class="badge badge-blocked" style="margin-left:6px">阻断</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: KubeArmor预设策略 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Presets</div>
+            <div class="panel-title">KubeArmor 预设策略</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <span class="badge badge-sys">5 预设</span>
+            <span class="badge badge-enforce">ProcessControl</span>
+          </div>
+        </div>
+        <div class="form-hint mb-12">5 个预设策略用于进程执行控制</div>
+
+        <div class="preset-card">
+          <div class="preset-num audit">1</div>
+          <div class="preset-info">
+            <div class="pi-name">exec</div>
+            <div class="pi-action"><span class="badge badge-audit">Audit</span></div>
+            <div class="pi-desc">审计所有进程执行 — 记录所有进程启动事件，用于安全分析和取证</div>
+          </div>
+        </div>
+
+        <div class="preset-card">
+          <div class="preset-num block">2</div>
+          <div class="preset-info">
+            <div class="pi-name">filelessExec</div>
+            <div class="pi-action"><span class="badge badge-blocked">Block</span></div>
+            <div class="pi-desc">阻止无文件执行 — 阻止从 <code>/dev/shm/</code>、<code>/tmp/</code> 等临时目录执行二进制文件</div>
+          </div>
+        </div>
+
+        <div class="preset-card">
+          <div class="preset-num block">3</div>
+          <div class="preset-info">
+            <div class="pi-name">anonymousMapExec</div>
+            <div class="pi-action"><span class="badge badge-blocked">Block</span></div>
+            <div class="pi-desc">阻止匿名内存映射执行 — 防止攻击者将恶意代码加载到匿名内存并执行</div>
+          </div>
+        </div>
+
+        <div class="preset-card">
+          <div class="preset-num block">4</div>
+          <div class="preset-info">
+            <div class="pi-name">protectEnv</div>
+            <div class="pi-action"><span class="badge badge-blocked">Block</span></div>
+            <div class="pi-desc">保护环境变量 — 阻止进程读取其他进程的环境变量，防止凭据泄露</div>
+          </div>
+        </div>
+
+        <div class="preset-card">
+          <div class="preset-num block">5</div>
+          <div class="preset-info">
+            <div class="pi-name">protectProc</div>
+            <div class="pi-action"><span class="badge badge-blocked">Block</span></div>
+            <div class="pi-desc">保护进程信息 — 阻止非授权进程读取 <code>/proc/*/</code> 下的敏感信息</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /fr37-whitelist -->
+
+    <!-- ── Tab: 禁用日志 ── -->
+    <div class="tab-content" id="fr37-log">
+
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Disable & Block Log</div>
+            <div class="panel-title">禁用日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">筛选</button>
+            <button class="btn-secondary btn-sm">刷新</button>
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+
+        <!-- Log 1 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 16:12:33.558</span>
+            <span class="badge badge-blocked">BLOCKED</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-sys">ClawAegis</span>
+            <span class="badge badge-p1">FR-37</span>
+          </div>
+          <div class="log-body">
+            <code>eval()</code> 调用 — Python <code>eval("os.system('rm -rf /')")</code> — ClawAegis <code>command_block</code> 策略拦截了通过 eval 执行的危险系统命令。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">ClawAegis pipeline</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">disableEval guard</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">eval() pattern match</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">BLOCK</span>
+          </div>
+          <div class="log-detail">
+type: command_block | mechanism: eval() | language: Python<br>
+code: eval("os.system('rm -rf /')") | policy: disableEval=true<br>
+action: blocked | severity: CRITICAL
+          </div>
+        </div>
+
+        <!-- Log 2 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:58:21.443</span>
+            <span class="badge badge-blocked">BLOCKED</span>
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-sys">KubeArmor ModelArmor</span>
+            <span class="badge badge-p1">FR-37</span>
+          </div>
+          <div class="log-body">
+            <code>pickle</code> 反序列化 — <code>pickle.load(untrusted_data)</code> — KubeArmor ModelArmor 拦截了不安全的 pickle 反序列化操作，防止 PickleInject 攻击。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">KubeArmor ModelArmor</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">PickleInject detection</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">pickle.load() match</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">BLOCK</span>
+          </div>
+          <div class="log-detail">
+type: model_armor | mechanism: pickle.load() | language: Python<br>
+source: untrusted_data | policy: disablePickleDeserialize=true<br>
+dangerous_classes: os.system, os.exec, os.eval | action: blocked<br>
+preset: protectEnv + filelessExec
+          </div>
+        </div>
+
+        <!-- Log 3 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:42:07.891</span>
+            <span class="badge badge-blocked">BLOCKED</span>
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-sys">KubeArmor</span>
+            <span class="badge badge-p1">FR-37</span>
+          </div>
+          <div class="log-body">
+            阻止解释器执行 — <code>/usr/bin/perl script.pl</code> — KubeArmor 进程白名单策略拦截了不在白名单中的 Perl 解释器执行。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">KubeArmor EnforceProc</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">process whitelist</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">/usr/bin/perl not in Allow</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step blocked-step">BLOCK</span>
+          </div>
+          <div class="log-detail">
+path: /usr/bin/perl | args: script.pl | pid: 28471 | uid: 1001<br>
+policy: interpreter-whitelist | allowed: [python3, node, bash, sh]<br>
+blocked: [perl, ruby, php, powershell] | action: Block
+          </div>
+        </div>
+
+        <!-- Log 4 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 15:28:14.226</span>
+            <span class="badge badge-audit">AUDIT</span>
+            <span class="badge badge-medium">Medium</span>
+            <span class="badge badge-sys">KubeArmor</span>
+            <span class="badge badge-p1">FR-37</span>
+          </div>
+          <div class="log-body">
+            进程执行审计 — <code>/usr/bin/python3 app.py</code> — KubeArmor <code>exec</code> 预设策略记录了白名单内进程的执行事件 (仅审计模式)。
+          </div>
+          <div class="log-chain">
+            <span class="log-chain-step">KubeArmor EnforceProc</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">exec preset</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step">/usr/bin/python3 in Allow</span>
+            <span class="log-chain-arrow">&#x2192;</span>
+            <span class="log-chain-step" style="border-color:#1d4ed8;color:#1d4ed8;background:#eff6ff;font-weight:600">AUDIT</span>
+          </div>
+          <div class="log-detail">
+path: /usr/bin/python3 | args: app.py | pid: 19832 | uid: 1001<br>
+policy: interpreter-whitelist | preset: exec | action: Audit<br>
+tags: MITRE_T1059, NIST_AU-2
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /fr37-log -->
+
+  </div><!-- /content-area -->
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

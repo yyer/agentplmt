@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr19</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr19">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-19 &middot; P1</div><div class="page-title">记忆清理</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-danger btn-sm">立即清理</button><button class="btn-primary btn-sm">保存策略</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Memory Retention Policy</div><div class="panel-title">记忆保留与清理策略</div></div></div>
+      <table class="data-table">
+        <thead><tr><th>记忆类型</th><th>保留期限</th><th>清理动作</th><th>清理前验证</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">会话上下文（短期）</td><td>会话结束</td><td>自动清除</td><td>—</td></tr>
+          <tr><td style="font-weight:600;">MEMORY.md（长期）</td><td>按策略</td><td>超期归档 → 清除</td><td>完整性检查（SC-MEM）</td></tr>
+          <tr><td style="font-weight:600;">SOUL.md / IDENTITY.md</td><td>永久（仅审计）</td><td>不可自动清除</td><td>Hash Baseline 对比</td></tr>
+          <tr><td style="font-weight:600;">Agent 记忆目录</td><td>按策略</td><td>归档 → 清除</td><td>注入扫描</td></tr>
+          <tr><td style="font-weight:600;">凭据文件</td><td>永久</td><td>仅权限收紧</td><td>SC-CRED 检查</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Quarantine</div><div class="panel-title">隔离区管理</div></div></div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">启用隔离区 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">memory.quarantineEnabled</code></div><div class="desc">可疑记忆文件移入隔离区而非删除，保留取证证据</div></div>
+        <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="form-row" style="margin-top:14px;">
+        <div class="form-group">
+          <div class="form-label">隔离区路径</div>
+          <input type="text" class="form-input" value="~/.openclaw/.secureclaw/quarantine/" style="font-family:monospace;" readonly>
+        </div>
+        <div class="form-group">
+          <div class="form-label">隔离区保留天数</div>
+          <input type="number" class="form-input" value="30">
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

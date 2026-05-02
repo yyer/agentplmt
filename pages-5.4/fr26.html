@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr26</title>
+<link rel="stylesheet" href="../css-5.4.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr26">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-26 &middot; P1 &middot; OWASP ASI04 &middot; TC260 AIA03</div><div class="page-title">安全开发流程与发布可信</div></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px;">Skill 生命周期管理</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        ClawManager 支持 Skill 版本管理（SkillVersion）、审查流程（scanOnInstall + RiskLevel 准入）、发布追踪和紧急下架。<br>
+        SkillVersion 记录每次变更，关联 content_hash 和 archive_hash，确保版本可追溯。
+      </div>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Skill Release Pipeline</div><div class="panel-title">Skill 发布流程</div></div></div>
+      <div class="log-chain" style="justify-content:center;gap:10px;padding:10px 0;">
+        <div class="log-chain-step" style="padding:8px 16px;">开发<br><span style="font-size:10px;color:#8f8681;">编写 Skill 代码</span></div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:8px 16px;">上传/导入<br><span style="font-size:10px;color:#8f8681;">POST /skills/import</span></div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:8px 16px;">自动扫描<br><span style="font-size:10px;color:#8f8681;">recordScan() → 风险评级</span></div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:8px 16px;">审查通过<br><span style="font-size:10px;color:#8f8681;">RiskLevel=none/low</span></div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:8px 16px;">发布上线<br><span style="font-size:10px;color:#8f8681;">AttachSkillToInstance</span></div>
+      </div>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Skill Version History</div><div class="panel-title">Skill 版本追踪</div></div><span class="badge-sys">clawmanager</span></div>
+      <table class="data-table">
+        <thead><tr><th>Skill</th><th>CurrentVersionID</th><th>content_hash</th><th>archive_hash</th><th>RiskLevel</th><th>创建时间</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">web-search</td><td>v3</td><td style="font-family:monospace;font-size:11px;">d4e7f2a1b3c5</td><td style="font-family:monospace;font-size:11px;">8a2c...f1d3</td><td><span class="badge badge-green">none</span></td><td>2026-04-28</td></tr>
+          <tr><td style="font-weight:600;">code-analyzer</td><td>v2</td><td style="font-family:monospace;font-size:11px;">a1b4c7d2e5f8</td><td style="font-family:monospace;font-size:11px;">3f5e...c7a2</td><td><span class="badge badge-green">none</span></td><td>2026-04-25</td></tr>
+          <tr><td style="font-weight:600;">polymarket-all-in-one</td><td>v1</td><td style="font-family:monospace;font-size:11px;">b2c5d8e3f1a4</td><td style="font-family:monospace;font-size:11px;">6d4c...e8b3</td><td><span class="badge badge-critical">high</span></td><td>2026-04-30</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Emergency Actions</div><div class="panel-title">紧急操作</div></div></div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-danger btn-sm">紧急下架高风险 Skill</button>
+        <button class="btn-secondary btn-sm">回退到上一版本</button>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:#8f8681;">
+        <strong>SecureClaw Kill Switch:</strong> 如果 <code>~/.openclaw/.secureclaw/killswitch</code> 文件存在，所有 Agent 动作将立即停止（行为规则 #14）
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

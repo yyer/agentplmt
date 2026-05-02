@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr07</title>
+<link rel="stylesheet" href="../css-5.2.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr07">
+
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-07 &middot; P0</div><div class="page-title">面向 Agent 的最小权限运行框架</div></div><div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">+ 新建画像</button><button class="btn-primary btn-sm">保存配置</button></div></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Permission Profiles</div><div class="panel-title">Agent 权限画像</div></div></div>
+      <div class="card-grid">
+
+        <div class="profile-card" style="border-color:#dc2626;">
+          <div class="card-header"><div class="card-title" style="color:#dc2626;">只读型 (read-only)</div><span class="badge badge-p0">P0</span></div>
+          <div class="card-desc">仅允许读取文件和查询信息，禁止任何写操作、命令执行和网络外联</div>
+          <div class="perm-row"><span class="perm-name">文件读取</span><span class="perm-value" style="color:#15803d;">允许</span></div>
+          <div class="perm-row"><span class="perm-name">文件写入/删除</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+          <div class="perm-row"><span class="perm-name">Shell 命令</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+          <div class="perm-row"><span class="perm-name">网络外联</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+          <div class="perm-row"><span class="perm-name">记忆写入</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+          <div class="perm-row"><span class="perm-name">工具调用</span><span class="perm-value" style="color:#92400e;">仅 read-only 工具</span></div>
+        </div>
+
+        <div class="profile-card" style="border-color:#d59a22;">
+          <div class="card-header"><div class="card-title" style="color:#d59a22;">办公型 (office)</div><span class="badge badge-p0">P0</span></div>
+          <div class="card-desc">允许日常办公操作：文件读写、受限命令，禁止高危操作和未授权外联</div>
+          <div class="perm-row"><span class="perm-name">文件读取</span><span class="perm-value" style="color:#15803d;">允许</span></div>
+          <div class="perm-row"><span class="perm-name">文件写入</span><span class="perm-value" style="color:#15803d;">workspace 内允许</span></div>
+          <div class="perm-row"><span class="perm-name">Shell 命令</span><span class="perm-value" style="color:#92400e;">低风险命令</span></div>
+          <div class="perm-row"><span class="perm-name">网络外联</span><span class="perm-value" style="color:#92400e;">白名单域名</span></div>
+          <div class="perm-row"><span class="perm-name">记忆写入</span><span class="perm-value" style="color:#15803d;">允许（≤8KB）</span></div>
+          <div class="perm-row"><span class="perm-name">工具调用</span><span class="perm-value" style="color:#92400e;">办公工具集</span></div>
+        </div>
+
+        <div class="profile-card" style="border-color:#3b82f6;">
+          <div class="card-header"><div class="card-title" style="color:#3b82f6;">开发型 (developer)</div><span class="badge badge-p1">P1</span></div>
+          <div class="card-desc">允许代码开发操作：git、构建、测试，禁止系统级修改和凭据访问</div>
+          <div class="perm-row"><span class="perm-name">文件读取</span><span class="perm-value" style="color:#15803d;">允许</span></div>
+          <div class="perm-row"><span class="perm-name">文件写入</span><span class="perm-value" style="color:#15803d;">workspace 内允许</span></div>
+          <div class="perm-row"><span class="perm-name">Shell 命令</span><span class="perm-value" style="color:#15803d;">开发命令集</span></div>
+          <div class="perm-row"><span class="perm-name">网络外联</span><span class="perm-value" style="color:#92400e;">白名单 + API</span></div>
+          <div class="perm-row"><span class="perm-name">记忆写入</span><span class="perm-value" style="color:#15803d;">允许（≤8KB）</span></div>
+          <div class="perm-row"><span class="perm-name">凭据访问</span><span class="perm-value" style="color:#dc2626;">禁止</span></div>
+        </div>
+
+        <div class="profile-card" style="border-color:#6d28d9;">
+          <div class="card-header"><div class="card-title" style="color:#6d28d9;">运维型 (ops)</div><span class="badge badge-p1">P1</span></div>
+          <div class="card-desc">允许运维操作：系统查询、服务管理，高危操作需人工确认</div>
+          <div class="perm-row"><span class="perm-name">文件读取</span><span class="perm-value" style="color:#15803d;">允许</span></div>
+          <div class="perm-row"><span class="perm-name">文件写入</span><span class="perm-value" style="color:#92400e;">需审批</span></div>
+          <div class="perm-row"><span class="perm-name">Shell 命令</span><span class="perm-value" style="color:#92400e;">运维命令集</span></div>
+          <div class="perm-row"><span class="perm-name">网络外联</span><span class="perm-value" style="color:#92400e;">白名单</span></div>
+          <div class="perm-row"><span class="perm-name">sudo/特权</span><span class="perm-value" style="color:#dc2626;">需人工确认</span></div>
+          <div class="perm-row"><span class="perm-name">凭据访问</span><span class="perm-value" style="color:#dc2626;">需人工确认</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile binding -->
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Profile Binding</div><div class="panel-title">Agent 画像绑定</div></div></div>
+      <table class="data-table">
+        <thead><tr><th>实例</th><th>Agent ID</th><th>当前画像</th><th>失效模式</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">openclaw-prod-01</td><td style="font-family:monospace;">agent-openclaw-prod-01</td>
+            <td><select class="form-input" style="max-width:180px;padding:5px 10px;font-size:12px;"><option selected>办公型 (office)</option><option>只读型 (read-only)</option><option>开发型 (developer)</option><option>运维型 (ops)</option></select></td>
+            <td><select class="form-input" style="max-width:160px;padding:5px 10px;font-size:12px;"><option>safe_mode</option><option>block_all</option><option>read_only</option></select></td>
+            <td><button class="btn-secondary btn-sm">应用</button></td></tr>
+          <tr><td style="font-weight:600;">openclaw-prod-02</td><td style="font-family:monospace;">agent-openclaw-prod-02</td>
+            <td><select class="form-input" style="max-width:180px;padding:5px 10px;font-size:12px;"><option>办公型 (office)</option><option>只读型 (read-only)</option><option selected>开发型 (developer)</option><option>运维型 (ops)</option></select></td>
+            <td><select class="form-input" style="max-width:160px;padding:5px 10px;font-size:12px;"><option>safe_mode</option><option>block_all</option><option>read_only</option></select></td>
+            <td><button class="btn-secondary btn-sm">应用</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

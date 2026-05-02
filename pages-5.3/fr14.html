@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr14</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr14">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-14 &middot; P0</div><div class="page-title">敏感数据脱敏</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">导出配置</button><button class="btn-primary btn-sm">保存配置</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-high">91</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Output Redaction Score</div>
+          <div class="panel-title" style="margin-bottom:6px;">当前脱敏评分：91 / 100</div>
+          <div style="font-size:13px;color:var(--text);">在 <code>message_sending</code> 和 <code>before_message_write</code> 阶段，自动将 Assistant 输出中的 API Key、Token、密码等敏感值替换为 <code>[已脱敏]</code>，防止凭据泄露到用户端或持久化存储。</div>
+        </div>
+        <div style="display:flex;gap:24px;">
+          <div class="stat-mini"><div class="value" style="color:#15803d;">6</div><div class="label">检测关键词组</div></div>
+          <div class="stat-mini"><div class="value" style="color:#3b82f6;">12</div><div class="label">凭据前缀</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e;">3</div><div class="label">Header 模式</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="fr14-config">脱敏配置</div>
+      <div class="tab" data-tab="fr14-patterns">检测模式</div>
+      <div class="tab" data-tab="fr14-test">脱敏测试</div>
+      <div class="tab" data-tab="fr14-log">脱敏日志</div>
+    </div>
+
+    <div id="fr14-config" class="tab-content active">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">ClawAegis — Output Redaction</div><div class="panel-title">输出脱敏配置</div></div><span class="badge-sys">claw-aegis</span></div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">输出脱敏开关 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">outputRedactionEnabled</code></div>
+            <div class="desc">在消息发送和持久化前，自动遮蔽 API Key、Token、密码等敏感值</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div style="margin-top:14px;padding:14px;background:#faf7f4;border-radius:14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--text-h);margin-bottom:8px;">脱敏替换标记 <code style="font-size:11px;color:#8f8681;">MASK_STRING</code></div>
+          <div style="font-family:monospace;font-size:13px;padding:10px;background:rgba(255,255,255,.7);border-radius:8px;">[已脱敏]</div>
+          <div class="form-hint">替换后的占位字符串。排除列表："" / "none" / "null" / "undefined" / "unknown" / "placeholder" / "redacted" / "[已脱敏]"</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fr14-patterns" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Assignment Keywords</div><div class="panel-title">键值赋值检测关键词</div></div><span class="badge-sys">claw-aegis</span></div>
+        <div style="font-size:12px;color:var(--text);margin-bottom:12px;">检测 <code>key=value</code> 或 <code>key: value</code> 格式中的敏感赋值</div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">SENSITIVE_OUTPUT_ASSIGNMENT_KEYWORDS</span><span class="badge badge-critical">20 关键词</span></div>
+          <div class="rule-desc">匹配赋值语句左侧的敏感关键词</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">api_key</span><span class="rule-pattern">access_token</span><span class="rule-pattern">refresh_token</span><span class="rule-pattern">id_token</span>
+            <span class="rule-pattern">session_token</span><span class="rule-pattern">token</span><span class="rule-pattern">secret</span><span class="rule-pattern">client_secret</span>
+            <span class="rule-pattern">credential</span><span class="rule-pattern">password</span><span class="rule-pattern">passwd</span><span class="rule-pattern">private_key</span>
+            <span class="rule-pattern">密钥</span><span class="rule-pattern">秘钥</span><span class="rule-pattern">令牌</span><span class="rule-pattern">凭证</span>
+            <span class="rule-pattern">私钥</span><span class="rule-pattern">口令</span><span class="rule-pattern">+2 more</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Header Keywords</div><div class="panel-title">HTTP Header 检测关键词</div></div><span class="badge-sys">claw-aegis</span></div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">SENSITIVE_OUTPUT_HEADER_KEYWORDS</span><span class="badge badge-high">3 关键词</span></div>
+          <div class="rule-desc">匹配 HTTP 请求头中的敏感字段</div>
+          <div class="rule-patterns">
+            <span class="rule-pattern">authorization</span><span class="rule-pattern">proxy_authorization</span><span class="rule-pattern">x-api-key</span>
+            <span class="rule-pattern">x-auth-token</span><span class="rule-pattern">x-access-token</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Standalone Literals</div><div class="panel-title">独立凭据字面量前缀</div></div><span class="badge-sys">claw-aegis</span></div>
+        <table class="data-table">
+          <thead><tr><th>前缀</th><th>服务商</th><th>示例（脱敏前）</th><th>脱敏后</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;font-weight:600;">sk-</td><td>OpenAI</td><td style="font-family:monospace;font-size:12px;">sk-proj-aB3cD4eF5gH6...</td><td style="font-family:monospace;font-size:12px;">sk-[已脱敏]</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">sk-ant-</td><td>Anthropic</td><td style="font-family:monospace;font-size:12px;">sk-ant-api03-xY9zW8...</td><td style="font-family:monospace;font-size:12px;">sk-ant-[已脱敏]</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">ghp_</td><td>GitHub</td><td style="font-family:monospace;font-size:12px;">ghp_ABCDEFGHIJKLMNOP</td><td style="font-family:monospace;font-size:12px;">ghp_[已脱敏]</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">xoxb-</td><td>Slack Bot</td><td style="font-family:monospace;font-size:12px;">xoxb-1234567890-abc</td><td style="font-family:monospace;font-size:12px;">xoxb-[已脱敏]</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">AKIA</td><td>AWS IAM</td><td style="font-family:monospace;font-size:12px;">AKIAIOSFODNN7EXAMPLE</td><td style="font-family:monospace;font-size:12px;">AKIA[已脱敏]</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">AIza</td><td>Google</td><td style="font-family:monospace;font-size:12px;">AIzaSyDaGmCmaXCK...</td><td style="font-family:monospace;font-size:12px;">AIza[已脱敏]</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">pk_live_</td><td>Stripe</td><td style="font-family:monospace;font-size:12px;">pk_live_51Hxxxxxxx</td><td style="font-family:monospace;font-size:12px;">pk_live_[已脱敏]</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">hf_</td><td>HuggingFace</td><td style="font-family:monospace;font-size:12px;">hf_xxxxxxxxxxxx</td><td style="font-family:monospace;font-size:12px;">hf_[已脱敏]</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr14-test" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Redaction Test</div><div class="panel-title">输出脱敏测试</div></div></div>
+        <div class="form-group">
+          <div class="form-label">输入模拟 Assistant 输出</div>
+          <textarea class="test-input">配置信息如下：
+API Key: sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXX
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs
+数据库密码: password=MyS3cretP@ssw0rd!
+GitHub Token: ghp_ABCDEFGHIJKLMNOPQRST</textarea>
+        </div>
+        <button class="btn-primary">运行脱敏</button>
+        <div class="test-result allowed" style="display:block;margin-top:16px;">
+          <div style="font-weight:700;margin-bottom:6px;">[Output Redaction] 脱敏结果 — 4 处替换</div>
+          <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,.6);border-radius:10px;font-size:12px;font-family:monospace;line-height:1.8;">
+            配置信息如下：<br>
+            API Key: sk-ant-<strong style="color:#dc2626;">[已脱敏]</strong><br>
+            Authorization: Bearer <strong style="color:#dc2626;">[已脱敏]</strong><br>
+            数据库密码: password=<strong style="color:#dc2626;">[已脱敏]</strong><br>
+            GitHub Token: ghp_<strong style="color:#dc2626;">[已脱敏]</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fr14-log" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Redaction Log</div><div class="panel-title">脱敏事件日志</div></div></div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 16:52:33</span>
+            <span class="log-id">outputRedaction</span>
+            <span class="badge badge-allowed">REDACTED</span>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge-sys">claw-aegis</span>
+          </div>
+          <div class="log-body">Assistant 输出中检测到 2 处敏感值，已替换为 <code>[已脱敏]</code>：<code>api_key=sk-ant-...</code>、<code>Bearer eyJ...</code></div>
+          <div class="log-detail">
+            hook: message_sending | matchedKeywords: [api_key, authorization]<br>
+            replacedCount: 2 | agentId: agent-prod-01 | sessionId: sess-a1b2
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

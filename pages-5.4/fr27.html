@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr27</title>
+<link rel="stylesheet" href="../css-5.4.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr27">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-27 &middot; P1 &middot; OWASP ASI04+ASI05 &middot; TC260 AIA03+AIA08</div><div class="page-title">组件运行时沙盒隔离</div></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px;">运行时隔离架构</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        对准入后仍可能越界的第三方 Skill 和组件，在运行时继续执行隔离，防止"引入时安全、运行时越界"。<br>
+        <strong>ClawAegis Script Provenance Guard</strong> — 追踪 AI 写入的脚本文件，在执行时检查来源风险<br>
+        <strong>KubeArmor</strong> — BPF-LSM/AppArmor/SELinux 三后端自动选择，容器级隔离策略<br>
+        <strong>KSecure</strong> — eBPF LSM 进程/文件/网络钩子 + 勒索诱饵检测
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="fr27-provenance">Script Provenance</div>
+      <div class="tab" data-tab="fr27-kubearmor">KubeArmor 策略</div>
+      <div class="tab" data-tab="fr27-ksecure">KSecure 运行时</div>
+    </div>
+
+    <div id="fr27-provenance" class="tab-content active">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">ClawAegis — Script Provenance Guard</div><div class="panel-title">脚本来源追踪配置</div></div><span class="badge-sys">claw-aegis</span></div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">脚本来源守卫 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">scriptProvenanceGuardEnabled</code></div><div class="desc">追踪 AI 写入的脚本文件，在后续执行时检查来源风险</div></div>
+          <div style="display:flex;align-items:center;">
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce" data-mode="enforce">enforce</div>
+              <div class="mode-btn" data-mode="observe">observe</div>
+              <div class="mode-btn" data-mode="off">off</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--text);line-height:1.7;">
+          <strong>工作流程：</strong><br>
+          <strong>PG-01</strong> — 记录 AI 写入的脚本文件（通过 write/edit/apply_patch 工具）<br>
+          <strong>PG-02</strong> — 评估脚本风险等级：高危命令、出站逻辑、凭据引用<br>
+          <strong>PG-03</strong> — 执行时（如 <code>bash script.sh</code>）检查脚本是否来自高风险来源<br>
+          <strong>PG-04</strong> — 跨工具调用追踪：写入和执行可跨越同一 Run 内的多个 tool call
+        </div>
+        <div style="margin-top:12px;padding:14px;background:#faf7f4;border-radius:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:6px;">防御管道位置</div>
+          <div style="font-size:12px;color:var(--text);">
+            策略 ID: <code>script_provenance_guard</code> | 优先级: <strong>8</strong>（在 memory_guard 之后、exfiltration_guard 之前）<br>
+            阻断消息: "claw-aegis: 已阻止高风险脚本产物的后续执行"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fr27-kubearmor" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">KubeArmor — Container Isolation</div><div class="panel-title">容器运行时隔离策略</div></div><span class="badge-sys">kubearmor</span></div>
+        <table class="data-table">
+          <thead><tr><th>策略类型</th><th>控制维度</th><th>执行机制</th><th>防御场景</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">包管理器阻断</td><td>禁止 apt/yum/dnf/pacman/apk</td><td>BPF-LSM process matchPaths</td><td>Codecov 供应链攻击防护</td></tr>
+            <tr><td style="font-weight:600;">文件完整性监控</td><td>/bin/ /usr/bin/ /sbin/ /boot/ 只读</td><td>BPF-LSM file matchDirectories</td><td>系统二进制篡改检测</td></tr>
+            <tr><td style="font-weight:600;">/tmp/ 执行禁止</td><td>/tmp/ 目录不可执行</td><td>BPF-LSM process matchDirectories</td><td>投递载荷执行阻断</td></tr>
+            <tr><td style="font-weight:600;">可信证书保护</td><td>/etc/ssl/ /etc/pki/ 只读</td><td>BPF-LSM file matchDirectories</td><td>MITM 根证书注入防护</td></tr>
+            <tr><td style="font-weight:600;">文件复制阻断</td><td>rsync/scp 禁止</td><td>BPF-LSM process matchPaths</td><td>数据外泄/横向移动防护</td></tr>
+            <tr><td style="font-weight:600;">管理工具阻断</td><td>kubectl/docker/crictl 禁止</td><td>BPF-LSM process matchPaths</td><td>容器逃逸防护</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">KubeArmor Presets</div><div class="panel-title">内置预设策略</div></div><span class="badge-sys">kubearmor</span></div>
+        <table class="data-table">
+          <thead><tr><th>预设名称</th><th>功能</th><th>eBPF LSM 钩子</th><th>建议动作</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">anonymousMapExec</td><td>匿名内存映射执行检测/阻断</td><td>lsm/file_open</td><td><span class="badge badge-enforce">Block</span></td></tr>
+            <tr><td style="font-weight:600;">filelessExec</td><td>无文件执行检测（memfd_create）</td><td>lsm/file_open</td><td><span class="badge badge-enforce">Block</span></td></tr>
+            <tr><td style="font-weight:600;">protectEnv</td><td>防止进程读取另一进程环境变量</td><td>lsm/file_open</td><td><span class="badge badge-enforce">Block</span></td></tr>
+            <tr><td style="font-weight:600;">exec</td><td>审计所有 exec 操作</td><td>lsm/file_open</td><td><span class="badge badge-observe">Audit</span></td></tr>
+            <tr><td style="font-weight:600;">protectProc</td><td>保护进程凭据/Namespace 访问</td><td>lsm/file_open</td><td><span class="badge badge-enforce">Block</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr27-ksecure" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">KSecure — eBPF LSM Runtime</div><div class="panel-title">KSecure 运行时防护</div></div><span class="badge-sys">ksecure</span></div>
+        <table class="data-table">
+          <thead><tr><th>防护模块</th><th>配置项</th><th>默认值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">勒索防护</td><td style="font-family:monospace;font-size:12px;">switch-on</td><td><span class="badge badge-green">true</span></td><td>4 个 eBPF LSM 钩子：unlink/file_open/rename × 2</td></tr>
+            <tr><td style="font-weight:600;">杀进程</td><td style="font-family:monospace;font-size:12px;">kill-process</td><td><span class="badge badge-off">false</span></td><td>仅阻断不杀进程</td></tr>
+            <tr><td style="font-weight:600;">诱饵自愈</td><td>—</td><td>60s</td><td>诱饵文件删除后 60 秒自动重建</td></tr>
+            <tr><td style="font-weight:600;">诱饵目录</td><td style="font-family:monospace;font-size:12px;">decoyFileDir</td><td>/ + /home 子目录</td><td>可配置自定义目录（最多 100 个）</td></tr>
+            <tr><td style="font-weight:600;">白名单</td><td style="font-family:monospace;font-size:12px;">whiteList</td><td>KSecMain + userdel + gvfsd-trash</td><td>可配置白名单程序路径</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;padding:12px;background:#faf7f4;border-radius:12px;font-size:12px;color:var(--text);">
+          <strong>诱饵文件命名:</strong> 从 <code>dmidecode -s system-uuid</code> 取 bytes[26:34] 作为唯一标识，生成 <code>.00&lt;uuid8&gt;.docx</code>、<code>.ZZ&lt;uuid8&gt;.log</code> 等 4 种诱饵文件，权限 0666 吸引勒索软件。
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

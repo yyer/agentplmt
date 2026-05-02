@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.8.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+  <div class="content-area">
+
+    <!-- ============================== -->
+    <!-- 1. Overall Score + Summary     -->
+    <!-- ============================== -->
+    <div class="app-panel-warm">
+      <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+        <!-- Score Ring -->
+        <div class="score-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="progress-ring-bg" cx="60" cy="60" r="50"></circle>
+            <circle class="progress-ring-fg" cx="60" cy="60" r="50" stroke="#d97706" stroke-dasharray="314.16" stroke-dashoffset="47.12"></circle>
+          </svg>
+          <div class="ring-text">
+            <span class="ring-num">85</span>
+            <span class="ring-label">/ 100</span>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:1.15rem;font-weight:700;color:var(--text-h);margin-bottom:4px">5.8 模型决策安全与人工监管 &mdash; 综合审计评分</div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">覆盖 FR-49 ~ FR-54 共 6 项功能需求、18 条验收标准。整体安全合规水平良好，但存在 2 项失败项和 5 项警告项需关注。主要风险集中在角色策略细粒度不足（AC-50.3）和伪安全解释检测缺失（AC-54.2）。</div>
+
+          <!-- Stats Row -->
+          <div class="stat-row" style="margin-bottom:0">
+            <div class="stat-card">
+              <div class="sc-value" style="color:var(--text-h)">18</div>
+              <div class="sc-label">总检查项</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#059669">11</div>
+              <div class="sc-label">通过 Pass</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#dc2626">2</div>
+              <div class="sc-label">失败 Fail</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#d97706">5</div>
+              <div class="sc-label">警告 Warn</div>
+            </div>
+          </div>
+
+          <!-- Mini bar -->
+          <div class="audit-bar" style="margin-top:12px">
+            <div class="bar-pass" style="width:61.1%"></div>
+            <div class="bar-warn" style="width:27.8%"></div>
+            <div class="bar-fail" style="width:11.1%"></div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:6px;font-size:11px;color:#8f8681">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#059669;margin-right:4px;vertical-align:middle"></span>通过 61.1%</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px;vertical-align:middle"></span>警告 27.8%</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#dc2626;margin-right:4px;vertical-align:middle"></span>失败 11.1%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 2. FR-49 规划结果验证           -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr49">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-49</span>
+          <span class="fr-name">规划结果验证</span>
+          <span class="badge badge-p0">P0</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#059669">2/3</span>
+          <span class="badge badge-sys">ClawAegis + ClawManager</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">执行计划有逻辑一致性校验 <span class="check-id">AC-49.1</span></div>
+            <div class="check-detail">ClawAegis Prompt Guard PG-02 集成，步骤依赖关系验证已启用。规划阶段输出自动经过 PG-02 校验，确保步骤间数据流与依赖关系无矛盾，逻辑一致性校验覆盖全部自动执行路径。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高风险动作自动标记 <span class="check-id">AC-49.2</span></div>
+            <div class="check-detail">RiskRule Severity=high 的动作自动标记为高风险，Dispatch Guard 4 组模式（破坏性命令检测、编码混淆检测、绕过尝试检测、递归命令检测）生效，标记结果可追溯至 RiskHits 记录表。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">&#x26A0;</div>
+          <div class="check-info">
+            <div class="check-name">模糊意图触发二次确认 <span class="check-id">AC-49.3</span></div>
+            <div class="check-detail">PG-02 模糊意图检测已启用，但覆盖范围仅限高风险场景（Severity=high）。中低风险场景下的模糊意图（如参数歧义、目标不明确）暂未纳入二次确认范围，建议扩展至 Severity=medium 及以上。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 3. FR-50 决策边界管理           -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr50">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-50</span>
+          <span class="fr-name">决策边界管理</span>
+          <span class="badge badge-p0">P0</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#dc2626">2/3</span>
+          <span class="badge badge-sys">RiskRule + AI Gateway</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">决策边界可配置 <span class="check-id">AC-50.1</span></div>
+            <div class="check-detail">三区域模型（自动 / 建议 / 人工）已实现，RiskRule Action 字段完成映射：allow 对应自动区、route_secure_model 对应建议区、require_approval/block 对应人工区。AI Gateway resolveTargetModel 逻辑已对齐三区域模型。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高影响动作默认人工确认 <span class="check-id">AC-50.2</span></div>
+            <div class="check-detail">stop_openclaw、quarantine_skill、handle_skill_risk、uninstall_skill、remove_skill 等高影响动作默认落入 Manual Zone，require_approval 等效于 block 规则已生效，确保未审批时自动拦截。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div class="check-info">
+            <div class="check-name">边界策略可按角色差异化 <span class="check-id">AC-50.3</span></div>
+            <div class="check-detail">当前仅支持 admin / regular 两级角色，缺乏细粒度角色策略。不同角色（如安全审计员、运维工程师、只读观察者）应有差异化的决策边界配置，但系统尚不支持 RBAC 到决策边界的映射。需开发基于角色的决策边界策略引擎，支持角色-区域-动作三维矩阵配置。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 4. FR-51 高风险操作人工确认     -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr51">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-51</span>
+          <span class="fr-name">高风险操作人工确认</span>
+          <span class="badge badge-p0">P0</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#059669">2/3</span>
+          <span class="badge badge-sys">InstanceCommand</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高影响操作必须人工确认 <span class="check-id">AC-51.1</span></div>
+            <div class="check-detail">InstanceCommand 审批门控已实现。17 种命令类型中，stop_openclaw、quarantine_skill、handle_skill_risk 等高风险命令在执行前必须经过人工审批，审批通过后方可进入 dispatched 状态。审批拒绝则命令保持 pending 直至过期。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">确认记录可审计 <span class="check-id">AC-51.2</span></div>
+            <div class="check-detail">IssuedBy 字段完整追踪命令发起者，审批记录包含审批人、审批时间、审批结果、审批意见。审计链路：发起人 &rarr; 审批人 &rarr; 执行结果，全流程可追溯至 InstanceCommand 记录及关联的 risk_hits 表。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">&#x26A0;</div>
+          <div class="check-info">
+            <div class="check-name">支持审批链配置 <span class="check-id">AC-51.3</span></div>
+            <div class="check-detail">仅支持单级审批（一位管理员确认即可执行），多级审批链（如部门主管 &rarr; 安全管理员 &rarr; 系统管理员）待开发。当前高风险操作仅需单级审批，存在越权风险，建议对 Critical 级别操作引入至少两级审批链。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 5. FR-52 多源内容审核           -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr52">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-52</span>
+          <span class="fr-name">多源内容审核</span>
+          <span class="badge badge-p1">P1</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#059669">3/3</span>
+          <span class="badge badge-sys">PG-04 + AI Gateway</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高风险输出有合规性审核 <span class="check-id">AC-52.1</span></div>
+            <div class="check-detail">RiskRule 正则匹配对高风险输出进行合规性扫描，AI Gateway 风险分析模块对模型输出进行二次审核。双重审核机制：正则规则匹配已知违规模式 + AI 模型分析语义风险，审核结果记录至 risk_hits 表。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">有害内容可检测 <span class="check-id">AC-52.2</span></div>
+            <div class="check-detail">PG-04 有害内容检测 + 14 种混淆模式（base64/hex/unicode/rot13/reverse/insert_chars/homoglyph/zalgo/split_words/multi_lang/emoji_inject/whitespace/zero_width/control_chars）+ Encoding Guard 三层检测机制。覆盖明文、编码混淆、多层嵌套三种场景。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">审核结果可追溯 <span class="check-id">AC-52.3</span></div>
+            <div class="check-detail">ModelInvocation 审计记录包含模型调用输入/输出、RiskRule 匹配详情、AI Gateway 路由决策。trace_id 贯穿请求全生命周期，支持从模型调用到审核结果的完整链路追溯。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 6. FR-53 决策过程可解释与透明化 -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr53">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-53</span>
+          <span class="fr-name">决策过程可解释与透明化</span>
+          <span class="badge badge-p1">P1</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#d97706">1/3</span>
+          <span class="badge badge-sys">ModelInvocation</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高风险决策有推理依据记录 <span class="check-id">AC-53.1</span></div>
+            <div class="check-detail">ModelInvocation 记录模型调用上下文，CostRecord 记录费用决策依据，RiskRule 匹配记录包含触发规则 ID、匹配模式、严重程度、建议动作。高风险决策的推理依据可从三张表关联查询，形成完整的决策依据链。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">&#x26A0;</div>
+          <div class="check-info">
+            <div class="check-name">工具调用链可追溯 <span class="check-id">AC-53.2</span></div>
+            <div class="check-detail">InstanceCommand 生命周期跟踪完整（pending &rarr; dispatched &rarr; running &rarr; succeeded/failed），但跨 Agent 调用链追踪待增强。当前仅追踪单个 Agent 的命令执行，多 Agent 协作场景下的调用链路（Agent-A 调用 Agent-B 执行子任务）尚缺乏端到端的 trace_id 关联。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">&#x26A0;</div>
+          <div class="check-info">
+            <div class="check-name">支持审计回放 <span class="check-id">AC-53.3</span></div>
+            <div class="check-detail">trace_id 关联已实现，可通过 trace_id 查询完整的请求-响应链路。但可视化回放界面待开发，当前仅支持 API 查询和日志检索，缺乏时间线视图和交互式回放功能，影响审计效率和非技术人员的可理解性。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 7. FR-54 策略性拒绝与异常输出治理 -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr54">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-54</span>
+          <span class="fr-name">策略性拒绝与异常输出治理</span>
+          <span class="badge badge-p1">P1</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#dc2626">0/3</span>
+          <span class="badge badge-sys">PG-01 + Prompt Guard</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon warn">&#x26A0;</div>
+          <div class="check-info">
+            <div class="check-name">异常拒绝模式可检测 <span class="check-id">AC-54.1</span></div>
+            <div class="check-detail">基于 PG-01 注入检测的间接检测能力，当模型输出异常拒绝（如对正常请求也返回拒绝）时，可通过注入检测规则间接识别。但直接拒绝模式检测（如模型策略性拒绝特定类型请求）待完善，需开发专门的模式识别算法和基线对比机制。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div class="check-info">
+            <div class="check-name">伪安全解释可识别 <span class="check-id">AC-54.2</span></div>
+            <div class="check-detail">缺乏伪安全解释的专门检测机制。伪安全解释指模型输出看似合理但实际包含安全风险的内容（如合规性绕过建议、隐含漏洞利用步骤）。当前 PG-01/PG-04 规则无法有效识别此类输出，需开发基线对比机制：建立安全解释的基线特征库，对偏离基线的输出进行标记和人工复核。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">&#x26A0;</div>
+          <div class="check-info">
+            <div class="check-name">异常输出触发人工复核 <span class="check-id">AC-54.3</span></div>
+            <div class="check-detail">异常检测 &rarr; 人工复核链路已建立：PG-01/PG-04 检测到异常 &rarr; RiskRule 标记 require_approval &rarr; 人工复核。但自动化程度不足：当前仅支持"检测-标记-人工复核"三步，缺乏自动化的风险评估和分级处理能力，所有异常输出均需人工介入，审核效率较低。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 8. Risk Summary Panel          -->
+    <!-- ============================== -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Risk Summary</div>
+          <div class="panel-title">关键风险项汇总</div>
+        </div>
+        <span class="badge badge-p0">2 项失败需修复</span>
+      </div>
+
+      <!-- Fail items -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
+        <div style="border-radius:16px;border:1px solid #fecaca;background:linear-gradient(135deg,#fef2f2,#fee2e2);padding:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div class="check-icon fail" style="width:24px;height:24px;font-size:13px">&#x2717;</div>
+            <span style="font-size:13px;font-weight:700;color:#b91c1c">AC-50.3 边界策略可按角色差异化</span>
+          </div>
+          <div style="font-size:12px;color:#991b1b;line-height:1.7">仅 admin/regular 两级角色，缺乏细粒度 RBAC 到决策边界的映射。影响：不同角色无法差异化配置决策边界，可能导致权限过度或不足。</div>
+          <div style="margin-top:8px;font-size:11px;color:#b91c1c;font-weight:600">建议: 开发角色-区域-动作三维矩阵配置引擎</div>
+        </div>
+        <div style="border-radius:16px;border:1px solid #fecaca;background:linear-gradient(135deg,#fef2f2,#fee2e2);padding:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div class="check-icon fail" style="width:24px;height:24px;font-size:13px">&#x2717;</div>
+            <span style="font-size:13px;font-weight:700;color:#b91c1c">AC-54.2 伪安全解释可识别</span>
+          </div>
+          <div style="font-size:12px;color:#991b1b;line-height:1.7">缺乏伪安全解释的专门检测机制。影响：模型输出看似合理但包含安全风险的内容无法被有效识别，可能绕过现有审核防线。</div>
+          <div style="margin-top:8px;font-size:11px;color:#b91c1c;font-weight:600">建议: 建立安全解释基线特征库 + 偏离检测算法</div>
+        </div>
+      </div>
+
+      <!-- Warn items summary -->
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">5 项警告需关注</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div style="border-radius:12px;border:1px solid #fde68a;background:#fffbeb;padding:10px 14px">
+          <div style="font-size:12px;font-weight:700;color:#92400e">AC-49.3</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px">模糊意图二次确认仅限高风险场景</div>
+        </div>
+        <div style="border-radius:12px;border:1px solid #fde68a;background:#fffbeb;padding:10px 14px">
+          <div style="font-size:12px;font-weight:700;color:#92400e">AC-51.3</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px">仅支持单级审批，多级审批链待开发</div>
+        </div>
+        <div style="border-radius:12px;border:1px solid #fde68a;background:#fffbeb;padding:10px 14px">
+          <div style="font-size:12px;font-weight:700;color:#92400e">AC-53.2</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px">跨 Agent 调用链追踪待增强</div>
+        </div>
+        <div style="border-radius:12px;border:1px solid #fde68a;background:#fffbeb;padding:10px 14px">
+          <div style="font-size:12px;font-weight:700;color:#92400e">AC-53.3</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px">可视化审计回放界面待开发</div>
+        </div>
+        <div style="border-radius:12px;border:1px solid #fde68a;background:#fffbeb;padding:10px 14px">
+          <div style="font-size:12px;font-weight:700;color:#92400e">AC-54.1</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px">直接拒绝模式检测待完善</div>
+        </div>
+        <div style="border-radius:12px;border:1px solid #fde68a;background:#fffbeb;padding:10px 14px">
+          <div style="font-size:12px;font-weight:700;color:#92400e">AC-54.3</div>
+          <div style="font-size:11px;color:#92400e;margin-top:2px">异常输出复核自动化程度不足</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 9. Per-FR Score Overview        -->
+    <!-- ============================== -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">FR Score Breakdown</div>
+          <div class="panel-title">各功能需求评分明细</div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" style="width:100%">
+          <thead>
+            <tr>
+              <th>需求编号</th>
+              <th>需求名称</th>
+              <th>优先级</th>
+              <th>通过</th>
+              <th>警告</th>
+              <th>失败</th>
+              <th>评分</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code style="font-size:11px;color:#dc2626">FR-49</code></td>
+              <td>规划结果验证</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span style="color:#059669;font-weight:700">2</span></td>
+              <td><span style="color:#d97706;font-weight:700">1</span></td>
+              <td><span style="color:#dc2626;font-weight:700">0</span></td>
+              <td><span style="font-weight:700;color:#059669">67%</span></td>
+              <td><span class="badge" style="background:#fef3c7;color:#92400e">需改进</span></td>
+            </tr>
+            <tr>
+              <td><code style="font-size:11px;color:#dc2626">FR-50</code></td>
+              <td>决策边界管理</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span style="color:#059669;font-weight:700">2</span></td>
+              <td><span style="color:#d97706;font-weight:700">0</span></td>
+              <td><span style="color:#dc2626;font-weight:700">1</span></td>
+              <td><span style="font-weight:700;color:#dc2626">33%</span></td>
+              <td><span class="badge" style="background:#fee2e2;color:#b91c1c">不合规</span></td>
+            </tr>
+            <tr>
+              <td><code style="font-size:11px;color:#dc2626">FR-51</code></td>
+              <td>高风险操作人工确认</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td><span style="color:#059669;font-weight:700">2</span></td>
+              <td><span style="color:#d97706;font-weight:700">1</span></td>
+              <td><span style="color:#dc2626;font-weight:700">0</span></td>
+              <td><span style="font-weight:700;color:#059669">67%</span></td>
+              <td><span class="badge" style="background:#fef3c7;color:#92400e">需改进</span></td>
+            </tr>
+            <tr>
+              <td><code style="font-size:11px;color:#dc2626">FR-52</code></td>
+              <td>多源内容审核</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td><span style="color:#059669;font-weight:700">3</span></td>
+              <td><span style="color:#d97706;font-weight:700">0</span></td>
+              <td><span style="color:#dc2626;font-weight:700">0</span></td>
+              <td><span style="font-weight:700;color:#059669">100%</span></td>
+              <td><span class="badge" style="background:#d1fae5;color:#065f46">合规</span></td>
+            </tr>
+            <tr>
+              <td><code style="font-size:11px;color:#dc2626">FR-53</code></td>
+              <td>决策过程可解释与透明化</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td><span style="color:#059669;font-weight:700">1</span></td>
+              <td><span style="color:#d97706;font-weight:700">2</span></td>
+              <td><span style="color:#dc2626;font-weight:700">0</span></td>
+              <td><span style="font-weight:700;color:#d97706">33%</span></td>
+              <td><span class="badge" style="background:#fef3c7;color:#92400e">需改进</span></td>
+            </tr>
+            <tr>
+              <td><code style="font-size:11px;color:#dc2626">FR-54</code></td>
+              <td>策略性拒绝与异常输出治理</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td><span style="color:#059669;font-weight:700">0</span></td>
+              <td><span style="color:#d97706;font-weight:700">2</span></td>
+              <td><span style="color:#dc2626;font-weight:700">1</span></td>
+              <td><span style="font-weight:700;color:#dc2626">0%</span></td>
+              <td><span class="badge" style="background:#fee2e2;color:#b91c1c">不合规</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 10. Export Bar                  -->
+    <!-- ============================== -->
+    <div class="export-bar">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-h)">审计报告生成完成</div>
+        <div style="font-size:12px;color:#8f8681;margin-top:2px">审计时间: 2026-05-01 14:30:00 | 审计范围: FR-49 ~ FR-54 (18 项验收标准) | 审计人: system-audit@clawreef.io</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary btn-sm">&#x1f4c4; 导出 PDF</button>
+        <button class="btn-primary btn-sm" onclick="handleExport()">&#x1f4be; 导出完整报告</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

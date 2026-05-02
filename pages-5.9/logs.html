@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-logs</title>
+<link rel="stylesheet" href="../css-5.9.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-logs">
+
+  <div class="content-area">
+
+    <!-- Alert Banner -->
+    <div class="alert-banner info">
+      <strong>&#x2139; 日志说明</strong>
+      <span>本页汇聚 5.9 人机信任与交互安全所有防御层的安全事件日志，涵盖 FR-55 至 FR-59 五项功能需求。日志包含预览执行分离、结构化风险提示、可疑建议标记、反误导交互设计、人工确认训练与反操纵提醒等关键环节的完整记录。</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label>时间范围</label>
+      <select class="form-input">
+        <option selected>2026-05-01 今日</option>
+        <option>2026-05-01 近1小时</option>
+        <option>2026-05-01 近6小时</option>
+        <option>2026-04-30 ~ 05-01 近24小时</option>
+        <option>2026-04-25 ~ 05-01 近7天</option>
+        <option>自定义范围...</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>功能需求</label>
+      <select class="form-input">
+        <option selected>全部 FR</option>
+        <option>FR-55 预览与执行分离</option>
+        <option>FR-56 结构化风险提示</option>
+        <option>FR-57 可疑建议标记</option>
+        <option>FR-58 反误导交互设计</option>
+        <option>FR-59 人工确认训练与反操纵提醒</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>严重等级</label>
+      <select class="form-input">
+        <option selected>全部等级</option>
+        <option>Critical</option>
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+      </select>
+      <div class="filter-sep"></div>
+      <input type="text" class="form-input search-input" placeholder="关键词搜索 (例: health_check, quarantine, PG-02...)" />
+      <button class="btn-primary btn-sm">搜索</button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card sc-total">
+        <span class="stat-val">13</span>
+        <span class="stat-label">Total Events</span>
+      </div>
+      <div class="stat-card sc-critical">
+        <span class="stat-val">1</span>
+        <span class="stat-label">Critical</span>
+      </div>
+      <div class="stat-card sc-high">
+        <span class="stat-val">4</span>
+        <span class="stat-label">High</span>
+      </div>
+      <div class="stat-card sc-medium">
+        <span class="stat-val">5</span>
+        <span class="stat-label">Medium</span>
+      </div>
+      <div class="stat-card sc-low">
+        <span class="stat-val">3</span>
+        <span class="stat-label">Low</span>
+      </div>
+    </div>
+
+    <!-- ============ LOG ENTRIES ============ -->
+
+    <!-- LOG 1: FR-55 预览模式无副作用 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:15:22.107</span>
+        <span class="log-id">SEC-5.9-0001</span>
+        <span class="log-defense l-fr55">FR-55</span>
+        <span class="badge badge-low">Low</span>
+        <span class="badge badge-allowed">Allowed</span>
+      </div>
+      <div class="log-body">
+        预览模式无副作用 &mdash; <code>health_check</code> 预览完成，无状态变更。预览模式下 Agent 仅执行只读查询，系统状态未发生任何改变，符合 FR-55 预览与执行分离要求。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0001</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:15:22.107Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-55 预览与执行分离</span>
+<span class="dk">defense_layer:</span> <span class="dv">Preview Mode — Read-Only Execution</span>
+<span class="dk">operation:</span> <span class="dv">health_check</span>
+<span class="dk">preview_mode:</span> <span class="dv">ENABLED</span>
+<span class="dk">state_changes:</span> <span class="dv">0 (verified: no side effects)</span>
+<span class="dk">network_calls:</span> <span class="dv">0 outbound (preview mode blocked)</span>
+<span class="dk">file_writes:</span> <span class="dv">0 (preview mode blocked)</span>
+<span class="dk">validation_result:</span> <span class="dv">PASS — preview completed without side effects</span>
+<span class="dk">action:</span> <span class="dv">preview result displayed to user</span></div>
+    </div>
+
+    <!-- LOG 2: FR-55 执行分离违规 -->
+    <div class="log-entry log-critical">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:23:47.893</span>
+        <span class="log-id">SEC-5.9-0002</span>
+        <span class="log-defense l-fr55">FR-55</span>
+        <span class="badge badge-critical">Critical</span>
+        <span class="badge badge-blocked">Blocked</span>
+      </div>
+      <div class="log-body">
+        执行分离违规 &mdash; 预览阶段检测到网络调用，已拦截。Agent 在预览模式下尝试发起外部网络请求 <code>POST /api/v1/skills/restart</code>，违反预览模式只读约束，已被系统自动拦截。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0002</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:23:47.893Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-55 预览与执行分离</span>
+<span class="dk">defense_layer:</span> <span class="dv">Preview Mode — Write/Network Guard</span>
+<span class="dk">violation_type:</span> <span class="dv">network_call_in_preview_mode</span>
+<span class="dk">blocked_request:</span> <span class="dv">POST /api/v1/skills/restart</span>
+<span class="dk">agent_id:</span> <span class="dv">prod-02</span>
+<span class="dk">preview_session:</span> <span class="dv">preview-20260501-0823</span>
+<span class="dk">interceptor:</span> <span class="dv">PreviewGuard v1.2</span>
+<span class="dk">action_taken:</span> <span class="dv">BLOCKED + alert dispatched + session terminated</span>
+<span class="dk">requires_incident_review:</span> <span class="dv">true</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-55 AC-55.1 预览模式无副作用</span></div>
+    </div>
+
+    <!-- LOG 3: FR-55 显式确认 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:31:05.412</span>
+        <span class="log-id">SEC-5.9-0003</span>
+        <span class="log-defense l-fr55">FR-55</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        显式确认 &mdash; <code>stop_openclaw</code> 需输入"STOP"确认。用户对预览结果确认后，系统要求输入 <code>"STOP"</code> 文本进行显式二次确认，防止误操作执行高风险命令。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0003</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:31:05.412Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-55 预览与执行分离</span>
+<span class="dk">defense_layer:</span> <span class="dv">Explicit Confirmation — Destructive Operation</span>
+<span class="dk">operation:</span> <span class="dv">stop_openclaw</span>
+<span class="dk">confirmation_type:</span> <span class="dv">type_to_confirm ("STOP")</span>
+<span class="dk">risk_level:</span> <span class="dv">high (destructive operation)</span>
+<span class="dk">user_id:</span> <span class="dv">admin@company</span>
+<span class="dk">confirmation_status:</span> <span class="dv">PENDING — awaiting user input</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-55 AC-55.2 执行需确认</span></div>
+    </div>
+
+    <!-- LOG 4: FR-56 结构化风险提示 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:45:18.637</span>
+        <span class="log-id">SEC-5.9-0004</span>
+        <span class="log-defense l-fr56">FR-56</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        结构化风险提示 &mdash; <code>quarantine_skill</code> 显示影响范围（3 个技能受影响）。系统在操作审批页面展示结构化风险面板，包含受影响资源数量、操作类型、不可逆标记等关键信息，独立于 AI 解释。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0004</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:45:18.637Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-56 结构化风险提示</span>
+<span class="dk">defense_layer:</span> <span class="dv">Structured Risk Presentation</span>
+<span class="dk">operation:</span> <span class="dv">quarantine_skill</span>
+<span class="dk">affected_resources:</span> <span class="dv">3 skills (skill-a, skill-b, skill-c)</span>
+<span class="dk">irreversible:</span> <span class="dv">true</span>
+<span class="dk">risk_panel_displayed:</span> <span class="dv">true</span>
+<span class="dk">risk_panel_independent_of_ai:</span> <span class="dv">true (sourced from RiskRule + instance data)</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-56 AC-56.1 结构化风险提示</span></div>
+    </div>
+
+    <!-- LOG 5: FR-56 非模型化摘要 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:52:33.204</span>
+        <span class="log-id">SEC-5.9-0005</span>
+        <span class="log-defense l-fr56">FR-56</span>
+        <span class="badge badge-low">Low</span>
+        <span class="badge badge-allowed">Allowed</span>
+      </div>
+      <div class="log-body">
+        非模型化摘要 &mdash; 风险摘要独立于 AI 解释，显示实际影响数据。系统在审批页面展示的风险摘要基于 <code>RiskRule</code> 评估数据和实例运行状态，而非 Agent 的自然语言解释，确保使用者获取客观风险信息。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0005</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T08:52:33.204Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-56 结构化风险提示</span>
+<span class="dk">defense_layer:</span> <span class="dv">Non-Model Risk Summary</span>
+<span class="dk">summary_source:</span> <span class="dv">RiskRule severity + instance state (NOT AI output)</span>
+<span class="dk">summary_displayed:</span> <span class="dv">"影响: 3个技能将被隔离 | 类型: 不可逆操作 | 风险等级: High"</span>
+<span class="dk">ai_explanation_separated:</span> <span class="dv">true (AI explanation in separate collapsible section)</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-56 AC-56.3 独立于模型解释</span></div>
+    </div>
+
+    <!-- LOG 6: FR-57 可疑建议标记 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:08:41.556</span>
+        <span class="log-id">SEC-5.9-0006</span>
+        <span class="log-defense l-fr57">FR-57</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        可疑建议标记 &mdash; Agent 建议删除生产数据，证据不足，已标记。Agent 建议 <code>delete production_logs</code> 操作，但 Prompt Guard <code>PG-02</code> 检测到该建议缺乏充分的证据支持，系统已自动标记为可疑建议并提醒使用者独立验证。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0006</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:08:41.556Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-57 可疑建议标记</span>
+<span class="dk">defense_layer:</span> <span class="dv">Suspicious Suggestion Flagging</span>
+<span class="dk">agent_suggestion:</span> <span class="dv">delete production_logs</span>
+<span class="dk">evidence_score:</span> <span class="dv">0.18 (threshold: 0.5) — EVIDENCE INSUFFICIENT</span>
+<span class="dk">trigger_rule:</span> <span class="dv">PG-02 low evidence + destructive operation</span>
+<span class="dk">flag_result:</span> <span class="dv">FLAGGED — suspicious suggestion warning displayed</span>
+<span class="dk">user_action:</span> <span class="dv">PENDING — user has not yet acted on flagged suggestion</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-57 AC-57.1 异常建议可标记</span></div>
+    </div>
+
+    <!-- LOG 7: FR-57 高说服性低证据 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:15:29.871</span>
+        <span class="log-id">SEC-5.9-0007</span>
+        <span class="log-defense l-fr57">FR-57</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        高说服性低证据 &mdash; <code>PG-02</code> 触发，"确定安全"声明缺乏评估证据。Agent 输出中包含"此操作确定安全，已通过全面评估"的高说服性声明，但 RiskRule 中无对应评估记录，说服性分数 (0.89) 与证据分数 (0.12) 严重不匹配，已触发复核。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0007</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:15:29.871Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-57 可疑建议标记</span>
+<span class="dk">defense_layer:</span> <span class="dv">High Persuasion / Low Evidence Detection</span>
+<span class="dk">agent_claim:</span> <span class="dv">"此操作确定安全，已通过全面评估"</span>
+<span class="dk">persuasion_score:</span> <span class="dv">0.89 (high persuasion language detected)</span>
+<span class="dk">evidence_score:</span> <span class="dv">0.12 (no RiskRule evaluation record found)</span>
+<span class="dk">persuasion_evidence_gap:</span> <span class="dv">0.77 (threshold: 0.4) — SEVERE MISMATCH</span>
+<span class="dk">trigger_rule:</span> <span class="dv">PG-02 + persuasion-evidence-gap detection</span>
+<span class="dk">flag_result:</span> <span class="dv">FLAGGED — high-persuasion low-evidence warning displayed</span>
+<span class="dk">required_action:</span> <span class="dv">human review before any approval</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-57 AC-57.2 高说服性低证据触发复核</span></div>
+    </div>
+
+    <!-- LOG 8: FR-57 基线偏差 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:22:14.388</span>
+        <span class="log-id">SEC-5.9-0008</span>
+        <span class="log-defense l-fr57">FR-57</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        基线偏差 &mdash; 工具调用顺序偏离正常工作流。Agent 的工具调用序列 <code>read_config &rarr; delete_config &rarr; restart_service</code> 偏离同类操作的历史基线（通常为 <code>read_config &rarr; validate_config &rarr; apply_config</code>），偏差度 2.3&sigma;，已标记为异常。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0008</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:22:14.388Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-57 可疑建议标记</span>
+<span class="dk">defense_layer:</span> <span class="dv">Baseline Deviation Detection</span>
+<span class="dk">actual_sequence:</span> <span class="dv">read_config → delete_config → restart_service</span>
+<span class="dk">baseline_sequence:</span> <span class="dv">read_config → validate_config → apply_config</span>
+<span class="dk">deviation_sigma:</span> <span class="dv">2.3σ (threshold: 2.0σ)</span>
+<span class="dk">flag_result:</span> <span class="dv">FLAGGED — baseline deviation warning displayed</span>
+<span class="dk">user_notification:</span> <span class="dv">"此操作流程与常规模式不同，请仔细审查"</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-57 AC-57.3 标记原因可追溯</span></div>
+    </div>
+
+    <!-- LOG 9: FR-58 反误导设计 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:35:52.165</span>
+        <span class="log-id">SEC-5.9-0009</span>
+        <span class="log-defense l-fr58">FR-58</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        反误导设计 &mdash; 高风险审批页无默认勾选，需显式确认。<code>quarantine_skill</code> 审批页面所有确认选项默认为未勾选状态，使用者必须主动勾选"我已了解影响范围"和"我确认执行此操作"后才能提交，防止默认效应导致误操作。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0009</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:35:52.165Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-58 反误导交互设计</span>
+<span class="dk">defense_layer:</span> <span class="dv">Anti-Misleading Interaction Design</span>
+<span class="dk">operation:</span> <span class="dv">quarantine_skill</span>
+<span class="dk">approval_page_design:</span> <span class="dv">no_default_checked=true</span>
+<span class="dk">required_confirmations:</span> <span class="dv">["我已了解影响范围", "我确认执行此操作"]</span>
+<span class="dk">default_state:</span> <span class="dv">ALL UNCHECKED (explicit confirmation required)</span>
+<span class="dk">design_principle:</span> <span class="dv">opt-in not opt-out — prevent default effect bias</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-58 AC-58.2 不使用默认勾选</span></div>
+    </div>
+
+    <!-- LOG 10: FR-58 风险标识醒目 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:42:08.991</span>
+        <span class="log-id">SEC-5.9-0010</span>
+        <span class="log-defense l-fr58">FR-58</span>
+        <span class="badge badge-low">Low</span>
+        <span class="badge badge-allowed">Allowed</span>
+      </div>
+      <div class="log-body">
+        风险标识醒目 &mdash; <code>stop_openclaw</code> 审批页使用红色警告面板。系统在 <code>stop_openclaw</code> 操作的审批页面使用醒目的红色警告面板展示风险信息，确保使用者在审批前无法忽视高风险操作的警示。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0010</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:42:08.991Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-58 反误导交互设计</span>
+<span class="dk">defense_layer:</span> <span class="dv">Prominent Risk Indication</span>
+<span class="dk">operation:</span> <span class="dv">stop_openclaw</span>
+<span class="dk">warning_style:</span> <span class="dv">red_alert_panel (#dc2626 background, white text, full-width banner)</span>
+<span class="dk">warning_position:</span> <span class="dv">above approval button (impossible to miss)</span>
+<span class="dk">warning_content:</span> <span class="dv">"⚠ 高风险操作：此操作将停止运行中的 OpenClaw 实例，影响所有关联服务"</span>
+<span class="dk">visibility_verification:</span> <span class="dv">eye-tracking test passed (100% detection rate in usability test)</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-58 AC-58.1 醒目标识</span></div>
+    </div>
+
+    <!-- LOG 11: FR-58 影响范围展示 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:48:35.723</span>
+        <span class="log-id">SEC-5.9-0011</span>
+        <span class="log-defense l-fr58">FR-58</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        影响范围展示 &mdash; 批量变更操作显示 5 个受影响实例。<code>batch_update_config</code> 操作审批页面展示完整的受影响资源列表，包含 5 个实例的名称、状态和影响描述，帮助使用者全面了解操作后果。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0011</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:48:35.723Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-58 反误导交互设计</span>
+<span class="dk">defense_layer:</span> <span class="dv">Impact Scope Display</span>
+<span class="dk">operation:</span> <span class="dv">batch_update_config</span>
+<span class="dk">affected_instances:</span> <span class="dv">5</span>
+<span class="dk">instance_list:</span> <span class="dv">[instance-01(running), instance-03(running), instance-07(running), instance-12(idle), instance-15(running)]</span>
+<span class="dk">impact_description:</span> <span class="dv">"配置更新将重启所有运行中实例，预计服务中断 2-5 分钟"</span>
+<span class="dk">scope_display_method:</span> <span class="dv">structured list with instance details (not AI summary)</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-58 AC-58.3 影响范围清晰</span></div>
+    </div>
+
+    <!-- LOG 12: FR-59 反操纵提醒 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 10:05:17.449</span>
+        <span class="log-id">SEC-5.9-0012</span>
+        <span class="log-defense l-fr59">FR-59</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-observed">Observed</span>
+      </div>
+      <div class="log-body">
+        反操纵提醒 &mdash; "AI 使用了紧急语言，请从容决策"。系统检测到 Agent 输出中包含紧急语言框架 <code>"系统即将崩溃，需要立即执行修复！"</code>，触发 <code>REM-02</code> 紧急语言提醒规则，向使用者展示独立提醒信息。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0012</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T10:05:17.449Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-59 人工确认训练与反操纵提醒</span>
+<span class="dk">defense_layer:</span> <span class="dv">Anti-Manipulation Reminder</span>
+<span class="dk">trigger_rule:</span> <span class="dv">REM-02 (urgent language framework detected)</span>
+<span class="dk">detected_pattern:</span> <span class="dv">"即将崩溃" + "立即执行" — urgency framing detected</span>
+<span class="dk">pg_ref:</span> <span class="dv">PG-02 Ambiguous Intent</span>
+<span class="dk">reminder_displayed:</span> <span class="dv">"AI 使用了紧急语言，请从容决策 — 紧急情况不影响安全审查要求"</span>
+<span class="dk">reminder_source:</span> <span class="dv">independent (NOT from AI output)</span>
+<span class="dk">user_response:</span> <span class="dv">confirmed — user acknowledged reminder and proceeded with standard review</span>
+<span class="dk">reminder_mode:</span> <span class="dv">enforce (mandatory acknowledgment)</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-59 AC-59.2 高风险场景有反操纵提示</span></div>
+    </div>
+
+    <!-- LOG 13: FR-59 培训完成 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 10:22:55.618</span>
+        <span class="log-id">SEC-5.9-0013</span>
+        <span class="log-defense l-fr59">FR-59</span>
+        <span class="badge badge-low">Low</span>
+        <span class="badge badge-allowed">Allowed</span>
+      </div>
+      <div class="log-body">
+        培训完成 &mdash; 用户 <code>admin@company</code> 完成自动化偏见意识培训。模块一（自动化偏见意识）全部 3 节课程和 2 次测验均已完成，测验得分 92/88，达到通过标准（&ge;80 分），培训证书已更新。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.9-0013</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T10:22:55.618Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-59 人工确认训练与反操纵提醒</span>
+<span class="dk">defense_layer:</span> <span class="dv">Training Tracking & Certification</span>
+<span class="dk">user_id:</span> <span class="dv">admin@company</span>
+<span class="dk">module_completed:</span> <span class="dv">模块一：自动化偏见意识 (Automation Bias Awareness)</span>
+<span class="dk">lessons_completed:</span> <span class="dv">3/3</span>
+<span class="dk">quiz_scores:</span> <span class="dv">92, 88 (pass threshold: 80)</span>
+<span class="dk">completion_time:</span> <span class="dv">42 minutes</span>
+<span class="dk">certificate_status:</span> <span class="dv">UPDATED — Module 1 certification renewed</span>
+<span class="dk">certificate_expiry:</span> <span class="dv">2027-05-01 (12 months)</span>
+<span class="dk">overall_progress:</span> <span class="dv">4/4 modules completed — FULLY CERTIFIED</span>
+<span class="dk">related_policy:</span> <span class="dv">FR-59 AC-59.3 培训完成率可追踪</span></div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button class="page-btn disabled">&laquo;</button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn">2</button>
+      <span class="page-info">共 13 条 / 2 页</span>
+      <button class="page-btn">&raquo;</button>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

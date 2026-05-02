@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr23</title>
+<link rel="stylesheet" href="../css-5.4.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr23">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-23 &middot; P1 &middot; OWASP ASI04 &middot; TC260 AIA03</div><div class="page-title">模型完整性校验</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">导出校验报告</button><button class="btn-primary btn-sm">运行校验</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px;">模型完整性校验机制</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        对模型权重、推理镜像、模型配置和服务二进制文件执行 Hash 校验、签名验证和来源信任验证，防止权重和组件篡改。<br>
+        <strong>ClawManager</strong> — SkillBlob 使用 <code>content_hash</code>（MD5 目录确定性序列化）和 <code>archive_hash</code>（SHA-256 标准化 ZIP）进行去重和完整性验证<br>
+        <strong>Instance Config Revision</strong> — 每次配置变更生成 SHA256 Checksum，ContentJSON 标记 <code>json:"-"</code> 防止 API 暴露<br>
+        <strong>KubeArmor</strong> — FIM 策略监控 /bin/、/usr/bin/、/sbin/、/boot/ 等目录的只读完整性
+      </div>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Model Integrity</div><div class="panel-title">模型完整性校验状态</div></div><span class="badge-sys">clawmanager</span></div>
+      <table class="data-table">
+        <thead><tr><th>模型</th><th>content_hash</th><th>archive_hash</th><th>镜像签名</th><th>校验状态</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">claude-3-5-sonnet</td><td style="font-family:monospace;font-size:11px;">a3f2c8d...e1b4</td><td style="font-family:monospace;font-size:11px;">b7e9f2d...c5a8</td><td>N/A (API)</td><td><span class="badge badge-green">校验通过</span></td></tr>
+          <tr><td style="font-weight:600;">gpt-4o</td><td style="font-family:monospace;font-size:11px;">c1d4e7f...a2b3</td><td style="font-family:monospace;font-size:11px;">d5f8a1c...e3b7</td><td>N/A (API)</td><td><span class="badge badge-green">校验通过</span></td></tr>
+          <tr><td style="font-weight:600;">deepseek-v3</td><td style="font-family:monospace;font-size:11px;">e2b5f8a...d4c1</td><td style="font-family:monospace;font-size:11px;">f1c3d6e...b2a5</td><td>N/A (API)</td><td><span class="badge badge-green">校验通过</span></td></tr>
+          <tr><td style="font-weight:600;">local-llama3</td><td style="font-family:monospace;font-size:11px;">f3a6c1d...e5b2</td><td style="font-family:monospace;font-size:11px;">a4d7e2f...c3b6</td><td>待配置</td><td><span class="badge badge-medium">待校验</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Skill Blob Integrity</div><div class="panel-title">Skill 包完整性校验</div></div><span class="badge-sys">clawmanager</span></div>
+      <table class="data-table">
+        <thead><tr><th>Skill</th><th>content_hash (MD5)</th><th>archive_hash (SHA-256)</th><th>Size</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">web-search</td><td style="font-family:monospace;font-size:11px;">d4e7f2a1b3c5</td><td style="font-family:monospace;font-size:11px;">8a2c...f1d3</td><td>24KB</td><td><span class="badge badge-green">verified</span></td></tr>
+          <tr><td style="font-weight:600;">code-analyzer</td><td style="font-family:monospace;font-size:11px;">a1b4c7d2e5f8</td><td style="font-family:monospace;font-size:11px;">3f5e...c7a2</td><td>156KB</td><td><span class="badge badge-green">verified</span></td></tr>
+          <tr><td style="font-weight:600;">polymarket-all-in-one</td><td style="font-family:monospace;font-size:11px;">b2c5d8e3f1a4</td><td style="font-family:monospace;font-size:11px;">6d4c...e8b3</td><td>89KB</td><td><span class="badge badge-critical">HIGH RISK</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr13</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr13">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-13 &middot; P0</div><div class="page-title">数据分级分类</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">导出规则</button><button class="btn-primary btn-sm">保存配置</button></div>
+  </div>
+  <div class="content-area">
+
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-med">72</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Data Classification Score</div>
+          <div class="panel-title" style="margin-bottom:6px;">当前数据分类评分：72 / 100</div>
+          <div style="font-size:13px;color:var(--text);">基于 AI Gateway 风险规则对 LLM 请求消息进行正则匹配，识别敏感数据并执行分级动作（allow / route_secure_model / block）。支持自定义规则扩展。</div>
+        </div>
+        <div style="display:flex;gap:24px;">
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">10</div><div class="label">内置规则</div></div>
+          <div class="stat-mini"><div class="value" style="color:#c2410c;">3</div><div class="label">自定义规则</div></div>
+          <div class="stat-mini"><div class="value" style="color:#3b82f6;">2</div><div class="label">安全模型</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="fr13-rules">分类规则</div>
+      <div class="tab" data-tab="fr13-secure">安全模型路由</div>
+      <div class="tab" data-tab="fr13-test">规则测试</div>
+      <div class="tab" data-tab="fr13-log">近期事件</div>
+    </div>
+
+    <div id="fr13-rules" class="tab-content active">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">AI Gateway Risk Rules</div><div class="panel-title">数据分类风险规则配置</div></div><span class="badge-sys">clawmanager</span></div>
+        <table class="data-table">
+          <thead><tr><th>RuleID</th><th>显示名称</th><th>严重性</th><th>动作</th><th>模式目标</th><th>启用</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;font-family:monospace;color:#dc2626;">private_key_marker</td><td>私钥材料</td><td><span class="badge badge-critical">HIGH</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>PEM 私钥标记</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#dc2626;">api_key_like</td><td>API Key / 云凭据</td><td><span class="badge badge-critical">HIGH</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>sk-... / AKIA... / ghp_... / AIza...</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#dc2626;">credential_assignment</td><td>凭据赋值模式</td><td><span class="badge badge-critical">HIGH</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>password=... / secret=... / api_key=...</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#c2410c;">cn_id_card</td><td>中国身份证号</td><td><span class="badge badge-critical">HIGH</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>18 位身份证格式</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#c2410c;">bank_card_context</td><td>银行卡号</td><td><span class="badge badge-critical">HIGH</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>卡号 + 银行关键词</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#92400e;">cn_mobile_number</td><td>中国手机号</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>+86 1xx 号码格式</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#92400e;">email_address</td><td>邮箱地址</td><td><span class="badge badge-medium">MEDIUM</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>邮箱格式</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#92400e;">private_ip</td><td>内网地址</td><td><span class="badge badge-medium">MEDIUM</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>RFC1918 私有 IP</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#92400e;">passport_number</td><td>护照号码</td><td><span class="badge badge-medium">MEDIUM</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>护照格式</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;font-family:monospace;color:#92400e;">personal_address</td><td>个人住址</td><td><span class="badge badge-medium">MEDIUM</span></td><td><span class="badge badge-observe">route_secure_model</span></td><td>地址相关关键词</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+          <button class="btn-secondary btn-sm">+ 添加规则</button>
+          <button class="btn-secondary btn-sm">测试规则</button>
+          <button class="btn-secondary btn-sm">批量导入</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="fr13-secure" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Secure Model Routing</div><div class="panel-title">安全模型路由配置</div></div><span class="badge-sys">clawmanager</span></div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:16px;">当风险规则命中且动作为 <code>route_secure_model</code> 时，AI Gateway 自动将请求路由到标记 <code>is_secure=true</code> 的模型，确保敏感数据仅在可信模型中处理。</div>
+        <table class="data-table">
+          <thead><tr><th>模型名称</th><th>Provider</th><th>is_secure</th><th>API Key 存储方式</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">claude-3-5-sonnet-secure</td><td>Anthropic</td><td><span class="badge badge-green">true</span></td><td>K8s Secret: <code>clawreef/llm-keys:anthropic</code></td><td><span class="badge badge-green">可用</span></td></tr>
+            <tr><td style="font-weight:600;">gpt-4o-secure</td><td>OpenAI</td><td><span class="badge badge-green">true</span></td><td>K8s Secret: <code>clawreef/llm-keys:openai</code></td><td><span class="badge badge-green">可用</span></td></tr>
+            <tr><td style="font-weight:600;">claude-3-5-sonnet</td><td>Anthropic</td><td><span class="badge badge-off">false</span></td><td>Inline API Key</td><td><span class="badge badge-green">可用</span></td></tr>
+            <tr><td style="font-weight:600;">deepseek-v3</td><td>DeepSeek</td><td><span class="badge badge-off">false</span></td><td>Inline API Key</td><td><span class="badge badge-green">可用</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Routing Logic</div><div class="panel-title">路由决策流程</div></div></div>
+        <div class="log-chain" style="justify-content:center;gap:10px;padding:10px 0;">
+          <div class="log-chain-step" style="padding:8px 16px;">LLM 请求<br><span style="font-size:10px;color:#8f8681;">用户/Agent 发起</span></div>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <div class="log-chain-step" style="padding:8px 16px;">RiskDetection<br><span style="font-size:10px;color:#8f8681;">正则规则匹配</span></div>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <div class="log-chain-step" style="padding:8px 16px;">RiskAnalysis<br><span style="font-size:10px;color:#8f8681;">IsSensitive / HighestAction</span></div>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <div class="log-chain-step" style="padding:8px 16px;border-color:#dc2626;color:#dc2626;">resolveTargetModel<br><span style="font-size:10px;">allow / route_secure_model / block</span></div>
+        </div>
+        <table class="data-table" style="margin-top:14px;">
+          <thead><tr><th>HighestAction</th><th>路由行为</th><th>审计事件</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-allowed">allow</span></td><td>使用原选模型继续请求</td><td>gateway.request.allowed</td></tr>
+            <tr><td><span class="badge badge-observe">route_secure_model</span></td><td>自动路由到 is_secure=true 的模型</td><td>gateway.request.rerouted</td></tr>
+            <tr><td><span class="badge badge-enforce">block</span></td><td>拒绝请求，返回错误</td><td>gateway.request.blocked</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr13-test" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Risk Rule Test</div><div class="panel-title">数据分类规则测试</div></div></div>
+        <div class="form-group">
+          <div class="form-label">输入待检测内容</div>
+          <textarea class="test-input" placeholder="输入测试内容，如包含身份证号、API Key、银行卡号等敏感数据">我的身份证号是 110101199003071234，API Key 是 sk-ant-api03-xxxxxxxxxxxx，手机号 13800138000</textarea>
+        </div>
+        <button class="btn-primary">运行检测</button>
+        <div class="test-result observed" style="display:block;margin-top:16px;">
+          <div style="font-weight:700;margin-bottom:6px;">[AI Gateway] 检测到 3 项敏感数据命中 — 路由到安全模型</div>
+          <div style="margin-bottom:8px;"><strong>1. cn_id_card</strong>（HIGH）— 命中 18 位身份证格式 <code>110101199003071234</code></div>
+          <div style="margin-bottom:8px;"><strong>2. api_key_like</strong>（HIGH）— 命中 Anthropic API Key 前缀 <code>sk-ant-api03-...</code></div>
+          <div style="margin-bottom:8px;"><strong>3. cn_mobile_number</strong>（HIGH）— 命中中国手机号 <code>13800138000</code></div>
+          <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,.6);border-radius:10px;font-size:12px;font-family:monospace;">
+            <div>HighestSeverity: high | HighestAction: route_secure_model</div>
+            <div>路由目标: claude-3-5-sonnet-secure (is_secure=true)</div>
+            <div>审计事件: gateway.request.rerouted</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fr13-log" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Recent Events</div><div class="panel-title">数据分类近期事件</div></div></div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 16:45:12</span>
+            <span class="log-id">api_key_like</span>
+            <span class="badge badge-observed">REROUTED</span>
+            <span class="badge badge-critical">HIGH</span>
+            <span class="badge-sys">clawmanager</span>
+          </div>
+          <div class="log-body">LLM 请求中检测到 API Key 模式 <code>sk-ant-api03-...</code>，已路由到安全模型 <code>claude-3-5-sonnet-secure</code></div>
+          <div class="log-detail">
+            ruleId: api_key_like | severity: high | action: route_secure_model<br>
+            originalModel: deepseek-v3 | reroutedModel: claude-3-5-sonnet-secure<br>
+            auditEvent: gateway.request.rerouted | traceId: trace-a1b2c3
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 16:30:08</span>
+            <span class="log-id">cn_id_card</span>
+            <span class="badge badge-observed">REROUTED</span>
+            <span class="badge badge-critical">HIGH</span>
+            <span class="badge-sys">clawmanager</span>
+          </div>
+          <div class="log-body">LLM 请求中包含身份证号，已路由到安全模型处理</div>
+          <div class="log-detail">
+            ruleId: cn_id_card | severity: high | action: route_secure_model<br>
+            matchedPattern: 18-digit ID format | originalModel: gpt-4o | reroutedModel: gpt-4o-secure
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

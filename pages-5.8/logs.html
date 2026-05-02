@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-logs</title>
+<link rel="stylesheet" href="../css-5.8.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-logs">
+
+  <div class="content-area">
+
+    <!-- Alert Banner -->
+    <div class="alert-banner info">
+      <strong>ℹ 日志说明</strong>
+      <span>本页汇聚 5.8 模型决策安全与人工监管所有防御层 (L2/L3/L4) 的安全事件日志，涵盖 FR-49 至 FR-54 六项功能需求。日志包含规划验证、决策边界、人工审批、合规审核、调用链追溯、异常检测等关键环节的完整记录。</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <label>时间范围</label>
+      <select class="form-input">
+        <option selected>2026-05-01 今日</option>
+        <option>2026-05-01 近1小时</option>
+        <option>2026-05-01 近6小时</option>
+        <option>2026-04-30 ~ 05-01 近24小时</option>
+        <option>2026-04-25 ~ 05-01 近7天</option>
+        <option>自定义范围...</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>功能需求</label>
+      <select class="form-input">
+        <option selected>全部 FR</option>
+        <option>FR-49 规划验证与意图确认</option>
+        <option>FR-50 决策边界与人机分权</option>
+        <option>FR-51 人工审批与超时处理</option>
+        <option>FR-52 合规审核与有害检测</option>
+        <option>FR-53 调用链追溯与审计</option>
+        <option>FR-54 异常拒绝与伪安全检测</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>严重等级</label>
+      <select class="form-input">
+        <option selected>全部等级</option>
+        <option>Critical</option>
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+      </select>
+      <div class="filter-sep"></div>
+      <input type="text" class="form-input search-input" placeholder="关键词搜索 (例: stop_openclaw, quarantine, PG-01...)" />
+      <button class="btn-primary btn-sm">搜索</button>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card sc-total">
+        <span class="stat-val">13</span>
+        <span class="stat-label">Total Events</span>
+      </div>
+      <div class="stat-card sc-critical">
+        <span class="stat-val">2</span>
+        <span class="stat-label">Critical</span>
+      </div>
+      <div class="stat-card sc-high">
+        <span class="stat-val">4</span>
+        <span class="stat-label">High</span>
+      </div>
+      <div class="stat-card sc-medium">
+        <span class="stat-val">5</span>
+        <span class="stat-label">Medium</span>
+      </div>
+      <div class="stat-card sc-low">
+        <span class="stat-val">2</span>
+        <span class="stat-label">Low</span>
+      </div>
+    </div>
+
+    <!-- ============ LOG ENTRIES ============ -->
+
+    <!-- LOG 1: FR-49 规划验证通过 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:12:33.041</span>
+        <span class="log-id">SEC-5.8-0001</span>
+        <span class="log-defense l2">L2</span>
+        <span class="badge badge-low">Low</span>
+        <span class="badge badge-allowed">Allowed</span>
+        <span class="badge badge-sys">FR-49</span>
+      </div>
+      <div class="log-body">
+        规划验证通过 — Agent <code>prod-01</code> 提交的 task plan 经 PlanValidator 校验通过，3 个步骤均一致性检查成功，无高风险操作标记。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0001</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:12:33.041Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-49 规划验证与意图确认</span>
+<span class="dk">defense_layer:</span> <span class="dv">L2 — Plan Validation</span>
+<span class="dk">agent_id:</span> <span class="dv">prod-01</span>
+<span class="dk">plan_steps:</span> <span class="dv">3</span>
+<span class="dk">validation_result:</span> <span class="dv">PASS</span>
+<span class="dk">consistency_check:</span> <span class="dv">3/3 steps consistent</span>
+<span class="dk">high_risk_ops:</span> <span class="dv">none detected</span>
+<span class="dk">validator:</span> <span class="dv">PlanValidator v2.1</span>
+<span class="dk">action:</span> <span class="dv">plan approved, execution allowed</span></div>
+    </div>
+
+    <!-- LOG 2: FR-49 高风险动作标记 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:14:17.285</span>
+        <span class="log-id">SEC-5.8-0002</span>
+        <span class="log-defense l2">L2</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-observed">Observed</span>
+        <span class="badge badge-sys">FR-49</span>
+      </div>
+      <div class="log-body">
+        高风险动作标记 — PlanValidator 检测到规划中包含 <code>stop_openclaw</code> 操作，已被标记为高风险 (risk_score=0.87)，触发 FR-51 人工审批流程。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0002</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:14:17.285Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-49 规划验证与意图确认</span>
+<span class="dk">defense_layer:</span> <span class="dv">L2 — Plan Validation</span>
+<span class="dk">agent_id:</span> <span class="dv">prod-01</span>
+<span class="dk">detected_operation:</span> <span class="dv">stop_openclaw</span>
+<span class="dk">risk_score:</span> <span class="dv">0.87 (threshold: 0.7)</span>
+<span class="dk">risk_category:</span> <span class="dv">destructive_operation</span>
+<span class="dk">flag_result:</span> <span class="dv">FLAGGED — escalated to FR-51</span>
+<span class="dk">escalation_target:</span> <span class="dv">HumanApprovalPipeline</span>
+<span class="dk">related_event:</span> <span class="dv">SEC-5.8-0007 (approval timeout)</span></div>
+    </div>
+
+    <!-- LOG 3: FR-49 模糊意图触发 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:18:42.613</span>
+        <span class="log-id">SEC-5.8-0003</span>
+        <span class="log-defense l2">L2</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+        <span class="badge badge-sys">FR-49</span>
+      </div>
+      <div class="log-body">
+        模糊意图触发 — PromptGuard <code>PG-02</code> 检测到 Agent 规划中存在模糊意图声明 <code>"优化系统"</code>，缺乏具体操作目标，需人工确认后方可继续执行。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0003</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:18:42.613Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-49 规划验证与意图确认</span>
+<span class="dk">defense_layer:</span> <span class="dv">L2 — Intent Verification</span>
+<span class="dk">guard_id:</span> <span class="dv">PG-02</span>
+<span class="dk">ambiguous_intent:</span> <span class="dv">"优化系统"</span>
+<span class="dk">ambiguity_score:</span> <span class="dv">0.73 (threshold: 0.6)</span>
+<span class="dk">detection_rule:</span> <span class="dv">vague_intent_pattern #12</span>
+<span class="dk">required_action:</span> <span class="dv">human_confirmation_required</span>
+<span class="dk">confirmation_timeout:</span> <span class="dv">120s</span>
+<span class="dk">execution_status:</span> <span class="dv">HELD — pending confirmation</span></div>
+    </div>
+
+    <!-- LOG 4: FR-50 决策边界生效 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:22:05.891</span>
+        <span class="log-id">SEC-5.8-0004</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+        <span class="badge badge-sys">FR-50</span>
+      </div>
+      <div class="log-body">
+        决策边界生效 — <code>delete</code> 操作被 DecisionBoundary 分类为 <code>Manual Zone</code> (人工管控区)，自动执行被阻止，需人工审批后方可执行。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0004</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:22:05.891Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-50 决策边界与人机分权</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Decision Boundary</span>
+<span class="dk">operation_type:</span> <span class="dv">delete</span>
+<span class="dk">boundary_zone:</span> <span class="dv">Manual Zone (人工管控区)</span>
+<span class="dk">zone_definition:</span> <span class="dv">{delete, stop, quarantine, reset} → Manual Zone</span>
+<span class="dk">auto_execution:</span> <span class="dv">BLOCKED</span>
+<span class="dk">approval_required:</span> <span class="dv">true</span>
+<span class="dk">approver_role:</span> <span class="dv">admin | security_operator</span>
+<span class="dk">boundary_policy:</span> <span class="dv">DecisionBoundary v1.3</span></div>
+    </div>
+
+    <!-- LOG 5: FR-50 边界违规拦截 -->
+    <div class="log-entry log-critical">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:25:38.447</span>
+        <span class="log-id">SEC-5.8-0005</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-critical">Critical</span>
+        <span class="badge badge-blocked">Blocked</span>
+        <span class="badge badge-sys">FR-50</span>
+      </div>
+      <div class="log-body">
+        边界违规拦截 — Agent 尝试自动执行 <code>quarantine_skill</code> 操作，该操作属于 Manual Zone，自动执行构成决策边界违规，已被 DispatchGuard 立即拦截。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0005</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:25:38.447Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-50 决策边界与人机分权</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Decision Boundary</span>
+<span class="dk">blocked_operation:</span> <span class="dv">quarantine_skill</span>
+<span class="dk">violation_type:</span> <span class="dv">boundary_violation — auto-execution in Manual Zone</span>
+<span class="dk">interceptor:</span> <span class="dv">DispatchGuard v1.5</span>
+<span class="dk">agent_id:</span> <span class="dv">prod-03</span>
+<span class="dk">target_instance:</span> <span class="dv">instance-17</span>
+<span class="dk">zone_classification:</span> <span class="dv">Manual Zone</span>
+<span class="dk">action_taken:</span> <span class="dv">BLOCKED + alert dispatched</span>
+<span class="dk">requires_incident_review:</span> <span class="dv">true</span></div>
+    </div>
+
+    <!-- LOG 6: FR-51 人工确认通过 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:31:12.074</span>
+        <span class="log-id">SEC-5.8-0006</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-low">Low</span>
+        <span class="badge badge-allowed">Allowed</span>
+        <span class="badge badge-sys">FR-51</span>
+      </div>
+      <div class="log-body">
+        人工确认通过 — <code>quarantine_skill</code> 操作针对 <code>instance-17</code> 的执行请求已由 <code>admin@company</code> 审批通过，操作已放行执行。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0006</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:31:12.074Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-51 人工审批与超时处理</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Human Approval</span>
+<span class="dk">operation:</span> <span class="dv">quarantine_skill</span>
+<span class="dk">target:</span> <span class="dv">instance-17</span>
+<span class="dk">approval_status:</span> <span class="dv">APPROVED</span>
+<span class="dk">approved_by:</span> <span class="dv">admin@company</span>
+<span class="dk">approval_method:</span> <span class="dv">manual_review</span>
+<span class="dk">review_duration:</span> <span class="dv">18.4s</span>
+<span class="dk">related_violation:</span> <span class="dv">SEC-5.8-0005 (boundary violation)</span>
+<span class="dk">execution_status:</span> <span class="dv">ALLOWED — operation executed</span></div>
+    </div>
+
+    <!-- LOG 7: FR-51 审批超时 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:35:42.559</span>
+        <span class="log-id">SEC-5.8-0007</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-blocked">Blocked</span>
+        <span class="badge badge-sys">FR-51</span>
+      </div>
+      <div class="log-body">
+        审批超时 — <code>stop_openclaw</code> 操作的人工确认请求在 <code>120s</code> 超时窗口内未获得审批响应，系统已自动拒绝该操作 (auto-reject policy)。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0007</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:35:42.559Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-51 人工审批与超时处理</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Human Approval</span>
+<span class="dk">operation:</span> <span class="dv">stop_openclaw</span>
+<span class="dk">timeout_policy:</span> <span class="dv">auto-reject (120s)</span>
+<span class="dk">approval_requested_at:</span> <span class="dv">2026-05-01T09:33:42.559Z</span>
+<span class="dk">timeout_at:</span> <span class="dv">2026-05-01T09:35:42.559Z</span>
+<span class="dk">approver_notified:</span> <span class="dv">admin@company, secop@company</span>
+<span class="dk">response_received:</span> <span class="dv">none</span>
+<span class="dk">auto_reject_reason:</span> <span class="dv">approval_timeout_exceeded (120s)</span>
+<span class="dk">related_event:</span> <span class="dv">SEC-5.8-0002 (high-risk flag)</span></div>
+    </div>
+
+    <!-- LOG 8: FR-51 高风险操作拦截 -->
+    <div class="log-entry log-critical">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:41:08.336</span>
+        <span class="log-id">SEC-5.8-0008</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-critical">Critical</span>
+        <span class="badge badge-blocked">Blocked</span>
+        <span class="badge badge-sys">FR-51</span>
+      </div>
+      <div class="log-body">
+        高风险操作拦截 — DispatchGuard 检测到模型输出包含破坏性意图 <code>"删除.openclaw配置"</code>，该操作未经过任何风险评估即声明可执行，已被立即拦截并触发安全事件告警。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0008</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:41:08.336Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-51 人工审批与超时处理</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Dispatch Guard</span>
+<span class="dk">destructive_intent:</span> <span class="dv">"删除.openclaw配置"</span>
+<span class="dk">intent_classification:</span> <span class="dv">destructive — delete configuration</span>
+<span class="dk">risk_assessment_provided:</span> <span class="dv">false</span>
+<span class="dk">interceptor:</span> <span class="dv">DispatchGuard v1.5</span>
+<span class="dk">block_reason:</span> <span class="dv">destructive intent without risk assessment</span>
+<span class="dk">alert_level:</span> <span class="dv">CRITICAL</span>
+<span class="dk">incident_triggered:</span> <span class="dv">INC-20260501-003</span>
+<span class="dk">related_event:</span> <span class="dv">SEC-5.8-0013 (pseudo-safe explanation)</span></div>
+    </div>
+
+    <!-- LOG 9: FR-52 合规审核发现 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:48:55.218</span>
+        <span class="log-id">SEC-5.8-0009</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+        <span class="badge badge-sys">FR-52</span>
+      </div>
+      <div class="log-body">
+        合规审核发现 — RiskRule 引擎匹配到模型输出中的敏感模式 <code>sensitive_pattern#4</code>，输出内容涉及内部系统凭据引用，已标记需人工复核。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0009</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:48:55.218Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-52 合规审核与有害检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Compliance Audit</span>
+<span class="dk">risk_rule_id:</span> <span class="dv">RiskRule-SENSITIVE-004</span>
+<span class="dk">matched_pattern:</span> <span class="dv">sensitive_pattern#4 (credential_reference)</span>
+<span class="dk">output_source:</span> <span class="dv">model_response (agent prod-02)</span>
+<span class="dk">confidence:</span> <span class="dv">0.82</span>
+<span class="dk">action:</span> <span class="dv">FLAGGED — human review required</span>
+<span class="dk">audit_trail:</span> <span class="dv">ComplianceAuditLog-20260501-012</span>
+<span class="dk">reviewer_assigned:</span> <span class="dv">secop@company</span></div>
+    </div>
+
+    <!-- LOG 10: FR-52 有害内容检测 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:53:21.672</span>
+        <span class="log-id">SEC-5.8-0010</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-blocked">Blocked</span>
+        <span class="badge badge-sys">FR-52</span>
+      </div>
+      <div class="log-body">
+        有害内容检测 — ObfuscationDetector 在工具返回值中检测到混淆模式 <code>obfuscation_pattern#7</code>，内容使用 Base64 编码隐藏，疑似绕过输出审查。相关工具返回已被隔离，等待安全分析。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0010</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T09:53:21.672Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-52 合规审核与有害检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Harmful Content Detection</span>
+<span class="dk">detector:</span> <span class="dv">ObfuscationDetector v2.0</span>
+<span class="dk">matched_pattern:</span> <span class="dv">obfuscation_pattern#7 (base64_encoded_payload)</span>
+<span class="dk">source:</span> <span class="dv">tool_return (tool_id: config_reader)</span>
+<span class="dk">encoded_content:</span> <span class="dv">aHR0cHM6Ly9leGFtcGxlLmNvbS9... (truncated)</span>
+<span class="dk">decoded_preview:</span> <span class="dv">https://example.com/... (external URL in tool return)</span>
+<span class="dk">action:</span> <span class="dv">ISOLATED — tool return quarantined</span>
+<span class="dk">analysis_status:</span> <span class="dv">pending security review</span></div>
+    </div>
+
+    <!-- LOG 11: FR-53 调用链追溯 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 10:02:14.903</span>
+        <span class="log-id">SEC-5.8-0011</span>
+        <span class="log-defense l4">L4</span>
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-observed">Observed</span>
+        <span class="badge badge-sys">FR-53</span>
+      </div>
+      <div class="log-body">
+        调用链追溯 — TraceID <code>7f3a</code> 完整调用链已记录: <code>ModelInvocation</code> → <code>RiskCheck</code> → <code>Command</code> → <code>Result</code>，全链路审计信息完整，可用于事后溯源与合规审计。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0011</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T10:02:14.903Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-53 调用链追溯与审计</span>
+<span class="dk">defense_layer:</span> <span class="dv">L4 — Traceability</span>
+<span class="dk">trace_id:</span> <span class="dv">TraceID-7f3a</span>
+<span class="dk">chain_complete:</span> <span class="dv">true</span>
+<span class="dk">step_1:</span> <span class="dv">ModelInvocation → model=gpt-4o, prompt_hash=a3f2c1, tokens_in=847</span>
+<span class="dk">step_2:</span> <span class="dv">RiskCheck → RiskRule-SENSITIVE-004 matched, score=0.82</span>
+<span class="dk">step_3:</span> <span class="dv">Command → operation=read_config, target=instance-22</span>
+<span class="dk">step_4:</span> <span class="dv">Result → status=200, output_sanitized=true</span>
+<span class="dk">total_duration:</span> <span class="dv">2.34s</span>
+<span class="dk">audit_compliance:</span> <span class="dv">SOX-2026, ISO27001-A.12.4</span>
+<span class="dk">retention:</span> <span class="dv">90 days (immutable)</span></div>
+    </div>
+
+    <!-- LOG 12: FR-54 异常拒绝检测 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 10:08:47.521</span>
+        <span class="log-id">SEC-5.8-0012</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-blocked">Blocked</span>
+        <span class="badge badge-sys">FR-54</span>
+      </div>
+      <div class="log-body">
+        异常拒绝检测 — 模型异常拒绝执行合法数据查询请求，拒绝模式匹配 <code>PG-01</code> (PromptGuard 异常拒绝规则)，疑似遭受 Prompt Injection 攻击导致模型行为异常。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0012</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T10:08:47.521Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-54 异常拒绝与伪安全检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Anomaly Detection</span>
+<span class="dk">guard_id:</span> <span class="dv">PG-01</span>
+<span class="dk">anomaly_type:</span> <span class="dv">abnormal_refusal</span>
+<span class="dk">refused_query:</span> <span class="dv">SELECT status FROM instances WHERE id='inst-0x1a' (legitimate data query)</span>
+<span class="dk">model_response:</span> <span class="dv">"I cannot assist with this request" (pattern: over-refusal)</span>
+<span class="dk">suspicion:</span> <span class="dv">prompt_injection suspected</span>
+<span class="dk">refusal_confidence:</span> <span class="dv">0.91 (abnormal)</span>
+<span class="dk">action:</span> <span class="dv">query re-routed to fallback model, incident logged</span>
+<span class="dk">incident_id:</span> <span class="dv">INC-20260501-004</span></div>
+    </div>
+
+    <!-- LOG 13: FR-54 伪安全解释 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 10:15:33.188</span>
+        <span class="log-id">SEC-5.8-0013</span>
+        <span class="log-defense l3">L3</span>
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-blocked">Blocked</span>
+        <span class="badge badge-sys">FR-54</span>
+      </div>
+      <div class="log-body">
+        伪安全解释检测 — 模型在执行破坏性操作 <code>"删除.openclaw配置"</code> 时声称 <code>"safe to execute"</code>，但未能提供任何风险评估证据 (risk_assessment=null)，PseudoSafetyDetector 判定为伪安全声明，操作已被拦截。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">SEC-5.8-0013</span>
+<span class="dk">timestamp:</span> <span class="dv">2026-05-01T10:15:33.188Z</span>
+<span class="dk">fr_ref:</span> <span class="dv">FR-54 异常拒绝与伪安全检测</span>
+<span class="dk">defense_layer:</span> <span class="dv">L3 — Pseudo-Safety Detection</span>
+<span class="dk">detector:</span> <span class="dv">PseudoSafetyDetector v1.2</span>
+<span class="dk">model_claim:</span> <span class="dv">"safe to execute"</span>
+<span class="dk">risk_assessment_evidence:</span> <span class="dv">null (MISSING)</span>
+<span class="dk">target_operation:</span> <span class="dv">"删除.openclaw配置" (destructive)</span>
+<span class="dk">pseudo_safety_score:</span> <span class="dv">0.95 (threshold: 0.7)</span>
+<span class="dk">detection_rule:</span> <span class="dv">claim_without_evidence_pattern</span>
+<span class="dk">action:</span> <span class="dv">BLOCKED — destructive operation + no risk evidence</span>
+<span class="dk">related_event:</span> <span class="dv">SEC-5.8-0008 (dispatch guard interception)</span>
+<span class="dk">alert_level:</span> <span class="dv">HIGH — prompt injection pattern suspected</span></div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button class="page-btn disabled">&laquo;</button>
+      <button class="page-btn disabled">&lsaquo;</button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn">2</button>
+      <button class="page-btn">3</button>
+      <span class="page-info">共 13 条事件 / 3 页</span>
+      <button class="page-btn">&rsaquo;</button>
+      <button class="page-btn">&raquo;</button>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

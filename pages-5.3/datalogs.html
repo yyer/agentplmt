@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-datalogs</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-datalogs">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">Data Security Event Log</div><div class="page-title">数据安全日志</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">导出日志</button><button class="btn-primary btn-sm">刷新</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+        <select class="form-input" style="max-width:200px;padding:7px 12px;font-size:12px;">
+          <option>全部模块</option>
+          <option>Output Redaction</option>
+          <option>Memory Guard</option>
+          <option>Exfiltration Guard</option>
+          <option>Risk Detection</option>
+          <option>Memory Integrity Monitor</option>
+          <option>Credential Monitor</option>
+        </select>
+        <select class="form-input" style="max-width:140px;padding:7px 12px;font-size:12px;">
+          <option>全部动作</option>
+          <option>BLOCKED</option>
+          <option>REDACTED</option>
+          <option>REROUTED</option>
+          <option>OBSERVED</option>
+        </select>
+        <select class="form-input" style="max-width:140px;padding:7px 12px;font-size:12px;">
+          <option>全部严重性</option>
+          <option>CRITICAL</option>
+          <option>HIGH</option>
+          <option>MEDIUM</option>
+        </select>
+        <input type="text" class="form-input" placeholder="搜索事件内容..." style="max-width:260px;padding:7px 12px;font-size:12px;">
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 17:05:22</span>
+          <span class="log-id">memoryGuard</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="log-body">已拒绝高风险记忆写入：向 <code>SOUL.md</code> 写入内容命中 <code>ignore previous instructions</code> 模式，疑似越狱注入。</div>
+        <div class="log-detail">
+          hook: before_tool_call | strategy: memory_guard | order: 7 | mode: enforce<br>
+          reason: hasHighConfidenceMemoryInstruction | pattern: "ignore previous instructions"<br>
+          blockReason: 安全限制：已拒绝本次高风险记忆写入。
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 16:58:14</span>
+          <span class="log-id">exfiltrationGuard</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="log-body">检测到直接凭据外泄链路：先前观察到 <code>.env</code> 读取，随后发起 <code>curl POST</code> 出站请求。</div>
+        <div class="log-chain">
+          <span class="log-chain-step">ReadFile(.env) [source]</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">curl POST [sink]</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c;">BLOCK: direct-secret-exfiltration</span>
+        </div>
+        <div class="log-detail">
+          hook: before_tool_call | strategy: exfiltration_guard | order: 9 | mode: enforce<br>
+          decision: directSecretExfiltration | matchedSecretVariantCount: 1<br>
+          runtimeRiskFlags: encoded-secret-outbound-chain | blockReason: 安全限制：检测到疑似 SSRF 或数据外泄工具调用链
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 16:52:33</span>
+          <span class="log-id">outputRedaction</span>
+          <span class="badge badge-allowed">REDACTED</span>
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="log-body">Assistant 输出中检测到 2 处敏感赋值，已自动脱敏：<code>api_key=sk-ant-...</code> → <code>[已脱敏]</code>，<code>Authorization: Bearer eyJ...</code> → <code>[已脱敏]</code></div>
+        <div class="log-detail">
+          hook: message_sending | matchedKeywords: [api_key, authorization]<br>
+          replacedCount: 2 | maskString: "[已脱敏]"
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 16:45:12</span>
+          <span class="log-id">api_key_like</span>
+          <span class="badge badge-observed">REROUTED</span>
+          <span class="badge badge-critical">HIGH</span>
+          <span class="badge-sys">clawmanager</span>
+        </div>
+        <div class="log-body">AI Gateway 风险检测命中 <code>api_key_like</code> 规则，请求已路由到安全模型 <code>claude-3-5-sonnet-secure</code></div>
+        <div class="log-detail">
+          ruleId: api_key_like | severity: high | action: route_secure_model<br>
+          originalModel: deepseek-v3 | reroutedModel: claude-3-5-sonnet-secure<br>
+          auditEvent: gateway.request.rerouted
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 16:30:08</span>
+          <span class="log-id">memoryIntegrityMonitor</span>
+          <span class="badge badge-blocked">HIGH</span>
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge-sys">secureclaw</span>
+        </div>
+        <div class="log-body">MEMORY.md 文件变更检测：Hash 基线不匹配，文件内容已被修改。</div>
+        <div class="log-detail">
+          monitor: memory-integrity | file: ~/.openclaw/agents/default/MEMORY.md<br>
+          baselineHash: a3f2c8... | currentHash: d7e4b1... | diff: +15 lines / -3 lines
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 16:12:44</span>
+          <span class="log-id">credentialMonitor</span>
+          <span class="badge badge-blocked">CRITICAL</span>
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge-sys">secureclaw</span>
+        </div>
+        <div class="log-body">凭据文件 <code>credentials/api_provider.json</code> 权限变更为 644，允许 group/other 读取。</div>
+        <div class="log-detail">
+          monitor: credential-monitor | file: ~/.openclaw/credentials/api_provider.json<br>
+          mode: 0o644 | expected: 0o600 | action: chmod 600 | autoFix: true
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:16px;">
+        <button class="btn-secondary btn-sm">&larr; 上一页</button>
+        <span style="padding:6px 12px;font-size:12px;color:var(--text);">第 1 / 18 页</span>
+        <button class="btn-secondary btn-sm">下一页 &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

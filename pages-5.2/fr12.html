@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr12</title>
+<link rel="stylesheet" href="../css-5.2.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr12">
+
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-12 &middot; P1</div><div class="page-title">跨代理权限隔离</div></div></div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px;">跨代理权限隔离原则</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        多个 Agent 协同过程中，权限不能自动继承或隐式共享。每次跨代理调用必须：<br>
+        1) 重新校验原始意图和调用边界 &nbsp; 2) 不继承调用者的权限 &nbsp; 3) 按被调用者自身画像执行 &nbsp; 4) 跨代理操作记录完整审计链
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Cross-Agent Isolation Matrix</div><div class="panel-title">跨代理调用权限矩阵</div></div></div>
+      <table class="data-table">
+        <thead><tr><th>调用者 → 被调用者</th><th>prod-01 (办公型)</th><th>prod-02 (开发型)</th><th>dev-01 (只读型)</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">prod-01 (办公型)</td><td style="background:#f5f1ed;text-align:center;">—</td><td style="background:#fef3c7;text-align:center;font-size:12px;">需意图校验<br>不继承权限</td><td style="background:#fef3c7;text-align:center;font-size:12px;">需意图校验<br>被调用方只读</td></tr>
+          <tr><td style="font-weight:600;">prod-02 (开发型)</td><td style="background:#fef3c7;text-align:center;font-size:12px;">需意图校验<br>不继承权限</td><td style="background:#f5f1ed;text-align:center;">—</td><td style="background:#fef3c7;text-align:center;font-size:12px;">需意图校验<br>被调用方只读</td></tr>
+          <tr><td style="font-weight:600;">dev-01 (只读型)</td><td style="background:#fee2e2;text-align:center;font-size:12px;">禁止调用<br>权限不足</td><td style="background:#fee2e2;text-align:center;font-size:12px;">禁止调用<br>权限不足</td><td style="background:#f5f1ed;text-align:center;">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Delegation Chain</div><div class="panel-title">Delegation Chain 审计追踪</div></div></div>
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:18:05</span><span class="log-id">cross-agent</span><span class="badge badge-observed">OBSERVED</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">跨代理调用：prod-01 → prod-02，意图校验通过，权限不继承</div>
+        <div class="log-chain">
+          <span class="log-chain-step">prod-01 (办公型)</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="border-color:#d59a22;">意图校验: "构建代码"</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step">prod-02 (开发型)</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="background:#dcfce7;border-color:#86efac;">ALLOW</span>
+        </div>
+        <div class="log-detail">caller: agent-openclaw-prod-01 (office) | callee: agent-openclaw-prod-02 (developer)<br>intent: "构建代码" | permission_inheritance: NONE<br>callee_permissions: developer profile (独立执行)</div>
+      </div>
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 14:42:30</span><span class="log-id">cross-agent</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-high">HIGH</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">跨代理调用被阻断：dev-01 (只读型) 试图调用 prod-02 (开发型)，权限不足</div>
+        <div class="log-detail">caller: agent-openclaw-dev-01 (read-only) | callee: agent-openclaw-prod-02 (developer)<br>reason: read-only profile cannot delegate to higher-privilege agents<br>action: BLOCK</div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Isolation Rules</div><div class="panel-title">隔离规则配置</div></div></div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">禁止权限继承</div><div class="desc">跨代理调用时，被调用者使用自身画像权限，不继承调用者权限</div></div>
+        <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">意图校验</div><div class="desc">跨代理调用必须声明调用意图，系统校验意图与权限边界一致性</div></div>
+        <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">低权限禁止调用高权限</div><div class="desc">只读型 Agent 不可调用办公型/开发型/运维型 Agent</div></div>
+        <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">Delegation Chain 深度限制</div><div class="desc">限制代理调用链最大深度，防止 transitive permission 风险</div></div>
+        <div style="display:flex;align-items:center;gap:8px;"><input type="number" class="form-input" value="3" style="width:80px;padding:6px 10px;font-size:12px;"><span style="font-size:12px;color:#8f8681;">层</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

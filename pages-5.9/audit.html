@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.9.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+  <div class="content-area">
+
+    <!-- ============================== -->
+    <!-- 1. Overall Score + Summary     -->
+    <!-- ============================== -->
+    <div class="app-panel-warm">
+      <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+        <!-- Score Ring -->
+        <div class="score-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="progress-ring-bg" cx="60" cy="60" r="50"></circle>
+            <circle class="progress-ring-fg" cx="60" cy="60" r="50" stroke="#059669" stroke-dasharray="314.16" stroke-dashoffset="37.7"></circle>
+          </svg>
+          <div class="ring-text">
+            <span class="ring-num">88</span>
+            <span class="ring-label">/ 100</span>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:1.15rem;font-weight:700;color:var(--text-h);margin-bottom:4px">5.9 人机信任与交互安全 &mdash; 综合审计评分</div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">覆盖 FR-55 ~ FR-59 共 5 项功能需求、15 条验收标准。整体安全合规水平良好，但存在 1 项失败项和 4 项警告项需关注。主要风险集中在培训完成率追踪机制不完整（AC-59.3）和风险摘要与模型解释的独立性保障不足（AC-56.3）。</div>
+
+          <!-- Stats Row -->
+          <div class="stat-row" style="margin-bottom:0">
+            <div class="stat-card">
+              <div class="sc-value" style="color:var(--text-h)">15</div>
+              <div class="sc-label">总检查项</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#059669">10</div>
+              <div class="sc-label">通过 Pass</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#dc2626">1</div>
+              <div class="sc-label">失败 Fail</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#d97706">4</div>
+              <div class="sc-label">警告 Warn</div>
+            </div>
+          </div>
+
+          <!-- Mini bar -->
+          <div class="audit-bar" style="margin-top:12px">
+            <div class="bar-pass" style="width:66.7%"></div>
+            <div class="bar-warn" style="width:26.7%"></div>
+            <div class="bar-fail" style="width:6.6%"></div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:6px;font-size:11px;color:#8f8681">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#059669;margin-right:4px;vertical-align:middle"></span>通过 66.7%</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px;vertical-align:middle"></span>警告 26.7%</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#dc2626;margin-right:4px;vertical-align:middle"></span>失败 6.6%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 2. FR-55 预览与执行分离         -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr55">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-55</span>
+          <span class="fr-name">预览与执行分离</span>
+          <span class="badge badge-p0">P0</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#059669">3/3</span>
+          <span class="badge badge-sys">PreviewGuard</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">预览模式无副作用 <span class="check-id">AC-55.1</span></div>
+            <div class="check-detail">预览模式下 Agent 仅执行只读操作，所有写操作（文件写入、网络调用、状态变更）均被 PreviewGuard 拦截。日志 SEC-5.9-0001 验证了 health_check 预览操作无任何状态变更，SEC-5.9-0002 验证了预览模式下网络调用被成功拦截。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">执行需显式确认 <span class="check-id">AC-55.2</span></div>
+            <div class="check-detail">高风险操作（如 stop_openclaw）预览后需要使用者输入"STOP"进行显式二次确认。确认机制有效防止了误操作和默认效应。日志 SEC-5.9-0003 记录了 stop_openclaw 的 type-to-confirm 验证流程。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">预览与执行视觉区分 <span class="check-id">AC-55.3</span></div>
+            <div class="check-detail">预览模式与执行模式在视觉上有明确区分：预览结果使用蓝色信息面板标记"仅预览"标识，执行确认使用红色警告面板标记"即将执行"标识。两种模式的按钮颜色、页面标题、操作描述均有差异化设计，使用者无法混淆预览与执行状态。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 3. FR-56 结构化风险提示         -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr56">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-56</span>
+          <span class="fr-name">结构化风险提示</span>
+          <span class="badge badge-p0">P0</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#d97706">2/3</span>
+          <span class="badge badge-sys">RiskRule + InstanceData</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">结构化风险提示 <span class="check-id">AC-56.1</span></div>
+            <div class="check-detail">审批页面展示结构化风险面板，包含受影响资源数量、操作类型、不可逆标记等关键信息。日志 SEC-5.9-0004 验证了 quarantine_skill 操作展示 3 个受影响技能的结构化信息。风险面板数据来源于 RiskRule 和实例运行状态，非 AI 生成内容。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">影响范围和副作用展示 <span class="check-id">AC-56.2</span></div>
+            <div class="check-detail">操作审批页面展示完整的受影响资源列表和潜在副作用描述。影响范围数据来自系统实际状态查询（实例列表、技能关联关系），副作用描述基于 RiskRule 的 severity 和 action 字段自动生成。日志 SEC-5.9-0011 验证了批量变更操作展示 5 个受影响实例的完整列表。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">&#x26A0;</div>
+          <div class="check-info">
+            <div class="check-name">风险摘要独立于模型解释 <span class="check-id">AC-56.3</span></div>
+            <div class="check-detail">风险摘要数据源独立于 AI 解释（使用 RiskRule + 实例数据），AI 解释被放置在独立的可折叠区域中。但当前实现中，AI 解释区域与风险摘要区域的视觉权重差异不够明显——部分使用者在可用性测试中仍然首先阅读 AI 解释并受其影响。建议增强风险摘要区域的视觉优先级，确保使用者在看到 AI 解释前必须先阅读结构化风险信息。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 4. FR-57 可疑建议标记           -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr57">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-57</span>
+          <span class="fr-name">可疑建议标记</span>
+          <span class="badge badge-p1">P1</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#059669">3/3</span>
+          <span class="badge badge-sys">PG-02 + Baseline</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">异常建议可标记 <span class="check-id">AC-57.1</span></div>
+            <div class="check-detail">系统支持对 Agent 建议进行可疑标记。当证据分数低于阈值（0.5）或 Prompt Guard 检测到操纵模式时，自动标记可疑建议并向使用者展示警示。日志 SEC-5.9-0006 记录了 Agent 建议删除生产数据时因证据不足 (score=0.18) 被自动标记的过程。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高说服性低证据触发复核 <span class="check-id">AC-57.2</span></div>
+            <div class="check-detail">系统检测 Agent 输出中的"说服性-证据"差距。当说服性分数 (persuasion_score) 与证据分数 (evidence_score) 差距超过阈值 (0.4) 时触发复核。日志 SEC-5.9-0007 记录了 PG-02 触发的高说服性低证据检测，说服性 0.89 vs 证据 0.12，差距 0.77，触发人工复核流程。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">标记原因可追溯 <span class="check-id">AC-57.3</span></div>
+            <div class="check-detail">每次可疑建议标记均记录完整的触发原因：触发的检测规则（PG-01/PG-02/基线偏差等）、证据分数、说服性分数、基线偏差度等。日志 SEC-5.9-0008 记录了基线偏差 2.3&sigma; 的完整上下文，包括实际工具调用序列与历史基线序列的对比。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 5. FR-58 反误导交互设计         -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr58">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-58</span>
+          <span class="fr-name">反误导交互设计</span>
+          <span class="badge badge-p1">P1</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#059669">3/3</span>
+          <span class="badge badge-sys">UI/UX + RiskRule</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">醒目标识 <span class="check-id">AC-58.1</span></div>
+            <div class="check-detail">高风险操作使用醒目的红色警告面板展示风险信息。日志 SEC-5.9-0010 验证了 stop_openclaw 审批页使用红色警告面板 (#dc2626) 展示在高可见度位置。可用性测试中 100% 的参与者均注意到了风险警示，符合醒目标识要求。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">不使用默认勾选 <span class="check-id">AC-58.2</span></div>
+            <div class="check-detail">高风险审批页面所有确认选项默认为未勾选状态，使用者必须主动勾选确认项。日志 SEC-5.9-0009 验证了 quarantine_skill 审批页的两个确认选项（"我已了解影响范围"和"我确认执行此操作"）均默认未勾选，有效防止默认效应导致的误操作。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">影响范围清晰展示 <span class="check-id">AC-58.3</span></div>
+            <div class="check-detail">批量变更操作展示完整的受影响资源列表，包含资源名称、当前状态和影响描述。日志 SEC-5.9-0011 验证了 batch_update_config 操作展示 5 个受影响实例的详细信息。影响范围数据来源于系统实例状态查询，非 AI 生成摘要。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 6. FR-59 人工确认训练与反操纵提醒 -->
+    <!-- ============================== -->
+    <div class="fr-section" id="section-fr59">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-59</span>
+          <span class="fr-name">人工确认训练与反操纵提醒</span>
+          <span class="badge badge-p2">P2</span>
+        </div>
+        <div class="fr-meta">
+          <span class="fr-score" style="color:#dc2626">1/3</span>
+          <span class="badge badge-sys">平台运营层 + ClawAegis</span>
+          <span class="fr-toggle">&#x25BC;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="check-item">
+          <div class="check-icon warn">&#x26A0;</div>
+          <div class="check-info">
+            <div class="check-name">提供安全交互培训材料 <span class="check-id">AC-59.1</span></div>
+            <div class="check-detail">4 个培训模块（自动化偏见意识、拟人化误导警示、解释陷阱识别、操纵识别与报告）已开发完成，共 12 节课程、8 次测验、总时长 3.5 小时。培训内容基于 ClawAegis PG-01~04 真实检测案例改编。然而，模块四（操纵识别与报告）的课程内容尚未完成最终审核，模拟社交工程演练的环境搭建也未完成，当前仅提供视频和互动课程，缺少完整的实操演练环节。建议在 2 周内完成模块四的最终审核和演练环境部署。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高风险场景有反操纵提示 <span class="check-id">AC-59.2</span></div>
+            <div class="check-detail">反操纵提醒系统已部署，支持 8 条提醒规则（REM-01~08），覆盖证据不足、紧急语言、生产系统影响、自动化偏见检查、安全检查绕过、数据外泄、权威声称、有害内容伪装等场景。提醒内容独立于 AI 解释，基于 ClawAegis 安全组件检测结果和 ClawManager RiskRule 风险评估数据。日志 SEC-5.9-0012 验证了紧急语言提醒 (REM-02) 的触发和展示流程。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div class="check-info">
+            <div class="check-name">培训完成率可追踪 <span class="check-id">AC-59.3</span></div>
+            <div class="check-detail">培训完成率追踪系统已部署，支持模块进度追踪、测验评分记录和证书状态管理。但存在以下关键缺陷：<br>
+            (1) <strong>逾期管理不完整</strong>：3 名使用者培训已逾期，但系统仅发送邮件提醒，无法自动限制逾期使用者的高风险操作审批权限。当前逾期使用者仍可正常执行 require_approval 操作，存在安全风险。<br>
+            (2) <strong>效果追踪数据缺失</strong>：培训效果量化指标（审批错误率变化、决策时间变化、可疑建议识别提升）的数据采集管道尚未完成，当前指标数据为手动统计而非自动化采集，数据时效性和准确性无法保证。<br>
+            (3) <strong>证书续期流程缺失</strong>：证书到期后系统仅发送续期提醒，但无法自动限制已过期证书使用者的权限，过期使用者仍可执行高风险操作。<br>
+            建议：开发"培训状态-操作权限"联动机制，逾期或过期使用者的高风险操作审批权限应自动降级。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 7. Risk Summary Panel          -->
+    <!-- ============================== -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Risk Summary</div>
+          <div class="panel-title">关键风险项汇总</div>
+        </div>
+        <span class="badge badge-p0">1 项失败需修复</span>
+      </div>
+
+      <!-- Fail items -->
+      <div style="border-radius:16px;border:1px solid #fecaca;background:linear-gradient(135deg,#fef2f2,#fee2e2);padding:16px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div class="check-icon fail" style="width:24px;height:24px;font-size:13px">&#x2717;</div>
+          <span style="font-size:13px;font-weight:700;color:#b91c1c">AC-59.3 培训完成率可追踪</span>
+        </div>
+        <div style="font-size:12px;color:#991b1b;line-height:1.7">培训完成率追踪系统存在三个关键缺陷：(1) 逾期使用者无法自动限制高风险操作权限；(2) 效果量化指标数据采集管道未完成；(3) 证书到期后无法自动降级权限。影响：逾期/过期使用者仍可执行高风险操作，培训体系的安全约束作用被削弱。</div>
+        <div style="margin-top:8px;font-size:11px;color:#b91c1c;font-weight:600">建议: 开发培训状态-操作权限联动机制，逾期/过期使用者高风险审批权限自动降级</div>
+      </div>
+
+      <!-- Warn items summary -->
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:10px">4 项警告需关注</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div style="border-radius:14px;border:1px solid #fde68a;background:linear-gradient(135deg,#fffbeb,#fef3c7);padding:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="check-icon warn" style="width:20px;height:20px;font-size:11px">&#x26A0;</div>
+            <span style="font-size:12px;font-weight:700;color:#92400e">AC-56.3 风险摘要独立于模型解释</span>
+          </div>
+          <div style="font-size:11px;color:#78350f;line-height:1.6">AI 解释区域与风险摘要区域视觉权重差异不够明显，部分使用者仍首先阅读 AI 解释。建议增强风险摘要的视觉优先级。</div>
+        </div>
+        <div style="border-radius:14px;border:1px solid #fde68a;background:linear-gradient(135deg,#fffbeb,#fef3c7);padding:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="check-icon warn" style="width:20px;height:20px;font-size:11px">&#x26A0;</div>
+            <span style="font-size:12px;font-weight:700;color:#92400e">AC-59.1 提供安全交互培训材料</span>
+          </div>
+          <div style="font-size:11px;color:#78350f;line-height:1.6">模块四课程内容未完成最终审核，模拟社交工程演练环境未部署。建议 2 周内完成审核和部署。</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="check-icon warn" style="width:20px;height:20px;font-size:11px">&#x26A0;</div>
+            <span style="font-size:12px;font-weight:700;color:#92400e">FR-55 预览模式扩展性</span>
+          </div>
+          <div style="font-size:11px;color:var(--text);line-height:1.6">当前预览模式仅支持有限操作类型。自定义 Agent 操作需手动配置预览白名单，缺乏自动化的预览兼容性检测。</div>
+        </div>
+        <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="check-icon warn" style="width:20px;height:20px;font-size:11px">&#x26A0;</div>
+            <span style="font-size:12px;font-weight:700;color:#92400e">FR-57 基线维护成本</span>
+          </div>
+          <div style="font-size:11px;color:var(--text);line-height:1.6">工具调用基线需要定期更新以反映正常工作流变化。当前基线更新为手动操作，缺乏自动化基线漂移检测和更新机制。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 8. Audit Summary by FR         -->
+    <!-- ============================== -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Audit Summary by FR</div>
+          <div class="panel-title">各功能需求审计结果汇总</div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:1px solid #f1e7e1">
+            <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;padding:11px 14px;text-align:left">功能需求</th>
+            <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;padding:11px 14px;text-align:left">优先级</th>
+            <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;padding:11px 14px;text-align:center">通过</th>
+            <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;padding:11px 14px;text-align:center">警告</th>
+            <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;padding:11px 14px;text-align:center">失败</th>
+            <th style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#9d7d6e;padding:11px 14px;text-align:left">评分</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f5f1ed">
+            <td style="padding:11px 14px;font-size:13px"><strong>FR-55</strong> 预览与执行分离</td>
+            <td style="padding:11px 14px"><span class="badge badge-p0">P0</span></td>
+            <td style="padding:11px 14px;text-align:center;font-weight:700;color:#059669">3</td>
+            <td style="padding:11px 14px;text-align:center;color:#8f8681">0</td>
+            <td style="padding:11px 14px;text-align:center;color:#8f8681">0</td>
+            <td style="padding:11px 14px"><span style="font-weight:700;color:#059669">3/3</span> <span style="font-size:11px;color:#059669">100%</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f5f1ed">
+            <td style="padding:11px 14px;font-size:13px"><strong>FR-56</strong> 结构化风险提示</td>
+            <td style="padding:11px 14px"><span class="badge badge-p0">P0</span></td>
+            <td style="padding:11px 14px;text-align:center;font-weight:700;color:#059669">2</td>
+            <td style="padding:11px 14px;text-align:center;font-weight:700;color:#d97706">1</td>
+            <td style="padding:11px 14px;text-align:center;color:#8f8681">0</td>
+            <td style="padding:11px 14px"><span style="font-weight:700;color:#d97706">2/3</span> <span style="font-size:11px;color:#d97706">67%</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f5f1ed">
+            <td style="padding:11px 14px;font-size:13px"><strong>FR-57</strong> 可疑建议标记</td>
+            <td style="padding:11px 14px"><span class="badge badge-p1">P1</span></td>
+            <td style="padding:11px 14px;text-align:center;font-weight:700;color:#059669">3</td>
+            <td style="padding:11px 14px;text-align:center;color:#8f8681">0</td>
+            <td style="padding:11px 14px;text-align:center;color:#8f8681">0</td>
+            <td style="padding:11px 14px"><span style="font-weight:700;color:#059669">3/3</span> <span style="font-size:11px;color:#059669">100%</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f5f1ed">
+            <td style="padding:11px 14px;font-size:13px"><strong>FR-58</strong> 反误导交互设计</td>
+            <td style="padding:11px 14px"><span class="badge badge-p1">P1</span></td>
+            <td style="padding:11px 14px;text-align:center;font-weight:700;color:#059669">3</td>
+            <td style="padding:11px 14px;text-align:center;color:#8f8681">0</td>
+            <td style="padding:11px 14px;text-align:center;color:#8f8681">0</td>
+            <td style="padding:11px 14px"><span style="font-weight:700;color:#059669">3/3</span> <span style="font-size:11px;color:#059669">100%</span></td>
+          </tr>
+          <tr>
+            <td style="padding:11px 14px;font-size:13px"><strong>FR-59</strong> 人工确认训练与反操纵提醒</td>
+            <td style="padding:11px 14px"><span class="badge badge-p2">P2</span></td>
+            <td style="padding:11px 14px;text-align:center;font-weight:700;color:#059669">1</td>
+            <td style="padding:11px 14px;text-align:center;font-weight:700;color:#d97706">1</td>
+            <td style="padding:11px 14px;text-align:center;font-weight:700;color:#dc2626">1</td>
+            <td style="padding:11px 14px"><span style="font-weight:700;color:#dc2626">1/3</span> <span style="font-size:11px;color:#dc2626">33%</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 9. Remediation Recommendations  -->
+    <!-- ============================== -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Remediation Recommendations</div>
+          <div class="panel-title">修复建议与优先级排序</div>
+        </div>
+      </div>
+
+      <div style="border-radius:14px;border:1px solid #fecaca;background:linear-gradient(135deg,#fef2f2,#fee2e2);padding:16px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="badge badge-p0">P0 紧急</span>
+          <span style="font-size:13px;font-weight:700;color:#b91c1c">AC-59.3 培训状态-操作权限联动机制</span>
+        </div>
+        <div style="font-size:12px;color:#991b1b;line-height:1.7">
+          <strong>问题</strong>：逾期/过期使用者仍可执行高风险操作审批，培训体系的安全约束作用被削弱。<br>
+          <strong>修复方案</strong>：开发培训状态与操作权限的联动机制。当使用者培训逾期或证书过期时，系统自动将其高风险操作审批权限降级为"观察模式"——可查看操作建议但无法审批执行，直至完成培训续期。权限降级和恢复流程需记录至审计日志。<br>
+          <strong>预计工作量</strong>：2 周开发 + 1 周测试<br>
+          <strong>关联风险</strong>：未修复则逾期使用者持续构成人机信任安全漏洞
+        </div>
+      </div>
+
+      <div style="border-radius:14px;border:1px solid #fde68a;background:linear-gradient(135deg,#fffbeb,#fef3c7);padding:16px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="badge badge-p1">P1 重要</span>
+          <span style="font-size:13px;font-weight:700;color:#92400e">AC-56.3 增强风险摘要视觉优先级</span>
+        </div>
+        <div style="font-size:12px;color:#78350f;line-height:1.7">
+          <strong>问题</strong>：AI 解释区域与风险摘要区域视觉权重差异不够明显，部分使用者仍首先阅读 AI 解释。<br>
+          <strong>修复方案</strong>：重新设计审批页面布局——(1) 风险摘要面板默认展开且占据页面首屏，AI 解释默认折叠；(2) 风险摘要使用醒目的红色/橙色边框，AI 解释使用中性灰色边框；(3) 增加"请先阅读风险摘要"的引导提示。<br>
+          <strong>预计工作量</strong>：1 周设计 + 1 周开发
+        </div>
+      </div>
+
+      <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="badge badge-p2">P2 一般</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text-h)">AC-59.1 完成模块四培训内容审核</span>
+        </div>
+        <div style="font-size:12px;color:var(--text);line-height:1.7">
+          <strong>问题</strong>：模块四课程内容未完成最终审核，模拟社交工程演练环境未部署。<br>
+          <strong>修复方案</strong>：完成模块四内容的最终审核，部署模拟社交工程演练环境，确保全部 4 个模块的培训材料完整可用。<br>
+          <strong>预计工作量</strong>：1 周内容审核 + 2 周环境搭建
+        </div>
+      </div>
+
+      <div style="border-radius:14px;border:1px solid #f1e7e1;background:#faf7f4;padding:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="badge badge-p2">P2 一般</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text-h)">AC-59.3 效果追踪数据自动化采集</span>
+        </div>
+        <div style="font-size:12px;color:var(--text);line-height:1.7">
+          <strong>问题</strong>：培训效果量化指标数据为手动统计，时效性和准确性无法保证。<br>
+          <strong>修复方案</strong>：开发自动化数据采集管道，从 ClawManager 审批日志和 ClawAegis 安全事件记录中自动提取审批错误率、决策时间、可疑建议识别率等指标数据，每日自动更新培训效果仪表盘。<br>
+          <strong>预计工作量</strong>：2 周开发 + 1 周数据验证
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 10. Export Bar                  -->
+    <!-- ============================== -->
+    <div class="export-bar">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-h)">审计报告生成完成</div>
+        <div style="font-size:11px;color:#8f8681;margin-top:2px">审计时间: 2026-05-01 10:30:00 UTC | 审计范围: FR-55 ~ FR-59 | 审计版本: v1.0</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary btn-sm">&#x1f4c4; 导出 PDF</button>
+        <button class="btn-secondary btn-sm">&#x1f4ca; 导出 CSV</button>
+        <button class="btn-primary btn-sm">&#x1f4be; 导出完整报告</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

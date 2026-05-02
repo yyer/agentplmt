@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr18</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr18">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-18 &middot; P1</div><div class="page-title">会话隔离</div></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px;">会话隔离架构</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        多层隔离确保 Agent 会话数据不互相泄露：<br>
+        <strong>1. K8s Namespace 隔离</strong> — 每个 Agent 运行在独立用户命名空间 <code>clawreef-user-{userID}</code>，Secret、Pod 等资源隔离<br>
+        <strong>2. 会话令牌隔离</strong> — <code>agt_sess_</code> 会话令牌绑定实例，24h 滚动续期<br>
+        <strong>3. Exfiltration Guard</strong> — 检测跨会话数据外泄链路（source → transform → sink）<br>
+        <strong>4. KubeArmor 网络策略</strong> — nftables 默认拒绝，仅白名单放行
+      </div>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Session Isolation</div><div class="panel-title">会话隔离策略配置</div></div><span class="badge-sys">clawmanager</span></div>
+      <table class="data-table">
+        <thead><tr><th>隔离维度</th><th>机制</th><th>配置参数</th><th>默认值</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">K8s Namespace</td><td>Per-user namespace</td><td style="font-family:monospace;font-size:12px;">clawreef-user-{userID}</td><td>—</td></tr>
+          <tr><td style="font-weight:600;">Bootstrap Secret</td><td>Per-instance secret</td><td style="font-family:monospace;font-size:12px;">clawreef-{id}-{name}-openclaw-bootstrap</td><td>—</td></tr>
+          <tr><td style="font-weight:600;">Session Token</td><td>Per-agent session</td><td style="font-family:monospace;font-size:12px;">agt_sess_{48hex}</td><td>24h 滚动</td></tr>
+          <tr><td style="font-weight:600;">网络隔离</td><td>nftables default-deny</td><td style="font-family:monospace;font-size:12px;">kubearmor-network-posture=block</td><td>audit</td></tr>
+          <tr><td style="font-weight:600;">文件隔离</td><td>BPF LSM / AppArmor</td><td style="font-family:monospace;font-size:12px;">KubeArmorPolicy</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Exfiltration Guard</div><div class="panel-title">跨会话外泄检测配置</div></div><span class="badge-sys">claw-aegis</span></div>
+      <div class="toggle-row">
+        <div class="toggle-label"><div class="name">外泄链守卫 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">exfiltrationGuardEnabled</code></div><div class="desc">追踪 run 内工具调用链，阻断疑似 SSRF 或数据外泄链路</div></div>
+        <div style="display:flex;align-items:center;">
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          <div class="mode-selector">
+            <div class="mode-btn active-enforce" data-mode="enforce">enforce</div>
+            <div class="mode-btn" data-mode="observe">observe</div>
+            <div class="mode-btn" data-mode="off">off</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text);line-height:1.7;">
+        <strong>阻断决策逻辑：</strong><br>
+        <code>directSecretExfiltration</code> — 当前出站 + 命中凭据变体 → <span class="badge badge-blocked">BLOCK</span><br>
+        <code>highConfidenceChain</code> — 当前出站 + source + transform → <span class="badge badge-blocked">BLOCK</span><br>
+        <code>legacyServiceChain</code> — 当前出站 + 可疑服务脚本 + 前序出站 → <span class="badge badge-blocked">BLOCK</span><br>
+        <code>mediumConfidenceChain</code> — 当前出站 + (source | transform) → <span class="badge badge-observed">FLAG</span>（不阻断）
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

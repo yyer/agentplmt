@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr24</title>
+<link rel="stylesheet" href="../css-5.4.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr24">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-24 &middot; P0 &middot; OWASP ASI04 &middot; TC260 AIA03</div><div class="page-title">组件安全扫描</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-primary btn-sm">+ 新建扫描任务</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div style="flex:1">
+          <div class="panel-eyebrow">Security Scan Dashboard</div>
+          <div class="panel-title" style="margin-bottom:6px;">安全扫描总览</div>
+          <div style="font-size:13px;color:var(--text);">ClawManager Security Scanner 通过 K8s Job 隔离执行扫描，支持 Quick/Deep 两种模式，7 种分析器。扫描结果绑定准入控制。</div>
+        </div>
+        <div style="display:flex;gap:20px;">
+          <div class="stat-mini"><div class="value" style="color:#15803d;">5</div><div class="label">PASS</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e;">2</div><div class="label">MEDIUM</div></div>
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">1</div><div class="label">HIGH</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="fr24-jobs">扫描任务</div>
+      <div class="tab" data-tab="fr24-config">扫描器配置</div>
+      <div class="tab" data-tab="fr24-skills">Skill 扫描结果</div>
+    </div>
+
+    <div id="fr24-jobs" class="tab-content active">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Scan Jobs</div><div class="panel-title">扫描任务列表</div></div><span class="badge-sys">clawmanager</span></div>
+        <table class="data-table">
+          <thead><tr><th>Job ID</th><th>模式</th><th>状态</th><th>进度</th><th>总数</th><th>完成</th><th>失败</th><th>发起时间</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:700;">#7</td><td><span class="badge badge-blue">deep</span></td><td><span class="badge badge-running">running</span></td><td><div class="progress-bar" style="width:120px;"><div class="progress-fill" style="width:60%;background:linear-gradient(90deg,#3b82f6,#6366f1);"></div></div></td><td>8</td><td>5</td><td>0</td><td>2026-04-30 17:00</td></tr>
+            <tr><td style="font-weight:700;">#6</td><td><span class="badge badge-purple">quick</span></td><td><span class="badge badge-completed">completed</span></td><td><div class="progress-bar" style="width:120px;"><div class="progress-fill" style="width:100%;background:#15803d;"></div></div></td><td>8</td><td>8</td><td>0</td><td>2026-04-29 02:00</td></tr>
+            <tr><td style="font-weight:700;">#5</td><td><span class="badge badge-purple">quick</span></td><td><span class="badge badge-completed">completed</span></td><td><div class="progress-bar" style="width:120px;"><div class="progress-fill" style="width:100%;background:#15803d;"></div></div></td><td>3</td><td>3</td><td>0</td><td>2026-04-28 02:00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Job #7 Detail</div><div class="panel-title">当前扫描任务详情</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>Skill</th><th>状态</th><th>风险等级</th><th>进度</th><th>扫描摘要</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">web-search</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-green">none</span></td><td>100%</td><td>未发现风险</td></tr>
+            <tr><td style="font-weight:600;">code-analyzer</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-green">none</span></td><td>100%</td><td>未发现风险</td></tr>
+            <tr><td style="font-weight:600;">file-manager</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-green">none</span></td><td>100%</td><td>未发现风险</td></tr>
+            <tr><td style="font-weight:600;">data-viz</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-medium">medium</span></td><td>100%</td><td>发现 2 项 MEDIUM 发现：远程脚本引导</td></tr>
+            <tr><td style="font-weight:600;">polymarket-all-in-one</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-critical">high</span></td><td>100%</td><td>发现 3 项 CRITICAL + 2 项 HIGH：child_process, eval, 凭据访问</td></tr>
+            <tr><td style="font-weight:600;">cllawhub-helper</td><td><span class="badge badge-running">running</span></td><td>—</td><td>45%</td><td>扫描中...</td></tr>
+            <tr><td style="font-weight:600;">auto-updater</td><td><span class="badge badge-pending">pending</span></td><td>—</td><td>0%</td><td>等待中</td></tr>
+            <tr><td style="font-weight:600;">task-scheduler</td><td><span class="badge badge-pending">pending</span></td><td>—</td><td>0%</td><td>等待中</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr24-config" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Scanner Config</div><div class="panel-title">安全扫描器配置</div></div><span class="badge-sys">clawmanager</span></div>
+        <div class="form-row">
+          <div class="form-group">
+            <div class="form-label">默认扫描模式 <code style="font-size:11px;color:#8f8681;">default_mode</code></div>
+            <select class="form-input">
+              <option value="quick" selected>quick — 快速模式</option>
+              <option value="deep">deep — 深度模式</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">扫描范围</div>
+            <select class="form-input">
+              <option value="incremental" selected>incremental — 跳过已扫描</option>
+              <option value="full">full — 全量重扫</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <div class="form-label" style="margin-bottom:8px;">分析器选择</div>
+          <div class="form-row">
+            <div style="padding:14px;background:#faf7f4;border-radius:14px;flex:1;">
+              <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px;">Quick 模式分析器</div>
+              <div class="tag-list">
+                <div class="tag" style="border-color:#3b82f6;background:#eff6ff;">static <span style="color:#3b82f6;">&#x2713;</span></div>
+                <div class="tag" style="border-color:#3b82f6;background:#eff6ff;">behavioral <span style="color:#3b82f6;">&#x2713;</span></div>
+                <div class="tag" style="border-color:#3b82f6;background:#eff6ff;">trigger <span style="color:#3b82f6;">&#x2713;</span></div>
+              </div>
+            </div>
+            <div style="padding:14px;background:#faf7f4;border-radius:14px;flex:1;">
+              <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px;">Deep 模式分析器</div>
+              <div class="tag-list">
+                <div class="tag" style="border-color:#6d28d9;background:#f5f3ff;">static</div>
+                <div class="tag" style="border-color:#6d28d9;background:#f5f3ff;">bytecode</div>
+                <div class="tag" style="border-color:#6d28d9;background:#f5f3ff;">pipeline</div>
+                <div class="tag" style="border-color:#6d28d9;background:#f5f3ff;">behavioral</div>
+                <div class="tag" style="border-color:#6d28d9;background:#f5f3ff;">trigger</div>
+                <div class="tag" style="border-color:#6d28d9;background:#f5f3ff;">llm</div>
+                <div class="tag" style="border-color:#6d28d9;background:#f5f3ff;">meta</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:14px;">
+          <div class="form-group">
+            <div class="form-label">Quick 超时 (秒) <code style="font-size:11px;color:#8f8681;">quick_timeout_seconds</code></div>
+            <input type="number" class="form-input" value="30">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Deep 超时 (秒) <code style="font-size:11px;color:#8f8681;">deep_timeout_seconds</code></div>
+            <input type="number" class="form-input" value="120">
+          </div>
+          <div class="form-group">
+            <div class="form-label">允许回退 <code style="font-size:11px;color:#8f8681;">allow_fallback</code></div>
+            <select class="form-input"><option selected>true</option><option>false</option></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fr24-skills" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Skill Inventory</div><div class="panel-title">Skill 扫描结果清单</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>Skill Key</th><th>来源</th><th>ScanStatus</th><th>RiskLevel</th><th>LastScannedAt</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">web-search</td><td>uploaded</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-green">none</span></td><td>2026-04-30 17:02</td><td><button class="btn-secondary btn-sm">重扫</button></td></tr>
+            <tr><td style="font-weight:600;">code-analyzer</td><td>uploaded</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-green">none</span></td><td>2026-04-30 17:03</td><td><button class="btn-secondary btn-sm">重扫</button></td></tr>
+            <tr><td style="font-weight:600;">file-manager</td><td>uploaded</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-green">none</span></td><td>2026-04-30 17:04</td><td><button class="btn-secondary btn-sm">重扫</button></td></tr>
+            <tr><td style="font-weight:600;">data-viz</td><td>uploaded</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-medium">medium</span></td><td>2026-04-30 17:05</td><td><button class="btn-secondary btn-sm">重扫</button></td></tr>
+            <tr><td style="font-weight:600;">polymarket-all-in-one</td><td>uploaded</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-critical">high</span></td><td>2026-04-30 17:06</td><td><button class="btn-danger btn-sm">移除</button></td></tr>
+            <tr><td style="font-weight:600;">cllawhub-helper</td><td>discovered</td><td><span class="badge badge-running">running</span></td><td><span class="badge badge-pending">unknown</span></td><td>—</td><td>—</td></tr>
+            <tr><td style="font-weight:600;">auto-updater</td><td>discovered</td><td><span class="badge badge-pending">pending</span></td><td><span class="badge badge-pending">unknown</span></td><td>—</td><td>—</td></tr>
+            <tr><td style="font-weight:600;">task-scheduler</td><td>uploaded</td><td><span class="badge badge-completed">completed</span></td><td><span class="badge badge-green">none</span></td><td>2026-04-29 02:01</td><td><button class="btn-secondary btn-sm">重扫</button></td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;padding:12px;background:#fef3c7;border-radius:12px;font-size:12px;color:#92400e;">
+          <strong>风险策略:</strong> RiskLevel 为 <code>medium</code> 或 <code>high</code> 的 Skill 在 AttachSkillToInstance 时将被自动拒绝。当前 1 个 Skill 被阻断。
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

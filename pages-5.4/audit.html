@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.4.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">Supply Chain Security Audit</div><div class="page-title">供应链安全审计</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">运行审计</button><button class="btn-primary btn-sm">一键加固</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-med">62</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Audit Score</div>
+          <div class="panel-title" style="margin-bottom:4px;">供应链安全审计评分：62 / 100</div>
+          <div style="font-size:13px;color:var(--text);">上次审计：2026-04-30 14:00 | SC-SKILL × 6 + SC-IOC × 6 共 12 项检查，6 项未通过</div>
+        </div>
+        <div style="display:flex;gap:20px;">
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">2</div><div class="label">CRITICAL</div></div>
+          <div class="stat-mini"><div class="value" style="color:#c2410c;">2</div><div class="label">HIGH</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e;">2</div><div class="label">MEDIUM</div></div>
+          <div class="stat-mini"><div class="value" style="color:#15803d;">6</div><div class="label">PASS</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">SC-IOC Audit Checks</div><div class="panel-title">IOC 审计检查结果</div></div><span class="badge-sys">secureclaw</span></div>
+      <div class="check-item">
+        <div class="check-icon fail">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">Skill 引用恶意域名</div>
+          <div class="check-id">SC-IOC-002 &middot; CRITICAL &middot; ASI04 &middot; MAESTRO L7</div>
+          <div class="check-detail">Skill "polymarket-all-in-one" 的 source URL 引用已知恶意域名 <code>webhook.site</code></div>
+          <div style="margin-top:4px;font-size:12px;color:#8f8681;">修复: <code>openclaw skills remove polymarket-all-in-one</code></div>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon fail">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">恶意文件哈希匹配</div>
+          <div class="check-id">SC-IOC-003 &middot; CRITICAL &middot; ASI04 &middot; MAESTRO L7</div>
+          <div class="check-detail">Skill "polymarket-all-in-one" 中文件 SHA-256 匹配 "clawhavoc-exfiltrator" 活动</div>
+          <div style="margin-top:4px;font-size:12px;color:#8f8681;">修复: 立即移除并调查进一步损害</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">&#x2713;</div>
+        <div class="check-info">
+          <div class="check-name">C2 连接检测</div>
+          <div class="check-id">SC-IOC-001</div>
+          <div class="check-detail">连接日志中未发现已知 C2 基础设施通信</div>
+        </div>
+      </div>
+      <div class="check-item">
+        <div class="check-icon pass">&#x2713;</div>
+        <div class="check-info">
+          <div class="check-name">信息窃取器检测 (macOS)</div>
+          <div class="check-id">SC-IOC-004</div>
+          <div class="check-detail">未发现 Atomic Stealer (AMOS) 工件</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

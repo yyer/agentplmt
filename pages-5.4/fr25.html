@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr25</title>
+<link rel="stylesheet" href="../css-5.4.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr25">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-25 &middot; P1 &middot; OWASP ASI04 &middot; TC260 AIA03</div><div class="page-title">漏洞治理与补丁修复闭环</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">运行基线检查</button><button class="btn-primary btn-sm">一键加固</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Vulnerability Lifecycle</div><div class="panel-title">漏洞治理闭环</div></div></div>
+      <div class="log-chain" style="justify-content:center;gap:10px;padding:10px 0;">
+        <div class="log-chain-step" style="padding:8px 16px;">漏洞发现<br><span style="font-size:10px;color:#8f8681;">KSecure 基线检查</span></div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:8px 16px;">影响分析<br><span style="font-size:10px;color:#8f8681;">资产关联 + 优先级</span></div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:8px 16px;">修复执行<br><span style="font-size:10px;color:#8f8681;">自动/人工加固</span></div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:8px 16px;">重新验证<br><span style="font-size:10px;color:#8f8681;">复扫确认</span></div>
+      </div>
+    </div>
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">KSecure Baseline</div><div class="panel-title">主机安全基线检查</div></div><span class="badge-sys">ksecure</span></div>
+      <div style="font-size:12px;color:var(--text);margin-bottom:12px;">38 个 Shell 脚本，每个支持 check/reinforce/rollback 三种模式（G_MODE: c/s/b）</div>
+      <table class="data-table">
+        <thead><tr><th>类别</th><th>脚本数</th><th>示例检查项</th><th>检查/修复模式</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">SSH 加固</td><td>9</td><td>空密码禁止、会话超时、并发数限制、Banner</td><td>c → s → b</td></tr>
+          <tr><td style="font-weight:600;">密码策略 (PAM)</td><td>12</td><td>SHA-512 哈希、最小长度、复杂度、锁定策略</td><td>c → s → b</td></tr>
+          <tr><td style="font-weight:600;">文件权限基线</td><td>9</td><td>/etc/passwd(644)、/etc/shadow(受限)、cron 目录</td><td>c → s → b</td></tr>
+          <tr><td style="font-weight:600;">会话控制</td><td>3</td><td>TMOUT 超时、su 访问限制、umask 安全值</td><td>c → s → b</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px;font-size:12px;color:#8f8681;">回滚数据存储在 <code>/opt/KSec/compliance/rollback/</code></div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

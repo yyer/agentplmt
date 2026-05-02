@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr47</title>
+<link rel="stylesheet" href="../css-5.7.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr47">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="tab-arch">熔断架构</div>
+      <div class="tab" data-tab="tab-rules">熔断规则</div>
+      <div class="tab" data-tab="tab-ops">干预操作</div>
+      <div class="tab" data-tab="tab-monitor">熔断监控</div>
+      <div class="tab" data-tab="tab-config">配置</div>
+    </div>
+
+    <!-- ==================== Tab 1: 熔断架构 ==================== -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Panel: 熔断器三态模型 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Circuit Breaker State Machine</div>
+            <div class="panel-title">熔断器三态模型</div>
+          </div>
+          <span class="badge badge-sys">ClawManager + ClawAegis</span>
+        </div>
+        <div class="circuit-state-diagram">
+          <div class="circuit-state-node state-closed state-active" id="state-closed">
+            <div class="cs-icon">&#9989;</div>
+            <div class="cs-label">Closed（正常）</div>
+            <div class="cs-desc">所有请求正常通过<br>Agent 链路畅通</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="circuit-arrow">&#10140;</div>
+            <div class="circuit-arrow-label">触发条件满足</div>
+          </div>
+          <div class="circuit-state-node state-open" id="state-open">
+            <div class="cs-icon">&#128308;</div>
+            <div class="cs-label">Open（熔断）</div>
+            <div class="cs-desc">所有请求被阻断<br>Agent 被隔离</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="circuit-arrow">&#10140;</div>
+            <div class="circuit-arrow-label">冷却期结束</div>
+          </div>
+          <div class="circuit-state-node state-halfopen" id="state-halfopen">
+            <div class="cs-icon">&#128992;</div>
+            <div class="cs-label">Half-Open（探测）</div>
+            <div class="cs-desc">放行少量探测请求<br>验证是否恢复</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:24px;margin-top:16px;padding:14px 18px;background:rgba(255,255,255,0.7);border-radius:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-h);margin-bottom:6px">Closed → Open 触发条件</div>
+            <div style="font-size:.75rem;color:var(--text);line-height:1.8">
+              &#8226; Loop Guard 检测: 3次重复/5分钟<br>
+              &#8226; Fan-out 爆炸: 并发链路超限<br>
+              &#8226; 错误率飙升: 失败率超阈值<br>
+              &#8226; 资源耗尽: CPU/Memory &gt;90%<br>
+              &#8226; 死锁检测: 互等待 &gt;30s
+            </div>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-h);margin-bottom:6px">Open → Half-Open 条件</div>
+            <div style="font-size:.75rem;color:var(--text);line-height:1.8">
+              &#8226; 冷却期 (cooldown) 到期<br>
+              &#8226; 运维人员手动切至探测模式<br>
+              &#8226; 自动恢复定时器触发<br>
+              &#8226; 探测请求成功率评估
+            </div>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:.78rem;font-weight:700;color:var(--text-h);margin-bottom:6px">Half-Open 回退</div>
+            <div style="font-size:.75rem;color:var(--text);line-height:1.8">
+              &#8226; 探测成功 → 回到 Closed<br>
+              &#8226; 探测失败 → 回到 Open<br>
+              &#8226; 超时未确认 → 保持 Half-Open
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 检测-评估-决策-执行 流程 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Intervention Pipeline</div>
+            <div class="panel-title">检测 &rarr; 评估 &rarr; 决策 &rarr; 执行 流程</div>
+          </div>
+          <span class="badge badge-enforce">Enforce</span>
+        </div>
+        <div class="flow-diagram" style="justify-content:center;padding:16px 0">
+          <div class="flow-node detect">检测层<div class="flow-desc">Loop Guard / Dispatch Guard<br>资源监控 / 错误率统计</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div class="flow-node evaluate">评估层<div class="flow-desc">阈值匹配<br>严重度评定</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div class="flow-node decide">决策层<div class="flow-desc">自动/手动熔断<br>干预策略选择</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="flow-node block">熔断阻断<div class="flow-desc">InstanceCommand</div></div>
+            <div class="flow-node execute">干预执行<div class="flow-desc">K8s 资源管理</div></div>
+            <div class="flow-node isolate">网络隔离<div class="flow-desc">NetworkPolicy</div></div>
+          </div>
+        </div>
+        <div class="config-summary">
+          <div class="config-stat"><div class="val" style="color:#1d4ed8">5</div><div class="lbl">触发条件类型</div></div>
+          <div class="config-stat"><div class="val" style="color:#7c3aed">5</div><div class="lbl">干预命令类型</div></div>
+          <div class="config-stat"><div class="val" style="color:#c2410c">3</div><div class="lbl">熔断状态</div></div>
+          <div class="config-stat"><div class="val" style="color:#b91c1c">2</div><div class="lbl">承载系统</div></div>
+        </div>
+      </div>
+
+      <!-- Panel: 触发条件与干预动作映射 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Trigger-Action Mapping</div>
+            <div class="panel-title">触发条件与干预动作映射</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>触发条件</th>
+              <th>检测来源</th>
+              <th>阈值</th>
+              <th>自动干预动作</th>
+              <th>InstanceCommand</th>
+              <th>K8s 操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-critical">循环调用</span></td>
+              <td>ClawAegis Loop Guard</td>
+              <td>3 次重复 / 5min</td>
+              <td>自动阻断 + 隔离</td>
+              <td><code>quarantine_skill</code></td>
+              <td>Pod restart</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-high">Fan-out 爆炸</span></td>
+              <td>ClawManager 编排层</td>
+              <td>并发链路 &gt; N</td>
+              <td>降级 + 拒绝新链路</td>
+              <td><code>disable_skill</code></td>
+              <td>NetworkPolicy 限制</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-high">冲突死锁</span></td>
+              <td>ClawManager 调度器</td>
+              <td>互等待 &gt; 30s</td>
+              <td>取消死锁链路</td>
+              <td><code>stop_openclaw</code></td>
+              <td>Pod deletion</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-medium">资源耗尽</span></td>
+              <td>K8s Metrics</td>
+              <td>CPU/Mem &gt; 90%</td>
+              <td>降级非关键 Agent</td>
+              <td><code>handle_skill_risk</code></td>
+              <td>Pod stop + egress 限制</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-medium">异常执行链</span></td>
+              <td>ClawAegis Dispatch Guard</td>
+              <td>destructive-intent 模式</td>
+              <td>阻断 + 审计</td>
+              <td><code>quarantine_skill</code></td>
+              <td>NetworkPolicy 隔离</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel: 承载系统架构 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Carrier Systems</div>
+            <div class="panel-title">承载系统架构：ClawManager + ClawAegis</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <!-- ClawManager -->
+          <div style="flex:1;min-width:300px;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px">
+            <div style="font-size:.9rem;font-weight:700;color:var(--text-h);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:#dc2626"></span>
+              ClawManager（命令下发 + K8s 管理）
+            </div>
+            <div style="font-size:.78rem;color:var(--text);line-height:1.8">
+              <strong>InstanceCommand 类型:</strong><br>
+              &bull; <code>quarantine_skill</code> — 隔离指定 Agent 技能<br>
+              &bull; <code>stop_openclaw</code> — 停止 OpenClaw 实例<br>
+              &bull; <code>restart_openclaw</code> — 重启 OpenClaw 实例<br>
+              &bull; <code>handle_skill_risk</code> — 处理技能风险<br>
+              &bull; <code>disable_skill</code> — 禁用技能<br><br>
+              <strong>命令生命周期:</strong><br>
+              <code>pending</code> &rarr; <code>dispatched</code> &rarr; <code>running</code> &rarr; <code>succeeded</code>/<code>failed</code><br><br>
+              <strong>DesiredState:</strong><br>
+              &bull; <code>DesiredPowerState</code>: running / stopped<br>
+              &bull; <code>DesiredConfigRevisionID</code>: 配置版本<br>
+              &bull; <code>DesiredRuntimeAction</code>: 运行时动作<br>
+              &bull; <code>UpdatedBy</code>: 操作发起者<br><br>
+              <strong>K8s 能力:</strong><br>
+              &bull; Pod 管理: start / stop / restart / delete<br>
+              &bull; NetworkPolicy: egress 限制<br>
+              &bull; 命令幂等: <code>IdempotencyKey</code><br>
+              &bull; 超时控制: <code>TimeoutSeconds</code>
+            </div>
+          </div>
+          <!-- ClawAegis -->
+          <div style="flex:1;min-width:300px;border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px">
+            <div style="font-size:.9rem;font-weight:700;color:var(--text-h);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></span>
+              ClawAegis（Loop Guard + Dispatch Guard）
+            </div>
+            <div style="font-size:.78rem;color:var(--text);line-height:1.8">
+              <strong>Loop Guard:</strong><br>
+              &bull; 阈值: 3 次重复 / 5 分钟<br>
+              &bull; 动作: 自动阻断<br>
+              &bull; 阻断原因: <em>"安全限制：检测到重复高风险工具调用，已停止本次操作。"</em><br><br>
+              <strong>Dispatch Guard 拦截模式:</strong><br>
+              &bull; <code>openclaw-cli</code> — CLI 直接调用<br>
+              &bull; <code>destructive-path</code> — 破坏性路径<br>
+              &bull; <code>destructive-intent</code> — 破坏性意图<br>
+              &bull; <code>bypass-tool-call</code> — 绕过工具调用<br><br>
+              <strong>阻断原因常量:</strong><br>
+              &bull; <code>BLOCK_REASON_LOOP</code><br>
+              &bull; <code>BLOCK_REASON_DISPATCH_GUARD</code><br>
+              &bull; <code>BLOCK_REASON_EXFILTRATION_CHAIN</code><br><br>
+              <strong>NetworkPolicy 限制:</strong><br>
+              &bull; Egress 仅允许 DNS(53)<br>
+              &bull; 系统命名空间: 80, 443, 8443, 9001, 3128
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: InstanceCommand 生命周期 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Command Lifecycle</div>
+            <div class="panel-title">InstanceCommand 命令生命周期</div>
+          </div>
+        </div>
+        <div class="flow-diagram" style="justify-content:center;padding:12px 0">
+          <div class="flow-node" style="background:linear-gradient(135deg,#f3f4f6,#e5e7eb);color:#6b7280;border:1px solid #d1d5db">pending<div class="flow-desc">命令创建<br>IdempotencyKey 生成</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#4338ca;border:1px solid #a5b4fc">dispatched<div class="flow-desc">命令下发<br>IssuedBy 记录</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1d4ed8;border:1px solid #93c5fd">running<div class="flow-desc">执行中<br>TimeoutSeconds 生效</div></div>
+          <div class="flow-arrow">&#10140;</div>
+          <div style="display:flex;gap:8px">
+            <div class="flow-node pass">succeeded<div class="flow-desc">执行成功</div></div>
+            <div class="flow-node block">failed<div class="flow-desc">执行失败<br>进入重试或回退</div></div>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="cmt">// InstanceCommand 示例结构</span>
+{
+  <span class="str">"Type"</span>: <span class="str">"quarantine_skill"</span>,
+  <span class="str">"IdempotencyKey"</span>: <span class="str">"circuit-break-20260501-001"</span>,
+  <span class="str">"TimeoutSeconds"</span>: <span class="num">120</span>,
+  <span class="str">"IssuedBy"</span>: <span class="str">"circuit-breaker-auto"</span>,
+  <span class="str">"DesiredState"</span>: {
+    <span class="str">"DesiredPowerState"</span>: <span class="str">"stopped"</span>,
+    <span class="str">"DesiredConfigRevisionID"</span>: <span class="str">"rev-20260501-a3"</span>,
+    <span class="str">"DesiredRuntimeAction"</span>: <span class="str">"quarantine"</span>,
+    <span class="str">"UpdatedBy"</span>: <span class="str">"system-circuit-breaker"</span>
+  }
+}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== Tab 2: 熔断规则 ==================== -->
+    <div class="tab-content" id="tab-rules">
+
+      <!-- Panel: 熔断模式切换 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Circuit Breaker Mode</div>
+            <div class="panel-title">自动熔断模式</div>
+          </div>
+          <div class="mode-selector" id="global-mode">
+            <div class="mode-btn active-enforce" data-mode="enforce">Enforce（强制执行）</div>
+            <div class="mode-btn" data-mode="observe">Observe（仅观察）</div>
+            <div class="mode-btn" data-mode="off">Off（关闭）</div>
+          </div>
+        </div>
+        <div style="font-size:.82rem;color:var(--text);line-height:1.7;padding:4px 0">
+          <strong>Enforce 模式</strong>：触发条件满足时自动执行熔断干预，包括隔离 Agent、停止实例、限制网络等操作。所有干预命令通过 <code>InstanceCommand</code> 下发，确保幂等性和可追溯性。<br>
+          <strong>Observe 模式</strong>：仅记录告警和熔断事件，不执行实际干预动作。用于调优阈值和验证规则有效性。<br>
+          <strong>Off 模式</strong>：关闭自动熔断，仅保留手动干预能力。仅建议在调试或维护期间使用。
+        </div>
+      </div>
+
+      <!-- Rule Card 1: Loop Detection -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <div class="rule-flag">RULE-001 | Loop Detection</div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--text-h);margin-top:4px">循环调用检测</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-critical">Critical</span>
+            <span class="badge badge-enforce">Enforce</span>
+          </div>
+        </div>
+        <div class="rule-desc">
+          当 Agent 在短时间内重复调用同一高风险工具时，Loop Guard 自动检测并阻断。基于 ClawAegis 的 Loop Guard 机制，维护滑动时间窗口内的调用计数，超过阈值后触发 <code>BLOCK_REASON_LOOP</code> 阻断，并下发 <code>quarantine_skill</code> 命令隔离相关 Agent。
+        </div>
+        <div class="rule-patterns">
+          <span class="rule-pattern">ClawAegis Loop Guard</span>
+          <span class="rule-pattern">BLOCK_REASON_LOOP</span>
+          <span class="rule-pattern">quarantine_skill</span>
+          <span class="rule-pattern">sliding window</span>
+        </div>
+        <div class="rule-meta">
+          <div class="rule-meta-item"><strong>触发阈值:</strong> 3 次重复 / 5 分钟</div>
+          <div class="rule-meta-item"><strong>冷却期:</strong> 10 分钟</div>
+          <div class="rule-meta-item"><strong>默认动作:</strong> 自动阻断 + 隔离</div>
+          <div class="rule-meta-item"><strong>阻断消息:</strong> "安全限制：检测到重复高风险工具调用，已停止本次操作。"</div>
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:#faf7f4;border-radius:10px">
+          <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+            <div class="toggle-label">
+              <div class="name">启用循环检测</div>
+              <div class="desc">自动检测并阻断重复高风险工具调用</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-loop" checked>
+              <label class="toggle-slider" for="toggle-loop"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule Card 2: Fan-out Limit -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <div class="rule-flag">RULE-002 | Fan-out Limit</div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--text-h);margin-top:4px">扇出爆炸限制</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-enforce">Enforce</span>
+          </div>
+        </div>
+        <div class="rule-desc">
+          当单个 Agent 或技能触发过多并发子链路（fan-out 超限），可能导致系统资源耗尽和级联故障。Fan-out 限制检测器追踪每个 Agent 的活跃子链路数，超过阈值后自动降级该 Agent，下发 <code>disable_skill</code> 命令并应用 NetworkPolicy 限制 egress 通信，仅保留 DNS 和系统命名空间端口。
+        </div>
+        <div class="rule-patterns">
+          <span class="rule-pattern">ClawManager 编排层</span>
+          <span class="rule-pattern">disable_skill</span>
+          <span class="rule-pattern">NetworkPolicy</span>
+          <span class="rule-pattern">egress restriction</span>
+        </div>
+        <div class="rule-meta">
+          <div class="rule-meta-item"><strong>触发阈值:</strong> 最大 8 并发链路</div>
+          <div class="rule-meta-item"><strong>冷却期:</strong> 15 分钟</div>
+          <div class="rule-meta-item"><strong>默认动作:</strong> 降级 + 网络限制</div>
+          <div class="rule-meta-item"><strong>恢复条件:</strong> 活跃链路降至阈值 50% 以下</div>
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:#faf7f4;border-radius:10px">
+          <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+            <div class="toggle-label">
+              <div class="name">启用扇出限制</div>
+              <div class="desc">限制单个 Agent 的并发子链路数量</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-fanout" checked>
+              <label class="toggle-slider" for="toggle-fanout"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule Card 3: Error Rate Threshold -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <div class="rule-flag">RULE-003 | Error Rate Threshold</div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--text-h);margin-top:4px">错误率阈值</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-observe">Observe</span>
+          </div>
+        </div>
+        <div class="rule-desc">
+          当 Agent 执行失败率在时间窗口内超过阈值时触发。统计每个 Agent 的 succeeded/failed InstanceCommand 比例，结合 ClawAegis 的 <code>BLOCK_REASON_DISPATCH_GUARD</code> 和 <code>BLOCK_REASON_EXFILTRATION_CHAIN</code> 事件，综合评估异常程度。超过阈值后下发 <code>handle_skill_risk</code> 命令进行风险处理。
+        </div>
+        <div class="rule-patterns">
+          <span class="rule-pattern">InstanceCommand 统计</span>
+          <span class="rule-pattern">BLOCK_REASON_DISPATCH_GUARD</span>
+          <span class="rule-pattern">handle_skill_risk</span>
+          <span class="rule-pattern">error rate sliding window</span>
+        </div>
+        <div class="rule-meta">
+          <div class="rule-meta-item"><strong>触发阈值:</strong> 失败率 &gt; 50% / 5 分钟</div>
+          <div class="rule-meta-item"><strong>冷却期:</strong> 10 分钟</div>
+          <div class="rule-meta-item"><strong>当前模式:</strong> Observe（仅告警）</div>
+          <div class="rule-meta-item"><strong>建议动作:</strong> 降级 + 风险处理</div>
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:#faf7f4;border-radius:10px">
+          <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+            <div class="toggle-label">
+              <div class="name">启用错误率检测</div>
+              <div class="desc">监控 Agent 执行失败率并触发熔断</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-error-rate" checked>
+              <label class="toggle-slider" for="toggle-error-rate"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule Card 4: Resource Exhaustion -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <div class="rule-flag">RULE-004 | Resource Exhaustion</div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--text-h);margin-top:4px">资源耗尽检测</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-medium">Medium</span>
+            <span class="badge badge-enforce">Enforce</span>
+          </div>
+        </div>
+        <div class="rule-desc">
+          通过 K8s Metrics Server 监控 Pod 的 CPU 和 Memory 使用率。当任何 Agent Pod 的资源使用率持续超过阈值时，自动降级非关键 Agent，下发 <code>stop_openclaw</code> 停止实例，同时应用 NetworkPolicy 限制 egress 至仅 DNS(53) 和系统命名空间端口 (80, 443, 8443, 9001, 3128)，防止资源竞争导致的级联故障。
+        </div>
+        <div class="rule-patterns">
+          <span class="rule-pattern">K8s Metrics</span>
+          <span class="rule-pattern">stop_openclaw</span>
+          <span class="rule-pattern">NetworkPolicy egress</span>
+          <span class="rule-pattern">DNS:53 / 80,443,8443,9001,3128</span>
+        </div>
+        <div class="rule-meta">
+          <div class="rule-meta-item"><strong>触发阈值:</strong> CPU/Memory &gt; 90% 持续 2 分钟</div>
+          <div class="rule-meta-item"><strong>冷却期:</strong> 20 分钟</div>
+          <div class="rule-meta-item"><strong>默认动作:</strong> 降级 + 网络限制 + Pod stop</div>
+          <div class="rule-meta-item"><strong>恢复条件:</strong> 资源使用率降至 70% 以下</div>
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:#faf7f4;border-radius:10px">
+          <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+            <div class="toggle-label">
+              <div class="name">启用资源检测</div>
+              <div class="desc">监控 Pod 资源使用率并触发自动干预</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-resource" checked>
+              <label class="toggle-slider" for="toggle-resource"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule Card 5: Deadlock Detection -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <div class="rule-flag">RULE-005 | Deadlock Detection</div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--text-h);margin-top:4px">死锁检测</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-medium">Medium</span>
+            <span class="badge badge-enforce">Enforce</span>
+          </div>
+        </div>
+        <div class="rule-desc">
+          检测 Agent 间因资源竞争或依赖等待导致的死锁状态。当两个或多个 Agent 互相等待对方释放资源超过阈值时间时，自动取消死锁链路。通过 ClawManager 调度器下发 <code>stop_openclaw</code> 命令停止死锁的 Agent 实例，必要时执行 Pod deletion 强制释放资源，并通过 <code>restart_openclaw</code> 恢复其中一个 Agent 进行重试。
+        </div>
+        <div class="rule-patterns">
+          <span class="rule-pattern">ClawManager 调度器</span>
+          <span class="rule-pattern">stop_openclaw</span>
+          <span class="rule-pattern">restart_openclaw</span>
+          <span class="rule-pattern">Pod deletion</span>
+        </div>
+        <div class="rule-meta">
+          <div class="rule-meta-item"><strong>触发阈值:</strong> 互等待 &gt; 30 秒</div>
+          <div class="rule-meta-item"><strong>冷却期:</strong> 5 分钟</div>
+          <div class="rule-meta-item"><strong>默认动作:</strong> 停止死锁 Agent + 重试</div>
+          <div class="rule-meta-item"><strong>重试策略:</strong> 停止优先级低的一方</div>
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:#faf7f4;border-radius:10px">
+          <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+            <div class="toggle-label">
+              <div class="name">启用死锁检测</div>
+              <div class="desc">检测并自动解除 Agent 间死锁状态</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-deadlock" checked>
+              <label class="toggle-slider" for="toggle-deadlock"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule Card 6: Dispatch Guard Anomaly -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <div class="rule-flag">RULE-006 | Dispatch Guard Anomaly</div>
+            <div style="font-size:.85rem;font-weight:700;color:var(--text-h);margin-top:4px">调度守卫异常检测</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-high">High</span>
+            <span class="badge badge-enforce">Enforce</span>
+          </div>
+        </div>
+        <div class="rule-desc">
+          ClawAegis Dispatch Guard 拦截特定危险调用模式。当检测到 <code>openclaw-cli</code>（CLI 直接调用）、<code>destructive-path</code>（破坏性路径）、<code>destructive-intent</code>（破坏性意图）或 <code>bypass-tool-call</code>（绕过工具调用）模式时，自动阻断并下发干预命令。触发 <code>BLOCK_REASON_DISPATCH_GUARD</code> 或 <code>BLOCK_REASON_EXFILTRATION_CHAIN</code> 记录审计日志。
+        </div>
+        <div class="rule-patterns">
+          <span class="rule-pattern">openclaw-cli</span>
+          <span class="rule-pattern">destructive-path</span>
+          <span class="rule-pattern">destructive-intent</span>
+          <span class="rule-pattern">bypass-tool-call</span>
+          <span class="rule-pattern">BLOCK_REASON_DISPATCH_GUARD</span>
+          <span class="rule-pattern">BLOCK_REASON_EXFILTRATION_CHAIN</span>
+        </div>
+        <div class="rule-meta">
+          <div class="rule-meta-item"><strong>触发条件:</strong> 匹配任一拦截模式</div>
+          <div class="rule-meta-item"><strong>冷却期:</strong> 无（即时阻断）</div>
+          <div class="rule-meta-item"><strong>默认动作:</strong> 阻断 + 隔离 + 审计</div>
+          <div class="rule-meta-item"><strong>通知:</strong> 实时告警运维人员</div>
+        </div>
+        <div style="margin-top:12px;padding:12px 14px;background:#faf7f4;border-radius:10px">
+          <div class="toggle-row" style="border-bottom:none;padding:6px 0">
+            <div class="toggle-label">
+              <div class="name">启用调度守卫</div>
+              <div class="desc">拦截危险调度模式并触发熔断</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-dispatch" checked>
+              <label class="toggle-slider" for="toggle-dispatch"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== Tab 3: 干预操作 ==================== -->
+    <div class="tab-content" id="tab-ops">
+
+      <!-- Panel: 手动干预操作面板 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Manual Intervention Panel</div>
+            <div class="panel-title">手动干预操作</div>
+          </div>
+          <span class="badge badge-sys">ClawManager InstanceCommand</span>
+        </div>
+        <div class="interventions-grid">
+          <div class="intervention-card card-danger" onclick="showConfirm('quarantine')">
+            <div class="ic-icon">&#128737;</div>
+            <div class="ic-title">Quarantine Agent</div>
+            <div class="ic-desc">隔离指定 Agent，禁止执行任何技能操作</div>
+            <div class="ic-command">quarantine_skill</div>
+          </div>
+          <div class="intervention-card card-danger" onclick="showConfirm('stop')">
+            <div class="ic-icon">&#9724;</div>
+            <div class="ic-title">Stop Instance</div>
+            <div class="ic-desc">停止 OpenClaw 实例运行，DesiredPowerState 设为 stopped</div>
+            <div class="ic-command">stop_openclaw</div>
+          </div>
+          <div class="intervention-card card-warn" onclick="showConfirm('disable')">
+            <div class="ic-icon">&#128683;</div>
+            <div class="ic-title">Disable Skill</div>
+            <div class="ic-desc">禁用指定技能，阻止 Agent 调用特定能力</div>
+            <div class="ic-command">disable_skill</div>
+          </div>
+          <div class="intervention-card card-danger" onclick="showConfirm('isolate')">
+            <div class="ic-icon">&#127760;</div>
+            <div class="ic-title">Isolate Network</div>
+            <div class="ic-desc">应用限制性 NetworkPolicy，egress 仅 DNS(53) + 系统端口</div>
+            <div class="ic-command">NetworkPolicy egress</div>
+          </div>
+          <div class="intervention-card card-safe" onclick="showConfirm('restart')">
+            <div class="ic-icon">&#128260;</div>
+            <div class="ic-title">Restart Instance</div>
+            <div class="ic-desc">重启 OpenClaw 实例，用于熔断恢复或死锁解除</div>
+            <div class="ic-command">restart_openclaw</div>
+          </div>
+          <div class="intervention-card card-info" onclick="showConfirm('handle-risk')">
+            <div class="ic-icon">&#9888;</div>
+            <div class="ic-title">Handle Skill Risk</div>
+            <div class="ic-desc">处理技能风险，降级但不断开 Agent 连接</div>
+            <div class="ic-command">handle_skill_risk</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 活跃干预列表 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Active Interventions</div>
+            <div class="panel-title">活跃干预操作</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="badge badge-open">3 个活跃</span>
+            <button class="btn-secondary btn-sm">刷新</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>目标 Agent</th>
+              <th>Issued By</th>
+              <th>发起时间</th>
+              <th>状态</th>
+              <th>持续时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-critical">quarantine_skill</span></td>
+              <td><code>agent-data-analyzer-03</code></td>
+              <td>circuit-breaker-auto</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 14:23:17</td>
+              <td><span class="badge badge-running">running</span></td>
+              <td>12 分钟</td>
+              <td><button class="btn-secondary btn-sm">解除</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-high">stop_openclaw</span></td>
+              <td><code>openclaw-file-processor-07</code></td>
+              <td>admin-zhangwei</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 13:45:02</td>
+              <td><span class="badge badge-succeeded">succeeded</span></td>
+              <td>—</td>
+              <td><button class="btn-primary btn-sm">重启</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-medium">NetworkPolicy</span></td>
+              <td><code>agent-code-reviewer-12</code></td>
+              <td>circuit-breaker-auto</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 14:10:55</td>
+              <td><span class="badge badge-running">running</span></td>
+              <td>24 分钟</td>
+              <td><button class="btn-secondary btn-sm">解除</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-high">disable_skill</span></td>
+              <td><code>agent-orchestrator-01/bash_exec</code></td>
+              <td>circuit-breaker-auto</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 14:18:33</td>
+              <td><span class="badge badge-running">running</span></td>
+              <td>17 分钟</td>
+              <td><button class="btn-secondary btn-sm">恢复</button></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-medium">handle_skill_risk</span></td>
+              <td><code>agent-web-scraper-09</code></td>
+              <td>circuit-breaker-auto</td>
+              <td style="font-family:monospace;font-size:12px">2026-05-01 13:52:41</td>
+              <td><span class="badge badge-succeeded">succeeded</span></td>
+              <td>—</td>
+              <td><button class="btn-secondary btn-sm">查看详情</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel: 命令执行详情 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Command Details</div>
+            <div class="panel-title">最近命令执行详情</div>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CMD-20260501-001</span>
+            <span class="badge badge-critical">quarantine_skill</span>
+            <span class="badge badge-running">running</span>
+            <span class="log-time">2026-05-01 14:23:17</span>
+          </div>
+          <div class="log-body">
+            自动熔断触发：Loop Guard 检测到 <code>agent-data-analyzer-03</code> 在 5 分钟内重复调用 <code>file_read</code> 工具 3 次，触发 <code>BLOCK_REASON_LOOP</code> 阻断。系统自动下发 <code>quarantine_skill</code> 命令，将 Agent 隔离。
+          </div>
+          <div class="log-detail">
+IdempotencyKey: circuit-break-loop-20260501-001
+Type: quarantine_skill
+Target: agent-data-analyzer-03
+TimeoutSeconds: 120
+IssuedBy: circuit-breaker-auto
+DesiredState.DesiredPowerState: stopped
+DesiredState.DesiredRuntimeAction: quarantine
+DesiredState.UpdatedBy: system-circuit-breaker
+Lifecycle: pending(14:23:17) → dispatched(14:23:17) → running(14:23:18)
+BlockReason: BLOCK_REASON_LOOP
+BlockMessage: "安全限制：检测到重复高风险工具调用，已停止本次操作。"
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">CMD-20260501-002</span>
+            <span class="badge badge-high">stop_openclaw</span>
+            <span class="badge badge-succeeded">succeeded</span>
+            <span class="log-time">2026-05-01 13:45:02</span>
+          </div>
+          <div class="log-body">
+            手动干预：运维人员 <code>admin-zhangwei</code> 手动下发 <code>stop_openclaw</code> 命令，停止 <code>openclaw-file-processor-07</code> 实例。原因：该实例持续消耗 CPU 资源超过 90%，影响其他 Agent 正常运行。
+          </div>
+          <div class="log-detail">
+IdempotencyKey: manual-stop-20260501-007
+Type: stop_openclaw
+Target: openclaw-file-processor-07
+TimeoutSeconds: 300
+IssuedBy: admin-zhangwei
+DesiredState.DesiredPowerState: stopped
+DesiredState.UpdatedBy: admin-zhangwei
+Lifecycle: pending(13:45:02) → dispatched(13:45:03) → running(13:45:04) → succeeded(13:46:12)
+K8s Action: Pod stop (openclaw-file-processor-07)
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== Tab 4: 熔断监控 ==================== -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- Panel: 系统稳定性评分 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">System Stability Score</div>
+            <div class="panel-title">系统稳定性评分</div>
+          </div>
+          <span class="badge badge-warn">需要关注</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:32px;padding:8px 0;flex-wrap:wrap">
+          <div class="score-circle score-med">
+            <div class="score-num">72</div>
+            <div class="score-label">Stability</div>
+          </div>
+          <div style="flex:1;min-width:240px">
+            <div class="monitoring-grid" style="grid-template-columns:repeat(4,1fr)">
+              <div class="monitor-card"><div class="mc-value mc-red">3</div><div class="mc-label">熔断中 Agent</div></div>
+              <div class="monitor-card"><div class="mc-value mc-amber">2</div><div class="mc-label">探测中 Agent</div></div>
+              <div class="monitor-card"><div class="mc-value mc-green">14</div><div class="mc-label">正常 Agent</div></div>
+              <div class="monitor-card"><div class="mc-value mc-red">8</div><div class="mc-label">阻断操作(1h)</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: Agent 熔断状态 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Circuit State per Agent</div>
+            <div class="panel-title">Agent 熔断状态</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;font-size:11px;color:#8f8681">
+            <span><span class="agent-circuit-indicator indicator-closed" style="display:inline-block;width:10px;height:10px;vertical-align:middle"></span> 正常</span>
+            <span><span class="agent-circuit-indicator indicator-open" style="display:inline-block;width:10px;height:10px;vertical-align:middle"></span> 熔断</span>
+            <span><span class="agent-circuit-indicator indicator-halfopen" style="display:inline-block;width:10px;height:10px;vertical-align:middle"></span> 探测</span>
+          </div>
+        </div>
+        <div style="border:1px solid #f1e7e1;border-radius:14px;overflow:hidden">
+          <div class="agent-circuit-row" style="background:linear-gradient(180deg,#fffaf6,#fff6f1)">
+            <div class="agent-circuit-indicator indicator-open"></div>
+            <div style="flex:1"><code>agent-data-analyzer-03</code></div>
+            <span class="badge badge-open">Open</span>
+            <div style="width:80px;text-align:right;font-size:11px;color:#8f8681">错误率 78%</div>
+            <div style="width:100px;text-align:right;font-size:11px;color:#8f8681">持续 12 分钟</div>
+            <div style="width:140px;font-size:11px;color:var(--text)">触发: LOOP</div>
+          </div>
+          <div class="agent-circuit-row">
+            <div class="agent-circuit-indicator indicator-open"></div>
+            <div style="flex:1"><code>agent-code-reviewer-12</code></div>
+            <span class="badge badge-open">Open</span>
+            <div style="width:80px;text-align:right;font-size:11px;color:#8f8681">错误率 92%</div>
+            <div style="width:100px;text-align:right;font-size:11px;color:#8f8681">持续 24 分钟</div>
+            <div style="width:140px;font-size:11px;color:var(--text)">触发: DISPATCH_GUARD</div>
+          </div>
+          <div class="agent-circuit-row">
+            <div class="agent-circuit-indicator indicator-halfopen"></div>
+            <div style="flex:1"><code>agent-orchestrator-01</code></div>
+            <span class="badge badge-halfopen">Half-Open</span>
+            <div style="width:80px;text-align:right;font-size:11px;color:#8f8681">错误率 35%</div>
+            <div style="width:100px;text-align:right;font-size:11px;color:#8f8681">探测中</div>
+            <div style="width:140px;font-size:11px;color:var(--text)">触发: FAN_OUT</div>
+          </div>
+          <div class="agent-circuit-row">
+            <div class="agent-circuit-indicator indicator-halfopen"></div>
+            <div style="flex:1"><code>agent-web-scraper-09</code></div>
+            <span class="badge badge-halfopen">Half-Open</span>
+            <div style="width:80px;text-align:right;font-size:11px;color:#8f8681">错误率 20%</div>
+            <div style="width:100px;text-align:right;font-size:11px;color:#8f8681">探测中</div>
+            <div style="width:140px;font-size:11px;color:var(--text)">触发: ERROR_RATE</div>
+          </div>
+          <div class="agent-circuit-row">
+            <div class="agent-circuit-indicator indicator-closed"></div>
+            <div style="flex:1"><code>agent-doc-generator-05</code></div>
+            <span class="badge badge-closed">Closed</span>
+            <div style="width:80px;text-align:right;font-size:11px;color:#8f8681">错误率 2%</div>
+            <div style="width:100px;text-align:right;font-size:11px;color:#8f8681">—</div>
+            <div style="width:140px;font-size:11px;color:#8f8681">—</div>
+          </div>
+          <div class="agent-circuit-row">
+            <div class="agent-circuit-indicator indicator-closed"></div>
+            <div style="flex:1"><code>agent-test-runner-08</code></div>
+            <span class="badge badge-closed">Closed</span>
+            <div style="width:80px;text-align:right;font-size:11px;color:#8f8681">错误率 5%</div>
+            <div style="width:100px;text-align:right;font-size:11px;color:#8f8681">—</div>
+            <div style="width:140px;font-size:11px;color:#8f8681">—</div>
+          </div>
+          <div class="agent-circuit-row">
+            <div class="agent-circuit-indicator indicator-closed"></div>
+            <div style="flex:1"><code>agent-log-analyzer-11</code></div>
+            <span class="badge badge-closed">Closed</span>
+            <div style="width:80px;text-align:right;font-size:11px;color:#8f8681">错误率 0%</div>
+            <div style="width:100px;text-align:right;font-size:11px;color:#8f8681">—</div>
+            <div style="width:140px;font-size:11px;color:#8f8681">—</div>
+          </div>
+          <div class="agent-circuit-row">
+            <div class="agent-circuit-indicator indicator-closed"></div>
+            <div style="flex:1"><code>agent-config-manager-02</code></div>
+            <span class="badge badge-closed">Closed</span>
+            <div style="width:80px;text-align:right;font-size:11px;color:#8f8681">错误率 1%</div>
+            <div style="width:100px;text-align:right;font-size:11px;color:#8f8681">—</div>
+            <div style="width:140px;font-size:11px;color:#8f8681">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 实时指标 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Real-time Metrics</div>
+            <div class="panel-title">实时监控指标</div>
+          </div>
+          <button class="btn-secondary btn-sm">刷新数据</button>
+        </div>
+        <div class="monitoring-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
+          <div class="monitor-card"><div class="mc-value mc-red">3</div><div class="mc-label">熔断事件(1h)</div><div class="mc-sub">+2 vs 上小时</div></div>
+          <div class="monitor-card"><div class="mc-value mc-amber">8</div><div class="mc-label">阻断操作(1h)</div><div class="mc-sub">LOOP:5, GUARD:3</div></div>
+          <div class="monitor-card"><div class="mc-value mc-green">2</div><div class="mc-label">自动恢复(1h)</div><div class="mc-sub">平均恢复 8min</div></div>
+          <div class="monitor-card"><div class="mc-value mc-amber">1</div><div class="mc-label">手动干预(1h)</div><div class="mc-sub">admin-zhangwei</div></div>
+          <div class="monitor-card"><div class="mc-value mc-red">23%</div><div class="mc-label">总体错误率</div><div class="mc-sub">阈值: 50%</div></div>
+          <div class="monitor-card"><div class="mc-value mc-green">67%</div><div class="mc-label">平均 CPU</div><div class="mc-sub">阈值: 90%</div></div>
+          <div class="monitor-card"><div class="mc-value mc-green">72%</div><div class="mc-label">平均内存</div><div class="mc-sub">阈值: 90%</div></div>
+          <div class="monitor-card"><div class="mc-value mc-amber">6</div><div class="mc-label">活跃链路</div><div class="mc-sub">上限: 8</div></div>
+        </div>
+      </div>
+
+      <!-- Panel: 熔断日志 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Circuit Breaker Log</div>
+            <div class="panel-title">熔断事件日志</div>
+          </div>
+          <button class="btn-secondary btn-sm">导出日志</button>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-20260501-007</span>
+            <span class="badge badge-critical">熔断触发</span>
+            <span class="badge badge-open">BLOCK_REASON_LOOP</span>
+            <span class="log-time">2026-05-01 14:23:17</span>
+          </div>
+          <div class="log-body">
+            <code>agent-data-analyzer-03</code> 触发 Loop Guard 熔断：5 分钟内重复调用 <code>file_read</code> 工具 3 次。自动执行 <code>quarantine_skill</code> 命令隔离 Agent。预计冷却期 10 分钟后进入 Half-Open 探测状态。
+          </div>
+          <div class="log-detail">
+触发类型: LOOP | 受影响 Agent: agent-data-analyzer-03 | 动作: quarantine_skill
+恢复时间: 预计 14:33:17 进入 Half-Open | 当前状态: Open
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-20260501-006</span>
+            <span class="badge badge-high">熔断触发</span>
+            <span class="badge badge-open">BLOCK_REASON_DISPATCH_GUARD</span>
+            <span class="log-time">2026-05-01 14:10:55</span>
+          </div>
+          <div class="log-body">
+            <code>agent-code-reviewer-12</code> 触发 Dispatch Guard 熔断：检测到 <code>destructive-intent</code> 模式（尝试执行 <code>rm -rf /tmp/audit</code>）。自动应用限制性 NetworkPolicy，egress 仅允许 DNS(53) 和系统端口 (80, 443, 8443, 9001, 3128)。
+          </div>
+          <div class="log-detail">
+触发类型: DISPATCH_GUARD | 受影响 Agent: agent-code-reviewer-12 | 动作: NetworkPolicy egress restriction
+拦截模式: destructive-intent | 恢复时间: 需人工审核 | 当前状态: Open
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-20260501-005</span>
+            <span class="badge badge-medium">自动恢复</span>
+            <span class="badge badge-closed">Closed</span>
+            <span class="log-time">2026-05-01 13:58:22</span>
+          </div>
+          <div class="log-body">
+            <code>agent-web-scraper-09</code> 从 Half-Open 探测状态恢复至 Closed 正常状态。探测期间（5 分钟）无异常调用，错误率从 45% 降至 20%，判定恢复正常。已自动移除 <code>handle_skill_risk</code> 干预。
+          </div>
+          <div class="log-detail">
+触发类型: AUTO_RECOVERY | 受影响 Agent: agent-web-scraper-09 | 原触发: ERROR_RATE
+恢复耗时: 18 分钟 | 探测成功率: 100% | 当前状态: Closed
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-20260501-004</span>
+            <span class="badge badge-medium">手动干预</span>
+            <span class="badge badge-succeeded">succeeded</span>
+            <span class="log-time">2026-05-01 13:45:02</span>
+          </div>
+          <div class="log-body">
+            运维人员 <code>admin-zhangwei</code> 手动下发 <code>stop_openclaw</code> 命令，停止 <code>openclaw-file-processor-07</code> 实例。原因: Pod CPU 持续 &gt;95%，影响同节点其他 Agent。DesiredPowerState 设为 <code>stopped</code>，K8s Pod 执行 stop。
+          </div>
+          <div class="log-detail">
+触发类型: MANUAL | 操作人: admin-zhangwei | 命令: stop_openclaw
+目标: openclaw-file-processor-07 | 原因: CPU >95% | 执行耗时: 68s | 状态: succeeded
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-20260501-003</span>
+            <span class="badge badge-medium">隔离事件</span>
+            <span class="badge badge-open">BLOCK_REASON_EXFILTRATION_CHAIN</span>
+            <span class="log-time">2026-05-01 13:30:15</span>
+          </div>
+          <div class="log-body">
+            <code>agent-external-connector-15</code> 触发数据泄露链检测（<code>BLOCK_REASON_EXFILTRATION_CHAIN</code>）。检测到异常外联模式：Agent 在短时间内向非授权端点发送大量数据。自动应用 NetworkPolicy 完全隔离 egress，仅保留 DNS(53)。
+          </div>
+          <div class="log-detail">
+触发类型: EXFILTRATION_CHAIN | 受影响 Agent: agent-external-connector-15
+动作: NetworkPolicy full egress block | 恢复: 需人工审核 | 当前状态: Open (已隔离)
+          </div>
+        </div>
+
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-id">EVT-20260501-002</span>
+            <span class="badge badge-medium">探测恢复</span>
+            <span class="badge badge-halfopen">Half-Open</span>
+            <span class="log-time">2026-05-01 13:20:44</span>
+          </div>
+          <div class="log-body">
+            <code>agent-orchestrator-01</code> 熔断冷却期结束，从 Open 切换至 Half-Open 探测状态。放行少量探测请求验证恢复情况。原触发原因: Fan-out 超限（10 并发链路，阈值 8），当前活跃链路已降至 6。
+          </div>
+          <div class="log-detail">
+触发类型: COOLDOWN_EXPIRE | 受影响 Agent: agent-orchestrator-01 | 原触发: FAN_OUT
+冷却期: 15 分钟 | 当前活跃链路: 6/8 | 探测超时: 5 分钟 | 状态: Half-Open
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== Tab 5: 配置 ==================== -->
+    <div class="tab-content" id="tab-config">
+
+      <!-- Panel: 熔断参数配置 -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Circuit Breaker Parameters</div>
+            <div class="panel-title">熔断器参数配置</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn-secondary btn-sm">重置默认</button>
+            <button class="btn-primary btn-sm">保存配置</button>
+          </div>
+        </div>
+        <div class="config-grid">
+
+          <!-- Loop Detection Config -->
+          <div class="config-card">
+            <div class="cc-title">
+              <span style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0"></span>
+              循环检测参数
+            </div>
+            <div class="cc-row"><span class="cc-key">重复次数阈值 (loopThreshold)</span><input class="cc-input" type="number" value="3"></div>
+            <div class="cc-row"><span class="cc-key">时间窗口 (loopTTL)</span><input class="cc-input" type="number" value="5"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">冷却期 (cooldown)</span><input class="cc-input" type="number" value="10"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">默认干预动作</span><span class="cc-val" style="font-family:monospace;font-size:12px;color:#c2410c">quarantine_skill</span></div>
+          </div>
+
+          <!-- Fan-out Config -->
+          <div class="config-card">
+            <div class="cc-title">
+              <span style="width:8px;height:8px;border-radius:50%;background:#c2410c;flex-shrink:0"></span>
+              扇出限制参数
+            </div>
+            <div class="cc-row"><span class="cc-key">最大并发链路 (fanOutLimit)</span><input class="cc-input" type="number" value="8"></div>
+            <div class="cc-row"><span class="cc-key">冷却期 (cooldown)</span><input class="cc-input" type="number" value="15"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">恢复阈值</span><input class="cc-input" type="number" value="50"><span style="margin-left:6px;font-size:12px;color:#8f8681">% 以下</span></div>
+            <div class="cc-row"><span class="cc-key">默认干预动作</span><span class="cc-val" style="font-family:monospace;font-size:12px;color:#c2410c">disable_skill</span></div>
+          </div>
+
+          <!-- Error Rate Config -->
+          <div class="config-card">
+            <div class="cc-title">
+              <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0"></span>
+              错误率阈值参数
+            </div>
+            <div class="cc-row"><span class="cc-key">失败率阈值 (errorRateThreshold)</span><input class="cc-input" type="number" value="50"><span style="margin-left:6px;font-size:12px;color:#8f8681">%</span></div>
+            <div class="cc-row"><span class="cc-key">统计窗口</span><input class="cc-input" type="number" value="5"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">冷却期 (cooldown)</span><input class="cc-input" type="number" value="10"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">默认干预动作</span><span class="cc-val" style="font-family:monospace;font-size:12px;color:#c2410c">handle_skill_risk</span></div>
+          </div>
+
+          <!-- Resource Config -->
+          <div class="config-card">
+            <div class="cc-title">
+              <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0"></span>
+              资源耗尽参数
+            </div>
+            <div class="cc-row"><span class="cc-key">CPU 阈值 (cpuThreshold)</span><input class="cc-input" type="number" value="90"><span style="margin-left:6px;font-size:12px;color:#8f8681">%</span></div>
+            <div class="cc-row"><span class="cc-key">内存阈值 (memoryThreshold)</span><input class="cc-input" type="number" value="90"><span style="margin-left:6px;font-size:12px;color:#8f8681">%</span></div>
+            <div class="cc-row"><span class="cc-key">持续时间</span><input class="cc-input" type="number" value="2"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">恢复阈值</span><input class="cc-input" type="number" value="70"><span style="margin-left:6px;font-size:12px;color:#8f8681">% 以下</span></div>
+            <div class="cc-row"><span class="cc-key">冷却期 (cooldown)</span><input class="cc-input" type="number" value="20"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">默认干预动作</span><span class="cc-val" style="font-family:monospace;font-size:12px;color:#c2410c">stop_openclaw</span></div>
+          </div>
+
+          <!-- Deadlock Config -->
+          <div class="config-card">
+            <div class="cc-title">
+              <span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0"></span>
+              死锁检测参数
+            </div>
+            <div class="cc-row"><span class="cc-key">互等待阈值 (deadlockTimeout)</span><input class="cc-input" type="number" value="30"><span style="margin-left:6px;font-size:12px;color:#8f8681">秒</span></div>
+            <div class="cc-row"><span class="cc-key">冷却期 (cooldown)</span><input class="cc-input" type="number" value="5"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">优先级策略</span><span class="cc-val">停止低优先级</span></div>
+            <div class="cc-row"><span class="cc-key">默认干预动作</span><span class="cc-val" style="font-family:monospace;font-size:12px;color:#c2410c">stop_openclaw</span></div>
+          </div>
+
+          <!-- Half-Open Probe Config -->
+          <div class="config-card">
+            <div class="cc-title">
+              <span style="width:8px;height:8px;border-radius:50%;background:#0ea5e9;flex-shrink:0"></span>
+              Half-Open 探测参数
+            </div>
+            <div class="cc-row"><span class="cc-key">探测间隔 (probeInterval)</span><input class="cc-input" type="number" value="30"><span style="margin-left:6px;font-size:12px;color:#8f8681">秒</span></div>
+            <div class="cc-row"><span class="cc-key">探测请求量</span><input class="cc-input" type="number" value="3"></div>
+            <div class="cc-row"><span class="cc-key">探测超时</span><input class="cc-input" type="number" value="5"><span style="margin-left:6px;font-size:12px;color:#8f8681">分钟</span></div>
+            <div class="cc-row"><span class="cc-key">成功判定</span><span class="cc-val">全部成功 → Closed</span></div>
+            <div class="cc-row"><span class="cc-key">失败判定</span><span class="cc-val">任一失败 → Open</span></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Panel: 自动恢复设置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Auto Recovery</div>
+            <div class="panel-title">自动恢复设置</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">enableAutoRecovery</div>
+            <div class="desc">熔断冷却期结束后自动切换至 Half-Open 探测状态，验证 Agent 是否恢复正常</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-auto-recovery" checked>
+            <label class="toggle-slider" for="toggle-auto-recovery"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">autoRecoveryAfterCooldown</div>
+            <div class="desc">冷却期到期后自动进入探测，无需人工干预</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-auto-cooldown" checked>
+            <label class="toggle-slider" for="toggle-auto-cooldown"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">requireManualApprovalForOpen</div>
+            <div class="desc">Open 状态的 Agent 恢复至 Closed 需运维人员手动确认</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-manual-approve">
+            <label class="toggle-slider" for="toggle-manual-approve"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">exfiltrationRequiresManualReview</div>
+            <div class="desc">数据泄露链 (BLOCK_REASON_EXFILTRATION_CHAIN) 触发的熔断需人工审核后才能恢复</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-exfil-manual" checked>
+            <label class="toggle-slider" for="toggle-exfil-manual"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">maxAutoRecoveryAttempts</div>
+            <div class="desc">自动恢复最大尝试次数，超过后保持 Open 需人工干预</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="form-input" style="width:80px;text-align:center" type="number" value="3">
+            <span style="font-size:12px;color:#8f8681">次</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: InstanceCommand 配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">InstanceCommand Settings</div>
+            <div class="panel-title">命令下发配置</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">defaultTimeoutSeconds</div>
+            <div class="desc">InstanceCommand 默认超时时间，超时未完成标记为 failed</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="form-input" style="width:80px;text-align:center" type="number" value="120">
+            <span style="font-size:12px;color:#8f8681">秒</span>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">enableIdempotencyCheck</div>
+            <div class="desc">启用幂等性检查，相同 IdempotencyKey 的命令不重复执行</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-idempotency" checked>
+            <label class="toggle-slider" for="toggle-idempotency"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">commandRetryPolicy</div>
+            <div class="desc">失败命令的重试策略：none（不重试）/ once（重试一次）/ exponential（指数退避）</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select class="form-input" style="width:150px">
+              <option>none</option>
+              <option selected>once</option>
+              <option>exponential</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: 手动覆盖权限 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Manual Override Permissions</div>
+            <div class="panel-title">手动覆盖权限配置</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>操作类型</th>
+              <th>InstanceCommand</th>
+              <th>最低权限</th>
+              <th>需审批</th>
+              <th>审计日志</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>隔离 Agent</td>
+              <td><code>quarantine_skill</code></td>
+              <td><span class="badge badge-high">admin</span></td>
+              <td>是</td>
+              <td>是</td>
+            </tr>
+            <tr>
+              <td>停止实例</td>
+              <td><code>stop_openclaw</code></td>
+              <td><span class="badge badge-high">admin</span></td>
+              <td>是</td>
+              <td>是</td>
+            </tr>
+            <tr>
+              <td>禁用技能</td>
+              <td><code>disable_skill</code></td>
+              <td><span class="badge badge-medium">operator</span></td>
+              <td>否</td>
+              <td>是</td>
+            </tr>
+            <tr>
+              <td>网络隔离</td>
+              <td><code>NetworkPolicy</code></td>
+              <td><span class="badge badge-high">admin</span></td>
+              <td>是</td>
+              <td>是</td>
+            </tr>
+            <tr>
+              <td>重启实例</td>
+              <td><code>restart_openclaw</code></td>
+              <td><span class="badge badge-medium">operator</span></td>
+              <td>否</td>
+              <td>是</td>
+            </tr>
+            <tr>
+              <td>风险处理</td>
+              <td><code>handle_skill_risk</code></td>
+              <td><span class="badge badge-low">viewer</span></td>
+              <td>否</td>
+              <td>是</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Panel: 通知配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Notification Config</div>
+            <div class="panel-title">熔断事件通知配置</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">notifyOnCircuitOpen</div>
+            <div class="desc">熔断器进入 Open 状态时发送通知</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-notify-open" checked>
+            <label class="toggle-slider" for="toggle-notify-open"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">notifyOnCircuitHalfOpen</div>
+            <div class="desc">熔断器进入 Half-Open 探测状态时发送通知</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-notify-halfopen" checked>
+            <label class="toggle-slider" for="toggle-notify-halfopen"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">notifyOnCircuitClosed</div>
+            <div class="desc">熔断器恢复正常 (Closed) 时发送通知</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-notify-closed">
+            <label class="toggle-slider" for="toggle-notify-closed"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">notifyOnManualIntervention</div>
+            <div class="desc">手动干预操作时发送通知</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-notify-manual" checked>
+            <label class="toggle-slider" for="toggle-notify-manual"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">notificationChannels</div>
+            <div class="desc">通知渠道：webhook、邮件、Slack/钉钉</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span class="tag">Webhook</span>
+            <span class="tag">钉钉</span>
+            <span class="tag">邮件</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: NetworkPolicy 模板 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">NetworkPolicy Template</div>
+            <div class="panel-title">网络隔离策略模板</div>
+          </div>
+        </div>
+        <div class="code-block">
+<span class="cmt">// 限制性 NetworkPolicy — 熔断隔离模板</span>
+<span class="kw">apiVersion</span>: networking.k8s.io/v1
+<span class="kw">kind</span>: NetworkPolicy
+<span class="kw">metadata</span>:
+  <span class="kw">name</span>: circuit-breaker-isolation
+  <span class="kw">namespace</span>: agent-runtime
+<span class="kw">spec</span>:
+  <span class="kw">podSelector</span>:
+    <span class="kw">matchLabels</span>:
+      <span class="str">app</span>: <span class="str">${TARGET_AGENT}</span>
+  <span class="kw">policyTypes</span>:
+    - <span class="str">Egress</span>
+  <span class="kw">egress</span>:
+    <span class="cmt"># 仅允许 DNS 查询</span>
+    - <span class="kw">to</span>:
+        - <span class="kw">namespaceSelector</span>:
+            <span class="kw">matchLabels</span>:
+              <span class="str">name</span>: <span class="str">kube-system</span>
+      <span class="kw">ports</span>:
+        - <span class="kw">port</span>: <span class="num">53</span>
+          <span class="kw">protocol</span>: <span class="str">UDP</span>
+    <span class="cmt"># 允许系统命名空间端口</span>
+    - <span class="kw">to</span>:
+        - <span class="kw">namespaceSelector</span>:
+            <span class="kw">matchLabels</span>:
+              <span class="str">name</span>: <span class="str">system-infra</span>
+      <span class="kw">ports</span>:
+        - <span class="kw">port</span>: <span class="num">80</span>
+        - <span class="kw">port</span>: <span class="num">443</span>
+        - <span class="kw">port</span>: <span class="num">8443</span>
+        - <span class="kw">port</span>: <span class="num">9001</span>
+        - <span class="kw">port</span>: <span class="num">3128</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

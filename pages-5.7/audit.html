@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.7.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+  <div class="content-area">
+
+    <!-- Audit Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <h2 style="font-size:18px;font-weight:700;color:var(--text-h);margin:0">多智能体协同安全审计报告</h2>
+        <div style="font-size:12px;color:var(--text-m);margin-top:4px">审计范围: 代理身份认证 · 消息完整性 · 协议版本 · Anti-replay · 资源配额 · 熔断机制 · 共识验证</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary btn-sm">导出 PDF</button>
+        <button class="btn-secondary btn-sm">导出 CSV</button>
+      </div>
+    </div>
+
+    <!-- Compliance Score -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
+      <div class="panel" style="text-align:center;padding:20px">
+        <div style="width:80px;height:80px;border-radius:50%;border:4px solid #16a34a;display:inline-flex;align-items:center;justify-content:center;margin-bottom:8px">
+          <span style="font-size:22px;font-weight:700;color:#16a34a">92%</span>
+        </div>
+        <div style="font-weight:600;color:var(--text-h)">协议安全合规</div>
+        <div style="font-size:11px;color:var(--text-m)">9 项通过 / 1 项待整改</div>
+      </div>
+      <div class="panel" style="text-align:center;padding:20px">
+        <div style="width:80px;height:80px;border-radius:50%;border:4px solid #d97706;display:inline-flex;align-items:center;justify-content:center;margin-bottom:8px">
+          <span style="font-size:22px;font-weight:700;color:#d97706">78%</span>
+        </div>
+        <div style="font-weight:600;color:var(--text-h)">代理认证合规</div>
+        <div style="font-size:11px;color:var(--text-m)">7 项通过 / 2 项待整改</div>
+      </div>
+      <div class="panel" style="text-align:center;padding:20px">
+        <div style="width:80px;height:80px;border-radius:50%;border:4px solid #7c3aed;display:inline-flex;align-items:center;justify-content:center;margin-bottom:8px">
+          <span style="font-size:22px;font-weight:700;color:#7c3aed">85%</span>
+        </div>
+        <div style="font-weight:600;color:var(--text-h)">资源治理合规</div>
+        <div style="font-size:11px;color:var(--text-m)">6 项通过 / 1 项待整改</div>
+      </div>
+    </div>
+
+    <!-- Audit Checklist -->
+    <div class="panel" style="padding:16px">
+      <div style="font-weight:600;color:var(--text-h);margin-bottom:12px;font-size:14px">审计检查项</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border)">
+            <th style="padding:8px 12px;text-align:left">检查项</th>
+            <th style="padding:8px 12px;text-align:left">对应 FR</th>
+            <th style="padding:8px 12px;text-align:left">状态</th>
+            <th style="padding:8px 12px;text-align:left">说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">代理间双向身份认证启用</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-40</td>
+            <td style="padding:8px 12px"><span style="color:#16a34a;font-weight:600">&#10004; 通过</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">Bootstrap Token + mTLS 双因子认证已启用</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">消息签名与完整性校验</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-41</td>
+            <td style="padding:8px 12px"><span style="color:#16a34a;font-weight:600">&#10004; 通过</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">HMAC-SHA256 签名验证正常</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">协议版本固定策略</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-42</td>
+            <td style="padding:8px 12px"><span style="color:#16a34a;font-weight:600">&#10004; 通过</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">最低版本 A2A/v2.0，降级请求已拦截</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">Anti-replay 保护生效</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-43</td>
+            <td style="padding:8px 12px"><span style="color:#d97706;font-weight:600">&#9888; 待整改</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">nonce 缓存 TTL 建议从 300s 缩短至 60s</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">代理注册保护</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-44</td>
+            <td style="padding:8px 12px"><span style="color:#16a34a;font-weight:600">&#10004; 通过</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">注册证书自动签发与吊销机制正常</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">代理交互异常监控</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-45</td>
+            <td style="padding:8px 12px"><span style="color:#16a34a;font-weight:600">&#10004; 通过</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">频率异常与拓扑偏移检测已启用</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">资源配额与速率限制</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-46</td>
+            <td style="padding:8px 12px"><span style="color:#16a34a;font-weight:600">&#10004; 通过</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">CPU/Memory/Network 配额已配置</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">熔断机制配置</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-47</td>
+            <td style="padding:8px 12px"><span style="color:#16a34a;font-weight:600">&#10004; 通过</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">错误率 50% 触发熔断，半开探测间隔 30s</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 12px">多智能体共识验证</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-48</td>
+            <td style="padding:8px 12px"><span style="color:#d97706;font-weight:600">&#9888; 待整改</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">共识阈值建议从 2-of-3 提升至 3-of-5</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 12px">15s 心跳检测机制</td>
+            <td style="padding:8px 12px;font-family:monospace">FR-40</td>
+            <td style="padding:8px 12px"><span style="color:#16a34a;font-weight:600">&#10004; 通过</span></td>
+            <td style="padding:8px 12px;color:var(--text-m)">InstanceAgent 心跳正常，24h 会话超时已配置</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

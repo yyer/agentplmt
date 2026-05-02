@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr74</title>
+<link rel="stylesheet" href="../css-5.12.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr74">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">可信节点架构</div>
+      <div class="tab" data-tab="nodes">节点管理</div>
+      <div class="tab" data-tab="schedule">实例调度</div>
+      <div class="tab" data-tab="monitor">节点监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ===================== TAB 1: 可信节点架构 ===================== -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">10</div>
+          <div class="sc-label">集群节点总数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#1d4ed8">3</div>
+          <div class="sc-label">可信节点</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">2</div>
+          <div class="sc-label">高安全节点</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">87</div>
+          <div class="sc-label">平均信任评分</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">92%</div>
+          <div class="sc-label">基线合规率</div>
+        </div>
+      </div>
+
+      <!-- Architecture Overview -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Trusted Node Architecture</div>
+            <div class="panel-title">可信节点三级架构 - 节点分层与实例调度</div>
+          </div>
+          <span class="badge badge-pass">&#x2713; 已部署</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+          可信节点架构为高权限、高敏感、高风险Agent实例提供专用节点承载，通过K8s节点标签(security-tier)实现节点分级，ClawManager CreatePod使用nodeSelector将实例调度至对应安全层级节点，KubeArmor DaemonSet在各节点以差异化的DefaultPosture执行策略强制，KSecure通过G_MODE(c/s/b)和38个基线脚本实现节点可信度量。三级架构从Standard(基础安全共享环境)到Trusted(增强监控专用策略)再到High-Security(完全隔离审计)，逐级提升安全强度，降低共用环境风险。
+        </p>
+
+        <!-- Tier 3: High-Security Node -->
+        <div class="arch-tier" style="background:linear-gradient(135deg,rgba(254,226,226,0.5),rgba(254,226,226,0.2));border:1px solid #fecaca">
+          <div class="at-header">
+            <div class="at-num" style="background:linear-gradient(135deg,#ef6b4a,#dc2626)">3</div>
+            <div class="at-title">High-Security Node - 高安全节点</div>
+            <span class="badge badge-highsec">完全隔离</span>
+            <span class="badge badge-critical">CRITICAL</span>
+          </div>
+          <div class="at-items">
+            <div class="at-item">
+              <div class="item-name">节点标签</div>
+              <div class="item-desc">security-tier: high-security<br>tee-type: sgx/tdx/sev<br>kubearmor-enforcer: bpf-lsm</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">KubeArmor策略</div>
+              <div class="item-desc">DefaultPosture: file=block, network=block, capabilities=block, device=block<br>全维度默认拒绝，仅策略放行</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">KSecure模式</div>
+              <div class="item-desc">G_MODE=s (严格模式)<br>38个基线脚本全部强制执行<br>dmidecode -s system-UUID硬件身份绑定</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">承载实例</div>
+              <div class="item-desc">生产环境openclaw实例<br>财务/医疗/法律高敏Agent<br>高敏知识库与数据处理链路</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">网络隔离</div>
+              <div class="item-desc">专用网络平面<br>仅允许必要服务间通信<br>出口流量全量审计</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">审计增强</div>
+              <div class="item-desc">全量操作审计日志<br>SecLog.HostName节点标识<br>实时告警与合规报表</div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-connector-v"></div>
+
+        <!-- Tier 2: Trusted Node -->
+        <div class="arch-tier" style="background:linear-gradient(135deg,rgba(219,234,254,0.5),rgba(219,234,254,0.2));border:1px solid #bfdbfe">
+          <div class="at-header">
+            <div class="at-num" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">2</div>
+            <div class="at-title">Trusted Node - 可信节点</div>
+            <span class="badge badge-trusted">增强监控</span>
+            <span class="badge badge-high">HIGH</span>
+          </div>
+          <div class="at-items">
+            <div class="at-item">
+              <div class="item-name">节点标签</div>
+              <div class="item-desc">security-tier: trusted<br>kubearmor-enforcer: bpf-lsm/apparmor<br>baseline-verified: "true"</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">KubeArmor策略</div>
+              <div class="item-desc">DefaultPosture: file=block, network=audit, capabilities=block, device=audit<br>关键维度block, 通信维度audit</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">KSecure模式</div>
+              <div class="item-desc">G_MODE=s (严格模式)<br>基线验证通过标记<br>system-UUID硬件身份注册</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">承载实例</div>
+              <div class="item-desc">openclaw实例(可信工作负载)<br>高敏Agent(非生产环境)<br>可信开发/测试实例</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">硬件认证</div>
+              <div class="item-desc">dmidecode -s system-UUID<br>基线完整性验证通过<br>可信度量评分 &ge; 80</div>
+            </div>
+          </div>
+        </div>
+        <div class="arch-connector-v"></div>
+
+        <!-- Tier 1: Standard Node -->
+        <div class="arch-tier" style="background:linear-gradient(135deg,rgba(229,231,235,0.5),rgba(229,231,235,0.2));border:1px solid #d1d5db">
+          <div class="at-header">
+            <div class="at-num" style="background:linear-gradient(135deg,#9ca3af,#6b7280)">1</div>
+            <div class="at-title">Standard Node - 标准节点</div>
+            <span class="badge badge-standard">基础安全</span>
+            <span class="badge badge-medium">MEDIUM</span>
+          </div>
+          <div class="at-items">
+            <div class="at-item">
+              <div class="item-name">节点标签</div>
+              <div class="item-desc">security-tier: standard<br>kubearmor-enforcer: apparmor/selinux<br>默认未标记为可信</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">KubeArmor策略</div>
+              <div class="item-desc">DefaultPosture: file=audit, network=audit, capabilities=audit, device=off<br>全维度审计模式，记录但不阻断</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">KSecure模式</div>
+              <div class="item-desc">G_MODE=c (兼容模式)<br>基线脚本仅记录偏离<br>不强制执行</div>
+            </div>
+            <div class="at-item">
+              <div class="item-name">承载实例</div>
+              <div class="item-desc">一般工作负载<br>开发/测试环境实例<br>ubuntu/debian/centos基础实例</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scheduling Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Instance Scheduling Flow</div>
+            <div class="panel-title">ClawManager 实例调度流程 - nodeSelector标签驱动</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          ClawManager通过RuntimePodConfig.NodeSelector(map[string]string)和Tolerations([]Toleration)实现实例到节点的调度。当前CreatePod(PodConfig)创建Pod时未注入security-tier标签，需增强PodConfig增加SecurityTier字段，在CreatePod中将security-tier映射为nodeSelector。KubeArmor DaemonSet以DaemonSet方式部署在所有节点，根据节点标签自动匹配对应DefaultPosture策略。
+        </p>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#ef6b4a,#dc2626)">1</div>
+          <div class="flow-step-content">
+            <div class="fs-title">实例风险评估</div>
+            <div class="fs-desc">根据Instance.Type(openclaw/ubuntu/debian/centos/custom/webtop)和InstanceRuntimeStatus(InfraStatus/AgentStatus/OpenClawStatus/SystemInfoJSON/HealthJSON)评估实例风险等级。高敏Type(openclaw生产实例)自动标记为高风险，需调度至可信或高安全节点。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">Instance.Type</span>
+              <span class="badge badge-sys">InstanceRuntimeStatus</span>
+              <span class="badge badge-sys">风险评估引擎</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">2</div>
+          <div class="flow-step-content">
+            <div class="fs-title">nodeSelector标签注入</div>
+            <div class="fs-desc">ClawManager CreatePod根据实例风险等级，在PodConfig中注入nodeSelector: {security-tier: "trusted"}或{security-tier: "high-security"}。同时注入对应Tolerations，允许Pod调度至带有匹配taint的节点。RuntimePodConfig.NodeSelector(map[string]string)扩展security-tier键，Toleration结构体(Key/Operator/Value/Effect)匹配节点taint。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">RuntimePodConfig.NodeSelector</span>
+              <span class="badge badge-sys">RuntimePodConfig.Tolerations</span>
+              <span class="badge badge-sys">pod_service.go CreatePod</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">3</div>
+          <div class="flow-step-content">
+            <div class="fs-title">K8s调度与Pod亲和性</div>
+            <div class="fs-desc">K8s Scheduler根据Pod的nodeSelector匹配带有对应security-tier标签的节点。高安全节点添加taint(security-tier=high-security:NoSchedule)阻止未授权Pod调度，仅带有匹配Toleration的Pod可调度。实现实例与节点的安全层级绑定，降低共用环境风险。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">K8s nodeSelector</span>
+              <span class="badge badge-sys">Taint/Toleration</span>
+              <span class="badge badge-sys">Pod Affinity</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#059669,#047857)">4</div>
+          <div class="flow-step-content">
+            <div class="fs-title">KubeArmor策略匹配执行</div>
+            <div class="fs-desc">KubeArmor DaemonSet在每个节点运行，根据节点标签自动选择对应DefaultPosture策略。High-Security节点: file=block/network=block/capabilities=block/device=block；Trusted节点: file=block/network=audit/capabilities=block/device=audit；Standard节点: file=audit/network=audit/capabilities=audit/device=off。KubeArmorOperator snitch检测节点LSM后端(BPF-LSM/AppArmor/SELinux)，自动选择最佳强制器。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">KubeArmor DaemonSet</span>
+              <span class="badge badge-sys">DefaultPosture</span>
+              <span class="badge badge-sys">Operator Snitch</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ClawManager Code Integration -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager Code Integration</div>
+            <div class="panel-title">ClawManager 现有代码与增强路径</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#3b82f6"></div>
+            <div class="rc-header">
+              <span class="rc-title">RuntimePodConfig (现有)</span>
+              <span class="badge badge-blue">config.go</span>
+            </div>
+            <div class="rc-body">
+              当前RuntimePodConfig已定义NodeSelector(map[string]string)和Tolerations([]Toleration)字段。Toleration结构体包含Key/Operator/Value/Effect四字段，与K8s Toleration完全对齐。只需在NodeSelector中注入security-tier标签，在Tolerations中添加对应容忍度即可实现节点分层调度。
+              <div style="margin-top:10px">
+                <div class="diff-container">
+                  <div class="diff-line diff-removed">NodeSelector: map[string]string{} // 当前为空</div>
+                  <div class="diff-line diff-added">NodeSelector: map[string]string{"security-tier": "trusted"} // 增强后</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#dc2626"></div>
+            <div class="rc-header">
+              <span class="rc-title">PodConfig / CreatePod (增强)</span>
+              <span class="badge badge-high">pod_service.go</span>
+            </div>
+            <div class="rc-body">
+              当前PodConfig结构体包含InstanceID/InstanceName/Type/CPUCores/MemoryGB/GPUEnabled/GPUCount/Image等字段，CreatePod函数创建Pod时设置Labels(app/instance-id/instance-name/user-id/instance-type/managed-by)和资源限制，但<strong>未注入NodeSelector和Tolerations</strong>。需增强CreatePod将RuntimePodConfig.NodeSelector和Tolerations应用到PodSpec。
+              <div style="margin-top:10px">
+                <div class="diff-container">
+                  <div class="diff-line diff-removed">pod.Spec.NodeSelector = nil // 当前未设置</div>
+                  <div class="diff-line diff-added">pod.Spec.NodeSelector = runtimeConfig.NodeSelector // 增强后</div>
+                  <div class="diff-line diff-added">pod.Spec.Tolerations = runtimeConfig.Tolerations // 增强后</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#8b5cf6"></div>
+            <div class="rc-header">
+              <span class="rc-title">KubeArmor DefaultPosture (现有)</span>
+              <span class="badge badge-purple">types.go</span>
+            </div>
+            <div class="rc-body">
+              KubeArmor DefaultPosture结构体定义FileAction/NetworkAction/CapabilitiesAction/DeviceAction四维度，每个维度支持audit/block值。通过KubeArmorPolicy的namespace级DefaultPosture配置，可为不同安全层级节点上的Pod配置差异化默认策略。KubeArmorOperator snitch自动检测节点enforcer类型(BPF-LSM/AppArmor/SELinux)。
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#f59e0b"></div>
+            <div class="rc-header">
+              <span class="rc-title">KSecure G_MODE + Baseline (现有)</span>
+              <span class="badge badge-warn">KSecure</span>
+            </div>
+            <div class="rc-body">
+              KSecure支持G_MODE(c/s/b)三种基线模式：c=兼容模式(仅记录偏离)、s=严格模式(强制执行基线)、b=基线模式(生成基线快照)。38个基线脚本覆盖系统配置/文件权限/网络设置/进程管理等。dmidecode -s system-uuid提供硬件身份标识，SecLog.HostName字段用于节点级别日志关联。高安全节点使用G_MODE=s，可信节点使用G_MODE=s，标准节点使用G_MODE=c。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acceptance Criteria -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria</div>
+            <div class="panel-title">FR-74 验收标准覆盖</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#059669"></div>
+            <div class="rc-header">
+              <span class="rc-title">1) 节点可标记为可信/高敏</span>
+              <span class="badge badge-pass">&#x2713; 已覆盖</span>
+            </div>
+            <div class="rc-body">
+              K8s节点标签security-tier: standard/trusted/high-security实现三级标记。dmidecode -s system-UUID提供硬件身份绑定。KSecure 38个基线脚本验证节点可信状态。KubeArmor Operator snitch检测enforcer类型。节点标签可通过kubectl label或ClawManager节点管理界面设置。
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#3b82f6"></div>
+            <div class="rc-header">
+              <span class="rc-title">2) 高敏实例调度到专用节点</span>
+              <span class="badge badge-pass">&#x2713; 已覆盖</span>
+            </div>
+            <div class="rc-body">
+              ClawManager CreatePod通过RuntimePodConfig.NodeSelector注入security-tier标签，K8s Scheduler将Pod调度至匹配标签的节点。高安全节点Taint(security-tier=high-security:NoSchedule)阻止未授权Pod。InstanceCommand(InstanceID/CommandType/PayloadJSON)支持实例迁移(Stop旧节点+Start新节点)。
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#8b5cf6"></div>
+            <div class="rc-header">
+              <span class="rc-title">3) 节点可信度量可验证</span>
+              <span class="badge badge-pass">&#x2713; 已覆盖</span>
+            </div>
+            <div class="rc-body">
+              KSecure G_MODE(s)严格模式执行38个基线脚本，基线偏离即告警。dmidecode -s system-UUID硬件身份验证。Trust Score(0-100)综合评分基于基线合规率/KubeArmor enforcer状态/运行实例风险等维度。SecLog.HostName关联节点级安全日志，支持可信度量审计。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 2: 节点管理 ===================== -->
+    <div class="tab-content" id="tab-nodes">
+
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">10</div>
+          <div class="sc-label">集群节点</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#1d4ed8">3</div>
+          <div class="sc-label">可信节点</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">2</div>
+          <div class="sc-label">高安全节点</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">92%</div>
+          <div class="sc-label">基线合规率</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">87</div>
+          <div class="sc-label">平均信任评分</div>
+        </div>
+      </div>
+
+      <!-- Toggles -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Scheduling Policy</div>
+            <div class="panel-title">节点层级调度策略</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">强制节点层级调度 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">enforceNodeTierScheduling</code></div>
+            <div class="desc">高敏实例必须调度至对应安全层级节点。enforce模式: 调度失败拒绝创建; observe模式: 记录偏离但允许创建; off模式: 不执行层级约束</div>
+          </div>
+          <div style="display:flex;align-items:center">
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce" data-mode="enforce">enforce</div>
+              <div class="mode-btn" data-mode="observe">observe</div>
+              <div class="mode-btn" data-mode="off">off</div>
+            </div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">调度时自动认证 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">autoAttestOnSchedule</code></div>
+            <div class="desc">实例调度至可信/高安全节点前，自动执行KSecure基线验证和硬件身份认证(dmidecode -s system-UUID)，验证通过才允许调度</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Node Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Cluster Nodes</div>
+            <div class="panel-title">集群节点管理</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+            <button class="btn-primary btn-sm">+ 标记节点</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>节点名称</th><th>Tier</th><th>KubeArmor Enforcer</th><th>KSecure基线评分</th><th>TEE支持</th><th>运行实例</th><th>信任评分</th><th>最后验证</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-hs-01</td>
+              <td><span class="badge badge-highsec">High-Security</span></td>
+              <td><span class="badge badge-bpf">BPF-LSM</span></td>
+              <td><span class="stat-mini" style="color:#059669">98/100</span></td>
+              <td><span class="badge badge-pass">SGX+TDX</span></td>
+              <td>3</td>
+              <td><span style="font-weight:800;color:#059669;font-size:16px">96</span></td>
+              <td style="font-size:12px">2026-05-01 08:30</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm">验证</button>
+                  <button class="btn-secondary btn-sm">基线</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-hs-02</td>
+              <td><span class="badge badge-highsec">High-Security</span></td>
+              <td><span class="badge badge-bpf">BPF-LSM</span></td>
+              <td><span class="stat-mini" style="color:#059669">95/100</span></td>
+              <td><span class="badge badge-pass">TDX</span></td>
+              <td>2</td>
+              <td><span style="font-weight:800;color:#059669;font-size:16px">93</span></td>
+              <td style="font-size:12px">2026-05-01 07:45</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm">验证</button>
+                  <button class="btn-secondary btn-sm">基线</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-tr-01</td>
+              <td><span class="badge badge-trusted">Trusted</span></td>
+              <td><span class="badge badge-bpf">BPF-LSM</span></td>
+              <td><span class="stat-mini" style="color:#059669">92/100</span></td>
+              <td><span class="badge badge-off">无</span></td>
+              <td>4</td>
+              <td><span style="font-weight:800;color:#1d4ed8;font-size:16px">89</span></td>
+              <td style="font-size:12px">2026-05-01 09:15</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm">分配</button>
+                  <button class="btn-secondary btn-sm">验证</button>
+                  <button class="btn-secondary btn-sm">基线</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-tr-02</td>
+              <td><span class="badge badge-trusted">Trusted</span></td>
+              <td><span class="badge badge-apparmor">AppArmor</span></td>
+              <td><span class="stat-mini" style="color:#059669">88/100</span></td>
+              <td><span class="badge badge-off">无</span></td>
+              <td>3</td>
+              <td><span style="font-weight:800;color:#1d4ed8;font-size:16px">85</span></td>
+              <td style="font-size:12px">2026-05-01 06:20</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm">分配</button>
+                  <button class="btn-secondary btn-sm">验证</button>
+                  <button class="btn-secondary btn-sm">基线</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-tr-03</td>
+              <td><span class="badge badge-trusted">Trusted</span></td>
+              <td><span class="badge badge-apparmor">AppArmor</span></td>
+              <td><span class="stat-mini" style="color:#d97706">76/100</span></td>
+              <td><span class="badge badge-off">无</span></td>
+              <td>2</td>
+              <td><span style="font-weight:800;color:#d97706;font-size:16px">78</span></td>
+              <td style="font-size:12px;color:#d97706">2026-04-30 22:10</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-primary btn-sm">验证</button>
+                  <button class="btn-secondary btn-sm">基线</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-std-01</td>
+              <td><span class="badge badge-standard">Standard</span></td>
+              <td><span class="badge badge-apparmor">AppArmor</span></td>
+              <td><span class="stat-mini" style="color:#d97706">72/100</span></td>
+              <td><span class="badge badge-off">无</span></td>
+              <td>6</td>
+              <td><span style="font-weight:800;color:#d97706;font-size:16px">74</span></td>
+              <td style="font-size:12px">2026-04-30 18:00</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm">分配</button>
+                  <button class="btn-secondary btn-sm">隔离</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-std-02</td>
+              <td><span class="badge badge-standard">Standard</span></td>
+              <td><span class="badge badge-selinux">SELinux</span></td>
+              <td><span class="stat-mini" style="color:#059669">80/100</span></td>
+              <td><span class="badge badge-off">无</span></td>
+              <td>5</td>
+              <td><span style="font-weight:800;color:#d97706;font-size:16px">80</span></td>
+              <td style="font-size:12px">2026-04-30 20:30</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm">分配</button>
+                  <button class="btn-secondary btn-sm">隔离</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-std-03</td>
+              <td><span class="badge badge-standard">Standard</span></td>
+              <td><span class="badge badge-selinux">SELinux</span></td>
+              <td><span class="stat-mini" style="color:#dc2626">58/100</span></td>
+              <td><span class="badge badge-off">无</span></td>
+              <td>4</td>
+              <td><span style="font-weight:800;color:#dc2626;font-size:16px">62</span></td>
+              <td style="font-size:12px;color:#dc2626">2026-04-29 14:00</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-primary btn-sm" style="background:linear-gradient(135deg,#dc2626,#b91c1c)">隔离</button>
+                  <button class="btn-secondary btn-sm">基线</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-std-04</td>
+              <td><span class="badge badge-standard">Standard</span></td>
+              <td><span class="badge badge-apparmor">AppArmor</span></td>
+              <td><span class="stat-mini" style="color:#059669">82/100</span></td>
+              <td><span class="badge badge-off">无</span></td>
+              <td>3</td>
+              <td><span style="font-weight:800;color:#d97706;font-size:16px">81</span></td>
+              <td style="font-size:12px">2026-04-30 21:45</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm">分配</button>
+                  <button class="btn-secondary btn-sm">隔离</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">node-std-05</td>
+              <td><span class="badge badge-standard">Standard</span></td>
+              <td><span class="badge badge-apparmor">AppArmor</span></td>
+              <td><span class="stat-mini" style="color:#059669">85/100</span></td>
+              <td><span class="badge badge-off">无</span></td>
+              <td>2</td>
+              <td><span style="font-weight:800;color:#d97706;font-size:16px">83</span></td>
+              <td style="font-size:12px">2026-04-30 19:30</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <button class="btn-secondary btn-sm">分配</button>
+                  <button class="btn-secondary btn-sm">隔离</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- KubeArmor Operator Snitch Results -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Operator Snitch Results</div>
+            <div class="panel-title">节点LSM强制器检测 (Snitch自动探测)</div>
+          </div>
+          <span class="badge badge-sys">KubeArmor</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          KubeArmorOperator snitch在每个节点启动时自动检测可用的LSM强制器。检测顺序: BPF-LSM(需内核5.4+且CONFIG_BPF_LSM=y) > AppArmor(需/apparmor/.access可用) > SELinux(需SELinux enabled)。每个节点仅启用一种强制器，BPF-LSM优先级最高。高安全节点要求BPF-LSM，可信节点可使用BPF-LSM或AppArmor，标准节点可使用任意强制器。
+        </p>
+        <table class="data-table">
+          <thead><tr><th>节点</th><th>检测到的Enforcer</th><th>内核版本</th><th>BPF-LSM可用</th><th>AppArmor可用</th><th>SELinux可用</th><th>最终选择</th><th>节点Tier要求</th><th>合规</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">node-hs-01</td><td>BPF-LSM</td><td>5.15.0</td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-bpf">BPF-LSM</span></td><td>BPF-LSM</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+            <tr><td style="font-weight:600">node-hs-02</td><td>BPF-LSM</td><td>5.15.0</td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-bpf">BPF-LSM</span></td><td>BPF-LSM</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+            <tr><td style="font-weight:600">node-tr-01</td><td>BPF-LSM</td><td>5.10.0</td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-bpf">BPF-LSM</span></td><td>BPF/AppArmor</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+            <tr><td style="font-weight:600">node-tr-02</td><td>AppArmor</td><td>5.4.0</td><td><span class="badge badge-fail">&#x2717;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-apparmor">AppArmor</span></td><td>BPF/AppArmor</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+            <tr><td style="font-weight:600">node-tr-03</td><td>AppArmor</td><td>5.4.0</td><td><span class="badge badge-fail">&#x2717;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-apparmor">AppArmor</span></td><td>BPF/AppArmor</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+            <tr><td style="font-weight:600">node-std-01</td><td>AppArmor</td><td>5.4.0</td><td><span class="badge badge-fail">&#x2717;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-apparmor">AppArmor</span></td><td>Any</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+            <tr><td style="font-weight:600">node-std-02</td><td>SELinux</td><td>4.18.0</td><td><span class="badge badge-fail">&#x2717;</span></td><td><span class="badge badge-fail">&#x2717;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-selinux">SELinux</span></td><td>Any</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+            <tr><td style="font-weight:600">node-std-03</td><td>AppArmor</td><td>5.4.0</td><td><span class="badge badge-fail">&#x2717;</span></td><td><span class="badge badge-warn">部分</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-apparmor">AppArmor</span></td><td>Any</td><td><span class="badge badge-noncompliant">&#x2717; 异常</span></td></tr>
+            <tr><td style="font-weight:600">node-std-04</td><td>AppArmor</td><td>5.4.0</td><td><span class="badge badge-fail">&#x2717;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-apparmor">AppArmor</span></td><td>Any</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+            <tr><td style="font-weight:600">node-std-05</td><td>AppArmor</td><td>5.4.0</td><td><span class="badge badge-fail">&#x2717;</span></td><td><span class="badge badge-pass">&#x2713;</span></td><td><span class="badge badge-off">-</span></td><td><span class="badge badge-apparmor">AppArmor</span></td><td>Any</td><td><span class="badge badge-compliant">&#x2713; 合规</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 3: 实例调度 ===================== -->
+    <div class="tab-content" id="tab-schedule">
+
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">34</div>
+          <div class="sc-label">运行实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">5</div>
+          <div class="sc-label">高敏实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#1d4ed8">8</div>
+          <div class="sc-label">可信实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">21</div>
+          <div class="sc-label">标准实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">2</div>
+          <div class="sc-label">调度违规</div>
+        </div>
+      </div>
+
+      <!-- Risk to Tier Mapping -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Instance Risk &rarr; Node Tier Mapping</div>
+            <div class="panel-title">实例风险等级与节点层级映射规则</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          实例风险等级由Instance.Type和InstanceRuntimeStatus综合评估。高风险实例(生产openclaw、高敏Agent)必须调度至High-Security节点，中风险实例(openclaw开发/测试)调度至Trusted节点，低风险实例(ubuntu/debian/centos/webtop)可调度至Standard节点。ClawManager CreatePod通过PodConfig.Type和SecurityTier映射为nodeSelector标签。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#dc2626"></div>
+            <div class="rc-header">
+              <span class="rc-title">高风险 &rarr; High-Security</span>
+              <span class="badge badge-critical">CRITICAL</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>映射实例类型:</strong> openclaw(生产环境), custom(高敏Agent), 高敏知识库</p>
+              <p><strong>nodeSelector:</strong> <code>security-tier: high-security</code></p>
+              <p><strong>Toleration:</strong> key=security-tier, value=high-security, effect=NoSchedule</p>
+              <p><strong>KubeArmor:</strong> DefaultPosture全block</p>
+              <p><strong>KSecure:</strong> G_MODE=s, 38基线全执行</p>
+              <p><strong>强制规则:</strong> 必须调度至高安全节点，无高安全节点时拒绝创建</p>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#3b82f6"></div>
+            <div class="rc-header">
+              <span class="rc-title">中风险 &rarr; Trusted</span>
+              <span class="badge badge-high">HIGH</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>映射实例类型:</strong> openclaw(开发/测试), custom(一般Agent), webtop(可信)</p>
+              <p><strong>nodeSelector:</strong> <code>security-tier: trusted</code></p>
+              <p><strong>Toleration:</strong> key=security-tier, value=trusted, effect=NoSchedule</p>
+              <p><strong>KubeArmor:</strong> DefaultPosture file/capabilities=block</p>
+              <p><strong>KSecure:</strong> G_MODE=s, 基线验证通过</p>
+              <p><strong>调度规则:</strong> 优先调度至可信节点，无可信节点时降级至高安全节点</p>
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#9ca3af"></div>
+            <div class="rc-header">
+              <span class="rc-title">低风险 &rarr; Standard</span>
+              <span class="badge badge-medium">MEDIUM</span>
+            </div>
+            <div class="rc-body">
+              <p><strong>映射实例类型:</strong> ubuntu, debian, centos, webtop(一般)</p>
+              <p><strong>nodeSelector:</strong> <code>security-tier: standard</code> 或不设置</p>
+              <p><strong>Toleration:</strong> 无需特殊容忍度</p>
+              <p><strong>KubeArmor:</strong> DefaultPosture全audit</p>
+              <p><strong>KSecure:</strong> G_MODE=c, 仅记录偏离</p>
+              <p><strong>调度规则:</strong> 可调度至任意标准节点，K8s默认调度即可</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Instance Scheduling Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Instance Scheduling Status</div>
+            <div class="panel-title">实例调度状态</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" style="width:200px" placeholder="搜索实例...">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>实例</th><th>Type</th><th>风险等级</th><th>当前节点</th><th>要求Tier</th><th>合规</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0042</td>
+              <td><span class="badge badge-sys">openclaw</span></td>
+              <td><span class="badge badge-critical">高</span></td>
+              <td>node-hs-01</td>
+              <td><span class="badge badge-highsec">High-Security</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0087</td>
+              <td><span class="badge badge-sys">openclaw</span></td>
+              <td><span class="badge badge-critical">高</span></td>
+              <td>node-hs-01</td>
+              <td><span class="badge badge-highsec">High-Security</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0103</td>
+              <td><span class="badge badge-sys">custom</span></td>
+              <td><span class="badge badge-critical">高</span></td>
+              <td>node-hs-02</td>
+              <td><span class="badge badge-highsec">High-Security</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0156</td>
+              <td><span class="badge badge-sys">openclaw</span></td>
+              <td><span class="badge badge-critical">高</span></td>
+              <td>node-hs-02</td>
+              <td><span class="badge badge-highsec">High-Security</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0201</td>
+              <td><span class="badge badge-sys">custom</span></td>
+              <td><span class="badge badge-critical">高</span></td>
+              <td style="color:#dc2626;font-weight:600">node-std-01</td>
+              <td><span class="badge badge-highsec">High-Security</span></td>
+              <td><span class="badge badge-noncompliant">&#x2717; 违规</span></td>
+              <td><span class="badge badge-fail">需迁移</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0301</td>
+              <td><span class="badge badge-sys">openclaw</span></td>
+              <td><span class="badge badge-high">中</span></td>
+              <td>node-tr-01</td>
+              <td><span class="badge badge-trusted">Trusted</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0302</td>
+              <td><span class="badge badge-sys">openclaw</span></td>
+              <td><span class="badge badge-high">中</span></td>
+              <td>node-tr-01</td>
+              <td><span class="badge badge-trusted">Trusted</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0303</td>
+              <td><span class="badge badge-sys">webtop</span></td>
+              <td><span class="badge badge-high">中</span></td>
+              <td>node-tr-02</td>
+              <td><span class="badge badge-trusted">Trusted</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0401</td>
+              <td><span class="badge badge-sys">openclaw</span></td>
+              <td><span class="badge badge-high">中</span></td>
+              <td style="color:#dc2626;font-weight:600">node-std-02</td>
+              <td><span class="badge badge-trusted">Trusted</span></td>
+              <td><span class="badge badge-noncompliant">&#x2717; 违规</span></td>
+              <td><span class="badge badge-fail">需迁移</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0501</td>
+              <td><span class="badge badge-sys">ubuntu</span></td>
+              <td><span class="badge badge-low">低</span></td>
+              <td>node-std-01</td>
+              <td><span class="badge badge-standard">Standard</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0502</td>
+              <td><span class="badge badge-sys">debian</span></td>
+              <td><span class="badge badge-low">低</span></td>
+              <td>node-std-04</td>
+              <td><span class="badge badge-standard">Standard</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">inst-0503</td>
+              <td><span class="badge badge-sys">centos</span></td>
+              <td><span class="badge badge-low">低</span></td>
+              <td>node-std-05</td>
+              <td><span class="badge badge-standard">Standard</span></td>
+              <td><span class="badge badge-compliant">&#x2713; 合规</span></td>
+              <td><span class="badge badge-pass">运行中</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CreatePod Integration -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">CreatePod nodeSelector Integration</div>
+            <div class="panel-title">ClawManager CreatePod 调度集成代码参考</div>
+          </div>
+          <span class="badge badge-sys">pod_service.go</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          当前ClawManager CreatePod在pod_service.go中创建Pod时，PodSpec未注入NodeSelector和Tolerations。需增强CreatePod函数，根据PodConfig.Type和SecurityTier映射，从RuntimePodConfig读取NodeSelector和Tolerations应用到PodSpec。InstanceCommand(CommandType/PayloadJSON/Status)支持实例迁移操作。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="config-section">
+            <div class="cs-title">PodConfig 增强字段</div>
+            <div style="font-family:monospace;font-size:12px;line-height:1.8;background:#faf7f4;border-radius:12px;padding:14px;color:var(--text)">
+              type PodConfig struct {<br>
+              &nbsp;&nbsp;InstanceID&nbsp;&nbsp;&nbsp;int<br>
+              &nbsp;&nbsp;InstanceName&nbsp;&nbsp;string<br>
+              &nbsp;&nbsp;Type&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string<br>
+              &nbsp;&nbsp;CPUCores&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;float64<br>
+              &nbsp;&nbsp;MemoryGB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int<br>
+              &nbsp;&nbsp;GPUEnabled&nbsp;&nbsp;&nbsp;bool<br>
+              &nbsp;&nbsp;GPUCount&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int<br>
+              &nbsp;&nbsp;Image&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string<br>
+              &nbsp;&nbsp;<span style="color:#059669;font-weight:600">SecurityTier string <span style="color:#8f8681">// 新增: standard/trusted/high-security</span></span><br>
+              }
+            </div>
+          </div>
+          <div class="config-section">
+            <div class="cs-title">CreatePod 增强逻辑</div>
+            <div style="font-family:monospace;font-size:12px;line-height:1.8;background:#faf7f4;border-radius:12px;padding:14px;color:var(--text)">
+              <span style="color:#8f8681">// 注入security-tier nodeSelector</span><br>
+              <span style="color:#059669;font-weight:600">if config.SecurityTier != "" {</span><br>
+              <span style="color:#059669">&nbsp;&nbsp;pod.Spec.NodeSelector = map[string]string{</span><br>
+              <span style="color:#059669">&nbsp;&nbsp;&nbsp;&nbsp;"security-tier": config.SecurityTier,</span><br>
+              <span style="color:#059669">&nbsp;&nbsp;}</span><br>
+              <span style="color:#059669">&nbsp;&nbsp;pod.Spec.Tolerations = []corev1.Toleration{{</span><br>
+              <span style="color:#059669">&nbsp;&nbsp;&nbsp;&nbsp;Key:&nbsp;&nbsp;"security-tier",</span><br>
+              <span style="color:#059669">&nbsp;&nbsp;&nbsp;&nbsp;Value: config.SecurityTier,</span><br>
+              <span style="color:#059669">&nbsp;&nbsp;&nbsp;&nbsp;Effect: corev1.TaintEffectNoSchedule,</span><br>
+              <span style="color:#059669">&nbsp;&nbsp;}}</span><br>
+              <span style="color:#059669">}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scheduling Conflict Resolution -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Scheduling Conflict Resolution</div>
+            <div class="panel-title">调度冲突与实例迁移</div>
+          </div>
+          <span class="badge badge-sys">InstanceCommand</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          当实例运行在不符合其风险等级要求的节点时(调度违规)，需通过InstanceCommand执行实例迁移。迁移流程: 1) 发送Stop命令到旧节点实例; 2) 等待实例停止; 3) 使用新nodeSelector在目标节点CreatePod; 4) 验证实例运行状态。InstanceCommand结构体(InstanceID/CommandType/PayloadJSON/Status/IdempotencyKey)确保迁移操作的幂等性和可追踪性。
+        </p>
+        <div class="conflict-panel">
+          <div class="cp-title">&#x26a0; 调度冲突 #1 - inst-0201 (高风险实例在标准节点)</div>
+          <div class="cp-body">
+            <p><strong>实例:</strong> inst-0201 (custom, 高风险) | <strong>当前节点:</strong> node-std-01 (Standard) | <strong>要求:</strong> High-Security</p>
+            <p><strong>原因:</strong> 实例创建时高安全节点容量不足，降级调度至标准节点。当前node-hs-01/node-hs-02已有容量。</p>
+            <p><strong>迁移方案:</strong> InstanceCommand(commandType="migrate", payloadJSON={target_node:"node-hs-01", target_tier:"high-security"}) → Stop旧实例 → CreatePod(nodeSelector: {security-tier: "high-security"})</p>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn-primary btn-sm">执行迁移</button>
+              <button class="btn-secondary btn-sm">忽略(观察模式)</button>
+              <button class="btn-secondary btn-sm">查看详情</button>
+            </div>
+          </div>
+        </div>
+        <div class="conflict-panel">
+          <div class="cp-title">&#x26a0; 调度冲突 #2 - inst-0401 (中风险实例在标准节点)</div>
+          <div class="cp-body">
+            <p><strong>实例:</strong> inst-0401 (openclaw, 中风险) | <strong>当前节点:</strong> node-std-02 (Standard) | <strong>要求:</strong> Trusted</p>
+            <p><strong>原因:</strong> 实例创建时未配置安全层级调度，默认调度至标准节点。当前node-tr-01/node-tr-02/node-tr-03有容量。</p>
+            <p><strong>迁移方案:</strong> InstanceCommand(commandType="migrate", payloadJSON={target_node:"node-tr-01", target_tier:"trusted"}) → Stop旧实例 → CreatePod(nodeSelector: {security-tier: "trusted"})</p>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn-primary btn-sm">执行迁移</button>
+              <button class="btn-secondary btn-sm">忽略(观察模式)</button>
+              <button class="btn-secondary btn-sm">查看详情</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 4: 节点监控 ===================== -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- Score Circle + Stats -->
+      <div class="stat-row">
+        <div class="stat-card" style="padding:20px">
+          <div class="score-circle" style="background:linear-gradient(135deg,rgba(5,150,105,0.12),rgba(5,150,105,0.06));color:#059669;margin:0 auto">
+            <div class="sc-pct">87</div>
+            <div class="sc-lbl">信任健康</div>
+          </div>
+          <div class="sc-label" style="margin-top:8px">Trust Health Score</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">10</div>
+          <div class="sc-label">总节点数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#1d4ed8">3</div>
+          <div class="sc-label">可信节点</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">2</div>
+          <div class="sc-label">高安全节点</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">92%</div>
+          <div class="sc-label">基线合规</div>
+        </div>
+      </div>
+
+      <!-- Node Health Grid -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Node Health Grid</div>
+            <div class="panel-title">节点健康状态矩阵</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+        </div>
+        <div class="node-grid">
+          <div class="node-cell" style="border-left:4px solid #dc2626">
+            <div class="nc-name">node-hs-01</div>
+            <div class="nc-score" style="color:#059669">96</div>
+            <div class="nc-tier"><span class="badge badge-highsec">High-Security</span></div>
+            <div class="nc-status" style="background:#059669"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #dc2626">
+            <div class="nc-name">node-hs-02</div>
+            <div class="nc-score" style="color:#059669">93</div>
+            <div class="nc-tier"><span class="badge badge-highsec">High-Security</span></div>
+            <div class="nc-status" style="background:#059669"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #3b82f6">
+            <div class="nc-name">node-tr-01</div>
+            <div class="nc-score" style="color:#1d4ed8">89</div>
+            <div class="nc-tier"><span class="badge badge-trusted">Trusted</span></div>
+            <div class="nc-status" style="background:#059669"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #3b82f6">
+            <div class="nc-name">node-tr-02</div>
+            <div class="nc-score" style="color:#1d4ed8">85</div>
+            <div class="nc-tier"><span class="badge badge-trusted">Trusted</span></div>
+            <div class="nc-status" style="background:#059669"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #3b82f6">
+            <div class="nc-name">node-tr-03</div>
+            <div class="nc-score" style="color:#d97706">78</div>
+            <div class="nc-tier"><span class="badge badge-trusted">Trusted</span></div>
+            <div class="nc-status" style="background:#d97706"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #9ca3af">
+            <div class="nc-name">node-std-01</div>
+            <div class="nc-score" style="color:#d97706">74</div>
+            <div class="nc-tier"><span class="badge badge-standard">Standard</span></div>
+            <div class="nc-status" style="background:#d97706"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #9ca3af">
+            <div class="nc-name">node-std-02</div>
+            <div class="nc-score" style="color:#d97706">80</div>
+            <div class="nc-tier"><span class="badge badge-standard">Standard</span></div>
+            <div class="nc-status" style="background:#059669"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #dc2626">
+            <div class="nc-name">node-std-03</div>
+            <div class="nc-score" style="color:#dc2626">62</div>
+            <div class="nc-tier"><span class="badge badge-standard">Standard</span></div>
+            <div class="nc-status" style="background:#dc2626"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #9ca3af">
+            <div class="nc-name">node-std-04</div>
+            <div class="nc-score" style="color:#d97706">81</div>
+            <div class="nc-tier"><span class="badge badge-standard">Standard</span></div>
+            <div class="nc-status" style="background:#059669"></div>
+          </div>
+          <div class="node-cell" style="border-left:4px solid #9ca3af">
+            <div class="nc-name">node-std-05</div>
+            <div class="nc-score" style="color:#d97706">83</div>
+            <div class="nc-tier"><span class="badge badge-standard">Standard</span></div>
+            <div class="nc-status" style="background:#059669"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Log -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Node Trust Events</div>
+            <div class="panel-title">节点可信事件日志</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" style="width:200px" placeholder="搜索事件...">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 09:15:32</span>
+            <span class="badge badge-pass">验证通过</span>
+            <span class="badge badge-trusted">Trusted</span>
+            <span class="badge badge-sys">node-tr-01</span>
+          </div>
+          <div class="log-body">
+            节点可信认证通过。KSecure G_MODE=s基线检查结果: 38个脚本中37个通过(合规率97.4%)。dmidecode -s system-UUID: <code>4c4c4544-004d-5110-8033-b7c04f353131</code>。KubeArmor BPF-LSM enforcer运行正常，DefaultPosture: file=block, network=audit, capabilities=block。信任评分: 89。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 08:30:17</span>
+            <span class="badge badge-pass">验证通过</span>
+            <span class="badge badge-highsec">High-Security</span>
+            <span class="badge badge-sys">node-hs-01</span>
+          </div>
+          <div class="log-body">
+            高安全节点认证通过。KSecure G_MODE=s全量基线检查: 38/38通过(合规率100%)。TEE硬件: SGX+TDX可用。KubeArmor BPF-LSM enforcer运行正常，DefaultPosture: file=block, network=block, capabilities=block, device=block。信任评分: 96。SecLog.HostName: node-hs-01。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 07:45:05</span>
+            <span class="badge badge-warn">基线偏离</span>
+            <span class="badge badge-trusted">Trusted</span>
+            <span class="badge badge-sys">node-tr-03</span>
+          </div>
+          <div class="log-body">
+            KSecure基线检查检测到偏离: 脚本<code>check_passwd_perms.sh</code>发现/etc/passwd权限偏离(644 vs 期望600)，脚本<code>check_ssh_config.sh</code>发现PermitRootLogin未设为no。G_MODE=s模式下偏离已记录告警。信任评分从82降至78。建议执行基线修复。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 06:20:44</span>
+            <span class="badge badge-fail">验证失败</span>
+            <span class="badge badge-standard">Standard</span>
+            <span class="badge badge-sys">node-std-03</span>
+          </div>
+          <div class="log-body">
+            节点可信认证失败。KSecure基线检查: 38个脚本中仅22个通过(合规率57.9%)，严重偏离: <code>check_kernel_params.sh</code>多个内核参数未加固，<code>check_firewall.sh</code>防火墙规则缺失，<code>check_open_ports.sh</code>发现异常开放端口。AppArmor enforcer部分策略未加载。信任评分: 62(低于70阈值)。建议隔离节点或降级修复。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 05:15:22</span>
+            <span class="badge badge-pass">实例迁移</span>
+            <span class="badge badge-sys">inst-0156</span>
+          </div>
+          <div class="log-body">
+            实例迁移完成: inst-0156从node-tr-02迁移至node-hs-02。InstanceCommand(commandType="migrate", status="completed")。旧节点Pod已停止，新节点Pod已启动。nodeSelector: <code>{security-tier: "high-security"}</code>。实例Type: openclaw, 风险等级: 高。迁移耗时: 45秒。InstanceRuntimeStatus.InfraStatus: running, AgentStatus: connected。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 22:10:33</span>
+            <span class="badge badge-warn">Tier变更</span>
+            <span class="badge badge-sys">node-tr-03</span>
+          </div>
+          <div class="log-body">
+            节点Tier标签变更: <code>security-tier: standard</code> &rarr; <code>security-tier: trusted</code>。变更原因: 节点基线评分提升至76，KSecure G_MODE从c切换至s，KubeArmor DefaultPosture从audit升级为block(audit/block/audit)。变更需等待现有实例迁移后生效。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 18:00:12</span>
+            <span class="badge badge-warn">信任评分更新</span>
+            <span class="badge badge-sys">node-std-01</span>
+          </div>
+          <div class="log-body">
+            节点信任评分更新: 77 &rarr; 74。评分下降原因: KSecure基线检查新增2项偏离(SSH配置和文件权限)，AppArmor enforcer策略覆盖率从95%降至91%。当前评分仍在标准节点可接受范围(&ge;70)。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 14:00:05</span>
+            <span class="badge badge-fail">KSecure基线检查</span>
+            <span class="badge badge-standard">Standard</span>
+            <span class="badge badge-sys">node-std-03</span>
+          </div>
+          <div class="log-body">
+            KSecure基线检查结果严重偏离。G_MODE=c兼容模式下记录: 16个脚本偏离期望值，其中5个为CRITICAL级别偏离(内核参数/防火墙/端口/权限/进程)。建议切换G_MODE至s或隔离节点。SecLog.HostName=node-std-03日志已记录完整偏离详情。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 5: 配置 ===================== -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Node Tier Criteria -->
+        <div class="config-section">
+          <div class="cs-title">节点层级标准定义</div>
+          <div class="form-group">
+            <div class="form-label">High-Security节点准入条件</div>
+            <div style="font-size:12px;line-height:1.8;background:#faf7f4;border-radius:12px;padding:12px;color:var(--text)">
+              KSecure G_MODE=s + 38/38基线通过<br>
+              KubeArmor BPF-LSM enforcer + DefaultPosture全block<br>
+              TEE硬件支持(SGX/TDX/SEV至少一种)<br>
+              信任评分 &ge; 90<br>
+              硬件身份: dmidecode -s system-UUID已注册<br>
+              专用网络平面，出口审计
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Trusted节点准入条件</div>
+            <div style="font-size:12px;line-height:1.8;background:#faf7f4;border-radius:12px;padding:12px;color:var(--text)">
+              KSecure G_MODE=s + 基线合规率 &ge; 85%<br>
+              KubeArmor BPF-LSM或AppArmor enforcer<br>
+              信任评分 &ge; 80<br>
+              硬件身份: dmidecode -s system-UUID已注册<br>
+              baseline-verified: "true"标签
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Standard节点准入条件</div>
+            <div style="font-size:12px;line-height:1.8;background:#faf7f4;border-radius:12px;padding:12px;color:var(--text)">
+              KSecure G_MODE=c(兼容模式)<br>
+              KubeArmor任意enforcer(AppArmor/SELinux/BPF-LSM)<br>
+              信任评分 &ge; 60<br>
+              基线合规率 &ge; 50%(仅记录偏离)
+            </div>
+          </div>
+        </div>
+
+        <!-- Scheduling Rules per Instance Type -->
+        <div class="config-section">
+          <div class="cs-title">实例类型调度规则</div>
+          <table class="data-table" style="margin-bottom:12px">
+            <thead><tr><th>Instance.Type</th><th>风险等级</th><th>目标Tier</th><th>nodeSelector</th><th>KSecure G_MODE</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600">openclaw (生产)</td><td><span class="badge badge-critical">高</span></td><td><span class="badge badge-highsec">High-Security</span></td><td style="font-family:monospace;font-size:11px">security-tier: high-security</td><td>s (严格)</td></tr>
+              <tr><td style="font-weight:600">custom (高敏Agent)</td><td><span class="badge badge-critical">高</span></td><td><span class="badge badge-highsec">High-Security</span></td><td style="font-family:monospace;font-size:11px">security-tier: high-security</td><td>s (严格)</td></tr>
+              <tr><td style="font-weight:600">openclaw (开发/测试)</td><td><span class="badge badge-high">中</span></td><td><span class="badge badge-trusted">Trusted</span></td><td style="font-family:monospace;font-size:11px">security-tier: trusted</td><td>s (严格)</td></tr>
+              <tr><td style="font-weight:600">custom (一般Agent)</td><td><span class="badge badge-high">中</span></td><td><span class="badge badge-trusted">Trusted</span></td><td style="font-family:monospace;font-size:11px">security-tier: trusted</td><td>s (严格)</td></tr>
+              <tr><td style="font-weight:600">webtop (可信)</td><td><span class="badge badge-high">中</span></td><td><span class="badge badge-trusted">Trusted</span></td><td style="font-family:monospace;font-size:11px">security-tier: trusted</td><td>s (严格)</td></tr>
+              <tr><td style="font-weight:600">ubuntu</td><td><span class="badge badge-low">低</span></td><td><span class="badge badge-standard">Standard</span></td><td style="font-family:monospace;font-size:11px">不设置或standard</td><td>c (兼容)</td></tr>
+              <tr><td style="font-weight:600">debian</td><td><span class="badge badge-low">低</span></td><td><span class="badge badge-standard">Standard</span></td><td style="font-family:monospace;font-size:11px">不设置或standard</td><td>c (兼容)</td></tr>
+              <tr><td style="font-weight:600">centos</td><td><span class="badge badge-low">低</span></td><td><span class="badge badge-standard">Standard</span></td><td style="font-family:monospace;font-size:11px">不设置或standard</td><td>c (兼容)</td></tr>
+              <tr><td style="font-weight:600">webtop (一般)</td><td><span class="badge badge-low">低</span></td><td><span class="badge badge-standard">Standard</span></td><td style="font-family:monospace;font-size:11px">不设置或standard</td><td>c (兼容)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- nodeSelector Label Schema -->
+        <div class="config-section">
+          <div class="cs-title">K8s节点标签Schema</div>
+          <table class="data-table" style="margin-bottom:12px">
+            <thead><tr><th>标签键</th><th>值域</th><th>说明</th><th>使用者</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:monospace;font-weight:600">security-tier</td><td>standard / trusted / high-security</td><td>节点安全层级，驱动实例调度和KubeArmor策略</td><td>ClawManager nodeSelector + KubeArmor</td></tr>
+              <tr><td style="font-family:monospace;font-weight:600">tee-type</td><td>sgx / tdx / sev / none</td><td>TEE硬件类型，高安全节点必须设置</td><td>ClawManager TEE调度</td></tr>
+              <tr><td style="font-family:monospace;font-weight:600">kubearmor-enforcer</td><td>bpf-lsm / apparmor / selinux</td><td>KubeArmor强制器类型，snitch自动检测并设置</td><td>KubeArmor Operator</td></tr>
+              <tr><td style="font-family:monospace;font-weight:600">baseline-verified</td><td>"true" / "false"</td><td>KSecure基线验证状态，trusted节点必须为true</td><td>KSecure</td></tr>
+              <tr><td style="font-family:monospace;font-weight:600">ksecure-gmode</td><td>c / s / b</td><td>KSecure基线模式，c=兼容/s=严格/b=基线</td><td>KSecure</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- KubeArmor DefaultPosture per Tier -->
+        <div class="config-section">
+          <div class="cs-title">KubeArmor DefaultPosture按Tier配置</div>
+          <p style="font-size:12px;color:var(--text);line-height:1.6;margin-bottom:12px">
+            KubeArmor DefaultPosture结构体(FileAction/NetworkAction/CapabilitiesAction/DeviceAction)按namespace配置。每个Tier的namespace对应不同DefaultPosture策略。
+          </p>
+          <table class="data-table" style="margin-bottom:12px">
+            <thead><tr><th>DefaultPosture维度</th><th>High-Security</th><th>Trusted</th><th>Standard</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600;font-family:monospace;font-size:12px">FileAction</td><td><span class="badge badge-enforce">block</span></td><td><span class="badge badge-enforce">block</span></td><td><span class="badge badge-observe">audit</span></td></tr>
+              <tr><td style="font-weight:600;font-family:monospace;font-size:12px">NetworkAction</td><td><span class="badge badge-enforce">block</span></td><td><span class="badge badge-observe">audit</span></td><td><span class="badge badge-observe">audit</span></td></tr>
+              <tr><td style="font-weight:600;font-family:monospace;font-size:12px">CapabilitiesAction</td><td><span class="badge badge-enforce">block</span></td><td><span class="badge badge-enforce">block</span></td><td><span class="badge badge-observe">audit</span></td></tr>
+              <tr><td style="font-weight:600;font-family:monospace;font-size:12px">DeviceAction</td><td><span class="badge badge-enforce">block</span></td><td><span class="badge badge-observe">audit</span></td><td><span class="badge badge-off">off</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- KSecure G_MODE per Tier -->
+        <div class="config-section">
+          <div class="cs-title">KSecure G_MODE按Tier配置</div>
+          <table class="data-table" style="margin-bottom:12px">
+            <thead><tr><th>Tier</th><th>G_MODE</th><th>基线脚本</th><th>偏离处理</th><th>system-UUID</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge badge-highsec">High-Security</span></td><td><span class="badge badge-enforce">s (严格)</span></td><td>38/38强制执行</td><td>偏离即阻断+告警</td><td>必须注册并验证</td></tr>
+              <tr><td><span class="badge badge-trusted">Trusted</span></td><td><span class="badge badge-enforce">s (严格)</span></td><td>38脚本执行，合规率&ge;85%</td><td>偏离记录告警</td><td>必须注册</td></tr>
+              <tr><td><span class="badge badge-standard">Standard</span></td><td><span class="badge badge-observe">c (兼容)</span></td><td>38脚本仅检查</td><td>偏离仅记录，不阻断</td><td>可选注册</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Attestation Schedule -->
+        <div class="config-section">
+          <div class="cs-title">验证计划与方式</div>
+          <div class="form-group">
+            <div class="form-label">High-Security节点验证频率</div>
+            <select class="form-input">
+              <option value="1h">每1小时</option>
+              <option value="6h" selected>每6小时</option>
+              <option value="12h">每12小时</option>
+              <option value="24h">每24小时</option>
+            </select>
+            <div class="form-hint">高安全节点需更频繁验证，KSecure G_MODE=s全量基线检查+dmidecode system-UUID验证</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Trusted节点验证频率</div>
+            <select class="form-input">
+              <option value="6h">每6小时</option>
+              <option value="12h" selected>每12小时</option>
+              <option value="24h">每24小时</option>
+              <option value="7d">每7天</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Standard节点验证频率</div>
+            <select class="form-input">
+              <option value="12h">每12小时</option>
+              <option value="24h" selected>每24小时</option>
+              <option value="7d">每7天</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">验证方式</div>
+            <select class="form-input">
+              <option value="baseline" selected>KSecure基线检查 (38脚本 + G_MODE)</option>
+              <option value="hwid">硬件身份验证 (dmidecode -s system-UUID)</option>
+              <option value="both" selected>基线+硬件身份双重验证</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Trust Score Weights -->
+        <div class="config-section">
+          <div class="cs-title">信任评分计算权重</div>
+          <table class="data-table" style="margin-bottom:12px">
+            <thead><tr><th>评分维度</th><th>权重</th><th>评分来源</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600">KSecure基线合规率</td><td><span class="badge badge-critical">40%</span></td><td>38个基线脚本执行结果</td><td>基线合规是最核心的可信度量指标</td></tr>
+              <tr><td style="font-weight:600">KubeArmor enforcer状态</td><td><span class="badge badge-high">25%</span></td><td>snitch检测结果，enforcer是否正常运行</td><td>BPF-LSM>AppArmor>SELinux权重递减</td></tr>
+              <tr><td style="font-weight:600">运行实例风险分布</td><td><span class="badge badge-high">15%</span></td><td>节点上运行实例的风险等级</td><td>高风险实例在高安全节点加分，在标准节点减分</td></tr>
+              <tr><td style="font-weight:600">硬件身份验证</td><td><span class="badge badge-medium">10%</span></td><td>dmidecode -s system-UUID注册状态</td><td>UUID已注册且验证通过加分</td></tr>
+              <tr><td style="font-weight:600">安全事件历史</td><td><span class="badge badge-medium">10%</span></td><td>SecLog.HostName关联的安全事件</td><td>近期无安全事件加分，有事件减分</td></tr>
+            </tbody>
+          </table>
+          <div class="form-group">
+            <div class="form-label">信任评分阈值</div>
+            <div style="font-size:12px;line-height:1.8;background:#faf7f4;border-radius:12px;padding:12px;color:var(--text)">
+              High-Security准入: &ge; 90 | Trusted准入: &ge; 80 | Standard可接受: &ge; 60<br>
+              低于60: 建议隔离 | 60-70: 告警 | 70-80: 关注 | &ge;80: 正常
+            </div>
+          </div>
+        </div>
+
+        <!-- Instance Migration Policy -->
+        <div class="config-section">
+          <div class="cs-title">实例迁移策略</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">调度违规自动迁移</div>
+              <div class="desc">检测到实例运行在不符合风险等级的节点时，自动触发InstanceCommand迁移</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">迁移前健康检查</div>
+              <div class="desc">迁移前检查目标节点信任评分和基线合规率，确保目标节点满足要求</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">迁移失败回滚</div>
+              <div class="desc">迁移失败时在原节点重启实例，避免服务中断。InstanceCommand.IdempotencyKey确保幂等</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <div class="form-label">迁移超时 (秒)</div>
+            <input class="form-input" type="number" value="120" min="30" max="600">
+            <div class="form-hint">InstanceCommand.TimeoutSeconds控制迁移操作超时，超时后标记为失败</div>
+          </div>
+        </div>
+
+        <!-- Node Isolation Response -->
+        <div class="config-section">
+          <div class="cs-title">节点隔离响应</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">信任评分低于阈值自动隔离</div>
+              <div class="desc">节点信任评分持续低于60时，自动添加NoSchedule taint阻止新Pod调度</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">隔离节点实例迁移</div>
+              <div class="desc">节点被隔离后，自动将运行实例迁移至同层级或更高层级节点</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">KSecure基线修复后自动解除隔离</div>
+              <div class="desc">基线合规率恢复到80%以上且信任评分&ge;70时，自动移除NoSchedule taint</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+            <div class="form-hint">关闭时需人工确认后解除隔离，更安全但恢复更慢</div>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <div class="form-label">隔离触发条件</div>
+            <select class="form-input">
+              <option value="score60">信任评分持续低于60 (30分钟)</option>
+              <option value="score60_15m" selected>信任评分持续低于60 (15分钟)</option>
+              <option value="baseline50">基线合规率低于50%</option>
+              <option value="enforcer_down">KubeArmor enforcer停止运行</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Baseline Compliance Thresholds -->
+        <div class="config-section">
+          <div class="cs-title">基线合规阈值</div>
+          <table class="data-table" style="margin-bottom:12px">
+            <thead><tr><th>Tier</th><th>准入阈值</th><th>告警阈值</th><th>KSecure G_MODE</th><th>低于告警阈值</th></tr></thead>
+            <tbody>
+              <tr><td><span class="badge badge-highsec">High-Security</span></td><td>100% (38/38)</td><td>&lt;95%</td><td>s (严格)</td><td>P0告警+自动修复</td></tr>
+              <tr><td><span class="badge badge-trusted">Trusted</span></td><td>&ge;85%</td><td>&lt;80%</td><td>s (严格)</td><td>P1告警+建议修复</td></tr>
+              <tr><td><span class="badge badge-standard">Standard</span></td><td>&ge;50%</td><td>&lt;60%</td><td>c (兼容)</td><td>P2告警+记录偏离</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Notification on Tier Changes -->
+        <div class="config-section">
+          <div class="cs-title">Tier变更通知</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">节点Tier升级通知</div>
+              <div class="desc">节点从Standard升级至Trusted或High-Security时，通知运维团队</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">节点Tier降级告警</div>
+              <div class="desc">节点从Trusted/High-Security降级时，P1告警通知，需确认受影响实例迁移方案</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">信任评分突变告警</div>
+              <div class="desc">信任评分单次下降超过10分时，触发P1告警，可能表明安全事件</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">KSecure基线偏离告警</div>
+              <div class="desc">G_MODE=s模式下检测到基线偏离时，通过SecLog.HostName关联节点并发送告警</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <div class="form-label">通知渠道</div>
+            <select class="form-input">
+              <option value="all" selected>全渠道 (邮件+Slack+Webhook)</option>
+              <option value="email">仅邮件</option>
+              <option value="slack">仅Slack</option>
+              <option value="webhook">仅Webhook</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px">
+        <button class="btn-secondary">恢复默认配置</button>
+        <button class="btn-secondary">导出配置</button>
+        <button class="btn-primary">保存配置</button>
+      </div>
+    </tab-content>
+
+  </div><!-- /content-area -->
+</div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

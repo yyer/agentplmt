@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr68</title>
+<link rel="stylesheet" href="../css-5.11.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr68">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">合规架构</div>
+      <div class="tab" data-tab="baseline">合规基线</div>
+      <div class="tab" data-tab="remediate">偏差修复</div>
+      <div class="tab" data-tab="monitor">合规监控</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: 合规架构                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Panel -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Continuous Compliance Audit &amp; Deviation Remediation</div>
+        <div class="panel-title">持续合规审计与偏差修复系统</div>
+        <p style="font-size:13px;color:var(--text);margin-top:10px;line-height:1.8">
+          FR-68 持续检查节点、实例、权限、策略、配置和运行状态是否偏离安全基线，并提供修复建议和自动修正机制。系统通过 KSecure 的 38 个基线 Shell 脚本进行合规扫描（G_MODE=c），ClawManager 的 InstanceDesiredState 与 InstanceRuntimeStatus 对齐验证期望态一致性，KubeArmor 的 DefaultPosture 确保基础设施层面的默认安全策略合规。当检测到偏差时，KSecure 提供三种修复模式：自动加固（G_MODE=s）、人工审核和自动回滚（G_MODE=b），配合 ClawManager 的安全扫描实现闭环修复。
+        </p>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <span class="badge badge-critical">配置偏差检测</span>
+          <span class="badge badge-high">自动修复</span>
+          <span class="badge badge-medium">期望态对齐</span>
+          <span class="badge badge-low">基线合规</span>
+          <span class="badge badge-sys">KSecure G_MODE</span>
+          <span class="badge badge-sys">InstanceDesiredState</span>
+          <span class="badge badge-sys">DefaultPosture</span>
+        </div>
+      </div>
+
+      <!-- Compliance Pipeline Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Continuous Compliance Pipeline</div>
+            <div class="panel-title">持续合规流水线</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          持续合规审计通过五阶段闭环流水线实现：扫描阶段使用 KSecure G_MODE=c 执行 38 个基线脚本检查当前配置状态；检测阶段将当前值与基线值比对识别偏差；分类阶段按风险等级（Critical/High/Medium/Low）对偏差进行分级；修复阶段根据修复策略选择自动加固（G_MODE=s）、人工审核或自动回滚（G_MODE=b）；验证阶段重新扫描确认偏差已被修复。ClawManager 的 InstanceConfigRevision 通过 SHA256 checksum 比对当前配置与期望配置，KubeArmor 的 DefaultPosture 确保文件/网络/能力默认策略符合安全要求。
+        </p>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:16px 0">
+          <div class="flow-node" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe">
+            <div class="fn-label" style="color:#1d4ed8">Scan</div>
+            KSecure G_MODE=c<br>38 基线脚本<br>ClawManager 状态扫描
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border-color:#fed7aa">
+            <div class="fn-label" style="color:#c2410c">Detect</div>
+            偏差检测<br>SHA256 比对<br>DefaultPosture 检查
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fef2f2,#fecaca);border-color:#fca5a5">
+            <div class="fn-label" style="color:#b91c1c">Classify</div>
+            Critical / High<br>Medium / Low<br>风险分级
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#bbf7d0">
+            <div class="fn-label" style="color:#15803d">Remediate</div>
+            G_MODE=s 加固<br>人工审核<br>G_MODE=b 回滚
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fdf4ff,#fae8ff);border-color:#e9d5ff">
+            <div class="fn-label" style="color:#7e22ce">Verify</div>
+            重新扫描<br>期望态对齐<br>闭环确认
+          </div>
+        </div>
+      </div>
+
+      <!-- Three Pillars -->
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+
+        <!-- KSecure Pillar -->
+        <div class="app-panel" style="flex:1;min-width:300px">
+          <div class="panel-eyebrow">KSecure Baseline Compliance</div>
+          <div class="panel-title">KSecure 基线合规检查</div>
+          <p style="font-size:12px;color:var(--text);margin:10px 0;line-height:1.7">
+            KSecure 包含 38 个 Shell 脚本，覆盖 5 大安全基线类别，支持三种运行模式（G_MODE）：检查模式（c）仅检测并报告偏差；加固模式（s）自动修复配置使其符合基线；回滚模式（b）将配置恢复到加固前的状态。每个脚本都实现了 PassMinLengthCheck/Reinforce/RollBack 三种函数，通过 gRPC 端点 baselineScan/baselineRepair/baselineBack 提供远程调用能力。
+          </p>
+          <div class="code-block">
+<span class="cc">// KSecure G_MODE 三模式操作示例</span>
+<span class="ck">function</span> <span class="cn">PassMinLenth</span>() {
+  [ <span class="cv">"${G_MODE}"</span> == <span class="cs">'c'</span> ] && PassMinLengthCheckWithEcho
+  [ <span class="cv">"${G_MODE}"</span> == <span class="cs">'s'</span> ] && PassMinLengthReinforce
+  [ <span class="cv">"${G_MODE}"</span> == <span class="cs">'b'</span> ] && PassMinLengthRollBack
+}
+          </div>
+          <div style="margin-top:12px">
+            <div class="tag-list">
+              <div class="tag">&#x1f512; 密码复杂度 (8)</div>
+              <div class="tag">&#x1f511; 密码策略 (7)</div>
+              <div class="tag">&#x1f6e1; SSH加固 (9)</div>
+              <div class="tag">&#x1f4c1; 文件权限 (8)</div>
+              <div class="tag">&#x23f1; 会话控制 (6)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ClawManager Pillar -->
+        <div class="app-panel" style="flex:1;min-width:300px">
+          <div class="panel-eyebrow">ClawManager Desired State Alignment</div>
+          <div class="panel-title">ClawManager 期望态对齐</div>
+          <p style="font-size:12px;color:var(--text);margin:10px 0;line-height:1.7">
+            ClawManager 通过 InstanceDesiredState 与 InstanceRuntimeStatus 的持续比对来检测运行时偏差。InstanceConfigRevision 为每个实例配置生成 SHA256 checksum，当当前配置的 checksum 与期望配置的 checksum 不一致时，标记为配置漂移。安全扫描模块定期评估实例的 RBAC 权限、网络策略和资源配额是否符合安全基线。偏差检测后触发告警，并提供修复建议或自动对齐到期望态。
+          </p>
+          <div class="desired-state-panel" style="margin-top:10px">
+            <div class="ds-title">InstanceConfigRevision 状态示例</div>
+            <div class="ds-compare">
+              <span class="ds-label">期望 Revision</span>
+              <span class="ds-value" style="font-family:monospace;font-size:11px;color:#059669">rev-2026-04-30-a1b2c3</span>
+              <span class="ds-status"><span class="badge badge-pass">&#x2713;</span></span>
+            </div>
+            <div class="ds-compare">
+              <span class="ds-label">当前 Revision</span>
+              <span class="ds-value" style="font-family:monospace;font-size:11px;color:#dc2626">rev-2026-04-28-x9y8z7</span>
+              <span class="ds-status"><span class="badge badge-fail">&#x2717; 漂移</span></span>
+            </div>
+            <div class="ds-compare">
+              <span class="ds-label">SHA256 校验</span>
+              <span class="ds-value" style="font-family:monospace;font-size:11px">e3b0c44298fc... vs a7ffc6f8bf1...</span>
+              <span class="ds-status"><span class="badge badge-fail">&#x2717; 不匹配</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KubeArmor Pillar -->
+        <div class="app-panel" style="flex:1;min-width:300px">
+          <div class="panel-eyebrow">KubeArmor Infrastructure Compliance</div>
+          <div class="panel-title">KubeArmor 基础设施合规</div>
+          <p style="font-size:12px;color:var(--text);margin:10px 0;line-height:1.7">
+            KubeArmor 通过 DefaultPosture 和安全策略确保基础设施层面的合规性。DefaultPosture 定义了文件、网络和能力三个维度的默认处置策略（audit 或 block），任何未明确允许的操作都将按默认策略处理。CIS/STIG 合规策略覆盖了关键系统目录（/bin/、/boot/、/sbin/、/usr/bin/）的文件完整性监控（FIM），确保系统文件不被未授权修改。DefaultPosture 的合规检查确保所有命名空间的默认策略一致。
+          </p>
+          <div style="margin-top:12px">
+            <div style="font-size:12px;font-weight:700;color:var(--text-h);margin-bottom:8px">DefaultPosture 合规状态</div>
+            <table class="data-table">
+              <thead><tr><th>维度</th><th>目标策略</th><th>当前策略</th><th>合规</th></tr></thead>
+              <tbody>
+                <tr><td style="font-weight:600">File</td><td>block</td><td>block</td><td><span class="badge badge-pass">&#x2713; 合规</span></td></tr>
+                <tr><td style="font-weight:600">Network</td><td>block</td><td>audit</td><td><span class="badge badge-fail">&#x2717; 不合规</span></td></tr>
+                <tr><td style="font-weight:600">Capabilities</td><td>block</td><td>block</td><td><span class="badge badge-pass">&#x2713; 合规</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- gRPC Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KSecure Baseline gRPC Endpoints</div>
+            <div class="panel-title">KSecure 基线 gRPC 端点</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          KSecure 通过 gRPC 端点提供远程基线管理能力。PolicyService 定义了三个核心端点：baselineScan（扫描当前配置并返回偏差报告）、baselineRepair（根据基线自动修复配置偏差）、baselineBack（回滚到修复前的配置状态）。每个端点接收 Policy 消息（包含 ConfigFile 和 ScanLevel），返回 BaselineResponse（包含每个检查项的结果和修复建议）。
+        </p>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:16px 0">
+          <div class="flow-node" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe">
+            <div class="fn-label" style="color:#1d4ed8">baselineScan</div>
+            G_MODE=c<br>检测 + 报告
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#fef2f2,#fecaca);border-color:#fca5a5">
+            <div class="fn-label" style="color:#b91c1c">偏差报告</div>
+            BaselineResponse<br>pass/fail/warn
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#bbf7d0">
+            <div class="fn-label" style="color:#15803d">baselineRepair</div>
+            G_MODE=s<br>自动加固修复
+          </div>
+          <div class="flow-arrow">&#x2192;</div>
+          <div class="flow-node" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe);border-color:#a5b4fc">
+            <div class="fn-label" style="color:#4338ca">baselineBack</div>
+            G_MODE=b<br>回滚到修复前
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: 合规基线                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-baseline">
+
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Compliance Baseline Checks</div>
+        <div class="panel-title">合规基线检查项 (38 项)</div>
+        <p style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.7">
+          KSecure 包含 38 个 Shell 脚本，覆盖密码复杂度、密码策略、SSH 加固、文件权限和会话控制五大类别。每项检查都有明确的基线值和当前值比对，支持 G_MODE 三种运行模式。以下表格展示所有检查项及其当前合规状态。
+        </p>
+      </div>
+
+      <!-- Category 1: Password Complexity -->
+      <div class="app-panel">
+        <div class="category-header" style="background:linear-gradient(135deg,#fef2f2,#fff5f5)">
+          <span style="font-size:16px">&#x1f512;</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-h)">密码复杂度</span>
+          <span style="font-size:12px;color:var(--text)">Password Complexity</span>
+          <span class="ch-count" style="background:#fef3c7;color:#92400e">6 pass / 2 fail</span>
+        </div>
+        <div class="category-body">
+          <table class="data-table">
+            <thead><tr><th>检查 ID</th><th>名称</th><th>脚本</th><th>基线值</th><th>当前值</th><th>状态</th><th>G_MODE</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:monospace;font-size:12px">PWC-001</td><td style="font-weight:600">密码最小长度</td><td style="font-family:monospace;font-size:11px">minlen.sh</td><td>8</td><td>8</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button><button class="gmode-btn">s</button><button class="gmode-btn">b</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PWC-002</td><td style="font-weight:600">小写字母要求</td><td style="font-family:monospace;font-size:11px">lcredit.sh</td><td>1</td><td>1</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button><button class="gmode-btn">s</button><button class="gmode-btn">b</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PWC-003</td><td style="font-weight:600">大写字母要求</td><td style="font-family:monospace;font-size:11px">ucredit.sh</td><td>1</td><td>1</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button><button class="gmode-btn">s</button><button class="gmode-btn">b</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PWC-004</td><td style="font-weight:600">数字要求</td><td style="font-family:monospace;font-size:11px">dcredit.sh</td><td>1</td><td>0</td><td><span class="badge badge-fail">fail</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button><button class="gmode-btn">s</button><button class="gmode-btn">b</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PWC-005</td><td style="font-weight:600">特殊字符要求</td><td style="font-family:monospace;font-size:11px">ocredit.sh</td><td>1</td><td>1</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button><button class="gmode-btn">s</button><button class="gmode-btn">b</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PWC-006</td><td style="font-weight:600">Root 密码复杂度</td><td style="font-family:monospace;font-size:11px">passComplexity-root.sh</td><td>enforced</td><td>enforced</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button><button class="gmode-btn">s</button><button class="gmode-btn">b</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PWC-007</td><td style="font-weight:600">加密算法 SHA512</td><td style="font-family:monospace;font-size:11px">sha512.sh</td><td>sha512</td><td>sha512</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button><button class="gmode-btn">s</button><button class="gmode-btn">b</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PWC-008</td><td style="font-weight:600">空密码检查</td><td style="font-family:monospace;font-size:11px">emptypassword.sh</td><td>none</td><td style="color:#b91c1c">1 account</td><td><span class="badge badge-fail">fail</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button><button class="gmode-btn">s</button><button class="gmode-btn">b</button></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Category 2: Password Policy -->
+      <div class="app-panel">
+        <div class="category-header" style="background:linear-gradient(135deg,#fff7ed,#fffbf5)">
+          <span style="font-size:16px">&#x1f511;</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-h)">密码策略</span>
+          <span style="font-size:12px;color:var(--text)">Password Policy</span>
+          <span class="ch-count" style="background:#d1fae5;color:#065f46">7 pass / 0 fail</span>
+        </div>
+        <div class="category-body">
+          <table class="data-table">
+            <thead><tr><th>检查 ID</th><th>名称</th><th>脚本</th><th>基线值</th><th>当前值</th><th>状态</th><th>G_MODE</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:monospace;font-size:12px">PP-001</td><td style="font-weight:600">密码最大使用天数</td><td style="font-family:monospace;font-size:11px">passChange-maxdays.sh</td><td>90</td><td>90</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PP-002</td><td style="font-weight:600">密码最小使用天数</td><td style="font-family:monospace;font-size:11px">passChange-mindays.sh</td><td>1</td><td>1</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PP-003</td><td style="font-weight:600">密码过期警告天数</td><td style="font-family:monospace;font-size:11px">passChange-warnage.sh</td><td>7</td><td>7</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PP-004</td><td style="font-weight:600">密码历史记录</td><td style="font-family:monospace;font-size:11px">passChange-remember.sh</td><td>5</td><td>5</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PP-005</td><td style="font-weight:600">登录失败锁定次数</td><td style="font-family:monospace;font-size:11px">passLock-deny.sh</td><td>5</td><td>5</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PP-006</td><td style="font-weight:600">锁定持续时间</td><td style="font-family:monospace;font-size:11px">passLock-locktime.sh</td><td>300s</td><td>300s</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">PP-007</td><td style="font-weight:600">SU 命令限制</td><td style="font-family:monospace;font-size:11px">sucommand.sh</td><td>pam_wheel</td><td>pam_wheel</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Category 3: SSH Hardening -->
+      <div class="app-panel">
+        <div class="category-header" style="background:linear-gradient(135deg,#f0fdf4,#f0fff4)">
+          <span style="font-size:16px">&#x1f6e1;</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-h)">SSH 加固</span>
+          <span style="font-size:12px;color:var(--text)">SSH Hardening</span>
+          <span class="ch-count" style="background:#fef3c7;color:#92400e">7 pass / 2 fail</span>
+        </div>
+        <div class="category-body">
+          <table class="data-table">
+            <thead><tr><th>检查 ID</th><th>名称</th><th>脚本</th><th>基线值</th><th>当前值</th><th>状态</th><th>G_MODE</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-001</td><td style="font-weight:600">SSH 空密码禁止</td><td style="font-family:monospace;font-size:11px">SSH-EmptyPW.sh</td><td>no</td><td>no</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-002</td><td style="font-weight:600">SSH 协议版本</td><td style="font-family:monospace;font-size:11px">SSH-PwRequired.sh</td><td>2</td><td>2</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-003</td><td style="font-weight:600">SSH 并发连接数</td><td style="font-family:monospace;font-size:11px">SSH-ConcurrencyNum.sh</td><td>3</td><td>3</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-004</td><td style="font-weight:600">SSH 登录重试次数</td><td style="font-family:monospace;font-size:11px">SSH-PwErrosNum.sh</td><td>3</td><td>5</td><td><span class="badge badge-fail">fail</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-005</td><td style="font-weight:600">SSH 等待时间</td><td style="font-family:monospace;font-size:11px">SSH-WaitTime.sh</td><td>60s</td><td>60s</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-006</td><td style="font-weight:600">SSH 会话超时</td><td style="font-family:monospace;font-size:11px">SSH-SessionTimeOut.sh</td><td>300s</td><td>300s</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-007</td><td style="font-weight:600">SSH Banner</td><td style="font-family:monospace;font-size:11px">SSH-Banner.sh</td><td>configured</td><td>configured</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-008</td><td style="font-weight:600">SSH 开放会话限制</td><td style="font-family:monospace;font-size:11px">SSH-OpenSession.sh</td><td>10</td><td style="color:#b91c1c">unlimited</td><td><span class="badge badge-fail">fail</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SSH-009</td><td style="font-weight:600">SSH 用户环境</td><td style="font-family:monospace;font-size:11px">SSH-UserEnvironment.sh</td><td>restricted</td><td>restricted</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Category 4: File Permissions -->
+      <div class="app-panel">
+        <div class="category-header" style="background:linear-gradient(135deg,#fdf4ff,#fefbff)">
+          <span style="font-size:16px">&#x1f4c1;</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-h)">文件权限</span>
+          <span style="font-size:12px;color:var(--text)">File Permissions</span>
+          <span class="ch-count" style="background:#fef3c7;color:#92400e">6 pass / 2 fail</span>
+        </div>
+        <div class="category-body">
+          <table class="data-table">
+            <thead><tr><th>检查 ID</th><th>名称</th><th>脚本</th><th>基线值</th><th>当前值</th><th>状态</th><th>G_MODE</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:monospace;font-size:12px">FP-001</td><td style="font-weight:600">/etc/passwd 权限</td><td style="font-family:monospace;font-size:11px">etc-passwd.sh</td><td>0644</td><td>0644</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">FP-002</td><td style="font-weight:600">/etc/shadow 权限</td><td style="font-family:monospace;font-size:11px">etc-shadow.sh</td><td>0600</td><td>0600</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">FP-003</td><td style="font-weight:600">/etc/group 权限</td><td style="font-family:monospace;font-size:11px">etc-group.sh</td><td>0644</td><td>0644</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">FP-004</td><td style="font-weight:600">/etc/gshadow 权限</td><td style="font-family:monospace;font-size:11px">etc-gshadow.sh</td><td>0600</td><td style="color:#b91c1c">0640</td><td><span class="badge badge-fail">fail</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">FP-005</td><td style="font-weight:600">Umask 限制</td><td style="font-family:monospace;font-size:11px">umasklimit.sh</td><td>0027</td><td>0027</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">FP-006</td><td style="font-weight:600">Cron 目录权限</td><td style="font-family:monospace;font-size:11px">etc-cron.d.sh</td><td>0700</td><td>0700</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">FP-007</td><td style="font-weight:600">Cron 每日任务权限</td><td style="font-family:monospace;font-size:11px">etc-cron.daily.sh</td><td>0700</td><td>0700</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">FP-008</td><td style="font-weight:600">Systemd 系统目录</td><td style="font-family:monospace;font-size:11px">etc-systemd-system.sh</td><td>0755</td><td style="color:#b91c1c">0777</td><td><span class="badge badge-fail">fail</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Category 5: Session Control -->
+      <div class="app-panel">
+        <div class="category-header" style="background:linear-gradient(135deg,#e0e7ff,#f0f0ff)">
+          <span style="font-size:16px">&#x23f1;</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text-h)">会话控制</span>
+          <span style="font-size:12px;color:var(--text)">Session Control</span>
+          <span class="ch-count" style="background:#d1fae5;color:#065f46">6 pass / 0 fail</span>
+        </div>
+        <div class="category-body">
+          <table class="data-table">
+            <thead><tr><th>检查 ID</th><th>名称</th><th>脚本</th><th>基线值</th><th>当前值</th><th>状态</th><th>G_MODE</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:monospace;font-size:12px">SC-001</td><td style="font-weight:600">Shell 超时</td><td style="font-family:monospace;font-size:11px">shelltmout.sh</td><td>300s</td><td>300s</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SC-002</td><td style="font-weight:600">Crontab 权限</td><td style="font-family:monospace;font-size:11px">etc-crontab.sh</td><td>0600</td><td>0600</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SC-003</td><td style="font-weight:600">Cron 小时任务权限</td><td style="font-family:monospace;font-size:11px">etc-cron.hourly.sh</td><td>0700</td><td>0700</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SC-004</td><td style="font-weight:600">Cron 周任务权限</td><td style="font-family:monospace;font-size:11px">etc-cron.weekly.sh</td><td>0700</td><td>0700</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SC-005</td><td style="font-weight:600">Cron 月任务权限</td><td style="font-family:monospace;font-size:11px">etc-cron.monthly.sh</td><td>0700</td><td>0700</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+              <tr><td style="font-family:monospace;font-size:12px">SC-006</td><td style="font-weight:600">Cron 每日任务权限</td><td style="font-family:monospace;font-size:11px">etc-cron.daily.sh</td><td>0700</td><td>0700</td><td><span class="badge badge-pass">pass</span></td><td><span class="gmode-selector"><button class="gmode-btn active-c">c</button></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- KubeArmor CIS/STIG -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor CIS/STIG Compliance Policies</div>
+            <div class="panel-title">KubeArmor CIS/STIG 合规策略</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          KubeArmor 通过安全策略实现 CIS Benchmarks 和 STIG 合规要求。FIM（File Integrity Monitoring）策略监控关键系统目录的读写操作，DefaultPosture 确保未明确允许的操作被审计或阻止。
+        </p>
+        <table class="data-table">
+          <thead><tr><th>策略类型</th><th>目标路径</th><th>操作模式</th><th>合规标准</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">FIM - 系统二进制</td><td>/bin/</td><td>readOnly</td><td>CIS 1.1.2</td><td><span class="badge badge-pass">enforced</span></td></tr>
+            <tr><td style="font-weight:600">FIM - 启动目录</td><td>/boot/</td><td>readOnly</td><td>CIS 1.1.4</td><td><span class="badge badge-pass">enforced</span></td></tr>
+            <tr><td style="font-weight:600">FIM - 系统管理</td><td>/sbin/</td><td>readOnly</td><td>CIS 1.1.6</td><td><span class="badge badge-pass">enforced</span></td></tr>
+            <tr><td style="font-weight:600">FIM - 用户二进制</td><td>/usr/bin/</td><td>readOnly</td><td>CIS 1.1.8</td><td><span class="badge badge-pass">enforced</span></td></tr>
+            <tr><td style="font-weight:600">Network Default</td><td>*</td><td>block</td><td>STIG V-24000</td><td><span class="badge badge-fail">audit (should be block)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: 偏差修复                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-remediate">
+
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Deviation Remediation Modes</div>
+        <div class="panel-title">偏差修复模式</div>
+        <p style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.7">
+          KSecure 提供三种修复模式应对不同类型的配置偏差：自动加固（G_MODE=s）适用于安全的配置变更，人工审核适用于有风险的变更，自动回滚（G_MODE=b）在加固导致服务异常时恢复原状。修复决策基于偏差的风险等级和修复的安全性评估。
+        </p>
+      </div>
+
+      <!-- Remediation Rule Card 1: Auto-Reinforce -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:#059669"></div>
+        <div class="rc-header">
+          <span class="badge badge-low">Safe</span>
+          <span class="rc-title">自动加固 — G_MODE=s (Auto-Reinforce)</span>
+        </div>
+        <div class="rc-body">
+          <p style="margin-bottom:10px">对于安全的配置变更（如设置密码复杂度参数、限制文件权限、配置SSH安全参数等），系统自动执行加固操作使其符合基线。KSecure 的 baselineRepair gRPC 端点触发 G_MODE=s 模式，每个基线脚本的 Reinforce 函数自动修改配置。加固前自动备份当前配置以支持回滚。适用于 Low 和 Medium 风险等级的偏差。</p>
+          <div class="code-block">
+<span class="cc">// KSecure 自动加固示例</span>
+<span class="ck">function</span> <span class="cn">PassMinLengthReinforce</span>() {
+  <span class="cc"># 备份当前配置</span>
+  cp /etc/pam.d/system-auth /etc/pam.d/system-auth.bak
+  <span class="cc"># 设置密码最小长度</span>
+  sed -i <span class="cs">"s/minlen=.*/minlen=$I_MIN_LENGTH/"</span> /etc/pam.d/system-auth
+  sed -i <span class="cs">"s/^minlen.*/minlen = $I_MIN_LENGTH/"</span> /etc/security/pwquality.conf
+  <span class="cc"># 验证加固结果</span>
+  PassMinLengthCheckWithEcho
+}
+          </div>
+          <table class="data-table" style="margin-top:10px">
+            <thead><tr><th>适用偏差</th><th>风险等级</th><th>加固操作</th><th>回滚支持</th></tr></thead>
+            <tbody>
+              <tr><td>密码最小长度不足</td><td><span class="badge badge-medium">Medium</span></td><td>修改 /etc/pam.d 和 pwquality.conf</td><td>是 (G_MODE=b)</td></tr>
+              <tr><td>密码复杂度参数缺失</td><td><span class="badge badge-medium">Medium</span></td><td>设置 lcredit/ucredit/dcredit/ocredit</td><td>是 (G_MODE=b)</td></tr>
+              <tr><td>文件权限过宽</td><td><span class="badge badge-low">Low</span></td><td>chmod 设置正确权限</td><td>是 (G_MODE=b)</td></tr>
+              <tr><td>SSH 安全参数不当</td><td><span class="badge badge-medium">Medium</span></td><td>修改 sshd_config 参数</td><td>是 (G_MODE=b)</td></tr>
+              <tr><td>会话超时未设置</td><td><span class="badge badge-low">Low</span></td><td>设置 TMOUT 环境变量</td><td>是 (G_MODE=b)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Remediation Rule Card 2: Manual Review -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:#d97706"></div>
+        <div class="rc-header">
+          <span class="badge badge-high">Risky</span>
+          <span class="rc-title">人工审核 — Manual Review</span>
+        </div>
+        <div class="rc-body">
+          <p style="margin-bottom:10px">对于可能影响业务连续性的配置变更（如修改密码策略导致用户被锁定、更改SSH配置导致连接断开等），系统不自动修复而是生成修复建议并提交人工审核。审核通过后可通过 baselineRepair 端点手动触发加固，或在批准后进入自动加固流程。适用于 High 和 Critical 风险等级的偏差。</p>
+          <table class="data-table" style="margin-top:10px">
+            <thead><tr><th>适用偏差</th><th>风险等级</th><th>修复建议</th><th>影响评估</th></tr></thead>
+            <tbody>
+              <tr><td>空密码账户存在</td><td><span class="badge badge-critical">Critical</span></td><td>锁定或删除空密码账户</td><td>可能影响服务账户登录</td></tr>
+              <tr><td>SSH 开放会话无限制</td><td><span class="badge badge-high">High</span></td><td>设置 MaxSessions 限制</td><td>可能影响并发连接</td></tr>
+              <tr><td>Systemd 目录权限过宽</td><td><span class="badge badge-high">High</span></td><td>chmod 0755 /etc/systemd/system</td><td>可能影响服务管理工具</td></tr>
+              <tr><td>DefaultPosture Network 为 audit</td><td><span class="badge badge-high">High</span></td><td>修改 DefaultPosture network 为 block</td><td>将阻止未允许的网络访问</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Remediation Rule Card 3: Auto-Rollback -->
+      <div class="rule-card">
+        <div class="rc-stripe" style="background:#4338ca"></div>
+        <div class="rc-header">
+          <span class="badge badge-p2">Recovery</span>
+          <span class="rc-title">自动回滚 — G_MODE=b (Auto-Rollback)</span>
+        </div>
+        <div class="rc-body">
+          <p style="margin-bottom:10px">当自动加固导致服务异常或配置不兼容时，系统自动执行回滚操作恢复到加固前的配置状态。KSecure 的 baselineBack gRPC 端点触发 G_MODE=b 模式，每个基线脚本的 RollBack 函数从备份中恢复原始配置。回滚操作会触发安全告警，确保运维团队知晓。回滚完成后自动执行一次基线扫描验证配置已恢复。</p>
+          <div class="code-block">
+<span class="cc">// KSecure 回滚示例</span>
+<span class="ck">function</span> <span class="cn">PassMinLengthRollBack</span>() {
+  <span class="cc"># 从备份恢复</span>
+  <span class="ck">if</span> [ -f /etc/pam.d/system-auth.bak ]; <span class="ck">then</span>
+    cp /etc/pam.d/system-auth.bak /etc/pam.d/system-auth
+    rm /etc/pam.d/system-auth.bak
+  <span class="ck">fi</span>
+  <span class="cc"># 验证回滚结果</span>
+  PassMinLengthCheckWithEcho
+}
+          </div>
+          <table class="data-table" style="margin-top:10px">
+            <thead><tr><th>触发条件</th><th>回滚操作</th><th>验证方式</th><th>后续处理</th></tr></thead>
+            <tbody>
+              <tr><td>加固后服务启动失败</td><td>恢复备份配置</td><td>服务健康检查</td><td>提交人工审核</td></tr>
+              <tr><td>加固后认证异常</td><td>恢复 PAM 配置</td><td>测试登录流程</td><td>调整加固参数</td></tr>
+              <tr><td>加固后 SSH 连接断开</td><td>恢复 sshd_config</td><td>SSH 连接测试</td><td>修改加固策略</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Auto-Remediation Toggle -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Auto-Remediation Settings</div>
+            <div class="panel-title">自动修复设置</div>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用自动修复（Enable Auto-remediation）</div>
+            <div class="desc">启用后系统自动对 Low/Medium 风险偏差执行 G_MODE=s 加固，High/Critical 需人工审核</div>
+          </div>
+          <div class="mode-selector">
+            <button class="mode-btn active-enforce">enforce</button>
+            <button class="mode-btn">observe</button>
+            <button class="mode-btn">off</button>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">加固前自动备份（Pre-remediation Backup）</div>
+            <div class="desc">加固前自动备份当前配置文件，确保可通过 G_MODE=b 回滚</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-backup" checked>
+            <label class="toggle-slider" for="toggle-backup"></label>
+          </div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">回滚失败自动告警（Rollback Failure Alert）</div>
+            <div class="desc">回滚操作失败时触发 Critical 级别告警并通知运维团队</div>
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="toggle-rollback-alert" checked>
+            <label class="toggle-slider" for="toggle-rollback-alert"></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- DesiredState Alignment -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Desired State Alignment</div>
+            <div class="panel-title">期望态对齐面板</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);margin-bottom:16px;line-height:1.7">
+          ClawManager 通过 InstanceDesiredState 与 InstanceRuntimeStatus 持续比对来检测运行时配置漂移。InstanceConfigRevision 的 SHA256 checksum 为每份配置提供唯一标识，当当前配置的 checksum 与期望配置不一致时标记为漂移。以下面板显示当前检测到的配置漂移实例。
+        </p>
+        <table class="data-table">
+          <thead><tr><th>实例 ID</th><th>期望 Revision</th><th>当前 Revision</th><th>Checksum 匹配</th><th>漂移类型</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">inst-web-prod-01</td>
+              <td style="font-family:monospace;font-size:11px">rev-2026-04-30-a1b2c3</td>
+              <td style="font-family:monospace;font-size:11px">rev-2026-04-30-a1b2c3</td>
+              <td><span class="badge badge-pass">&#x2713; 匹配</span></td>
+              <td>—</td>
+              <td><span class="badge badge-pass">合规</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">inst-api-staging-02</td>
+              <td style="font-family:monospace;font-size:11px">rev-2026-04-30-d4e5f6</td>
+              <td style="font-family:monospace;font-size:11px;color:#b91c1c">rev-2026-04-28-x9y8z7</td>
+              <td><span class="badge badge-fail">&#x2717; 不匹配</span></td>
+              <td>配置漂移</td>
+              <td><span class="badge badge-fail">偏差</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">inst-db-prod-03</td>
+              <td style="font-family:monospace;font-size:11px">rev-2026-04-30-g7h8i9</td>
+              <td style="font-family:monospace;font-size:11px">rev-2026-04-30-g7h8i9</td>
+              <td><span class="badge badge-pass">&#x2713; 匹配</span></td>
+              <td>—</td>
+              <td><span class="badge badge-pass">合规</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">inst-worker-dev-04</td>
+              <td style="font-family:monospace;font-size:11px">rev-2026-04-29-j0k1l2</td>
+              <td style="font-family:monospace;font-size:11px;color:#b91c1c">rev-2026-04-25-m3n4o5</td>
+              <td><span class="badge badge-fail">&#x2717; 不匹配</span></td>
+              <td>RBAC 漂移</td>
+              <td><span class="badge badge-warn">待修复</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: 合规监控                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-monitor">
+
+      <!-- Score Circle + Stats -->
+      <div class="app-panel-warm">
+        <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+          <div class="score-circle score-high">
+            <div class="score-num">86.8%</div>
+            <div class="score-label">合规率</div>
+          </div>
+          <div style="flex:1;min-width:260px">
+            <div class="panel-eyebrow">Compliance Rate</div>
+            <div class="panel-title">合规率监控</div>
+            <p style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.7">
+              综合评估 KSecure 38 项基线检查、ClawManager 期望态对齐和 KubeArmor DefaultPosture 的合规状态。当前合规率 86.8%，5 项检查失败（1 Critical、2 High、2 Medium），2 个实例存在配置漂移，1 个 DefaultPosture 不合规。已自动修复 3 项 Medium 偏差。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stat-row">
+        <div class="stat-card" style="border-color:#bbf7d0">
+          <div class="sc-value" style="color:#059669">38</div>
+          <div class="sc-label">总检查项</div>
+        </div>
+        <div class="stat-card" style="border-color:#bbf7d0">
+          <div class="sc-value" style="color:#059669">33</div>
+          <div class="sc-label">合规</div>
+        </div>
+        <div class="stat-card" style="border-color:#fecaca">
+          <div class="sc-value" style="color:#b91c1c">5</div>
+          <div class="sc-label">不合规</div>
+        </div>
+        <div class="stat-card" style="border-color:#e9d5ff">
+          <div class="sc-value" style="color:#7e22ce">3</div>
+          <div class="sc-label">自动修复</div>
+        </div>
+        <div class="stat-card" style="border-color:#fed7aa">
+          <div class="sc-value" style="color:#c2410c">2</div>
+          <div class="sc-label">待审核</div>
+        </div>
+      </div>
+
+      <!-- Recent Compliance Events -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Recent Compliance Events</div>
+            <div class="panel-title">最近合规事件</div>
+          </div>
+          <button class="btn-secondary btn-sm">&#x1f50d; 查看全部</button>
+        </div>
+
+        <div class="log-entry" style="border-color:#fecaca">
+          <div class="log-time">2026-04-30 14:30:00</div>
+          <div class="log-icon" style="background:#fef2f2;color:#b91c1c">&#x26A0;</div>
+          <div class="log-msg">偏差检测 — [PWC-004] 数字要求 (dcredit) 不合规，基线值 1，当前值 0，风险等级 Medium</div>
+          <div class="log-sev"><span class="badge badge-medium">Medium</span></div>
+        </div>
+        <div class="log-entry" style="border-color:#bbf7d0">
+          <div class="log-time">2026-04-30 14:25:18</div>
+          <div class="log-icon" style="background:#ecfdf5;color:#059669">&#x21bb;</div>
+          <div class="log-msg">自动加固执行 — [FP-004] /etc/gshadow 权限从 0640 修正为 0600，G_MODE=s，备份已创建</div>
+          <div class="log-sev"><span class="badge badge-low">Fixed</span></div>
+        </div>
+        <div class="log-entry" style="border-color:#fed7aa">
+          <div class="log-time">2026-04-30 14:20:05</div>
+          <div class="log-icon" style="background:#fffbeb;color:#d97706">&#x1f464;</div>
+          <div class="log-msg">人工审核请求 — [PWC-008] 空密码账户存在 (1 account)，自动加固可能导致服务中断，需人工确认</div>
+          <div class="log-sev"><span class="badge badge-critical">Critical</span></div>
+        </div>
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 14:15:00</div>
+          <div class="log-icon" style="background:#ecfdf5;color:#059669">&#x2713;</div>
+          <div class="log-msg">自动回滚完成 — [SSH-004] SSH 登录重试次数加固后导致认证超时，已回滚到原值 5</div>
+          <div class="log-sev"><span class="badge badge-low">Rollback</span></div>
+        </div>
+        <div class="log-entry" style="border-color:#fecaca">
+          <div class="log-time">2026-04-30 14:10:33</div>
+          <div class="log-icon" style="background:#fef2f2;color:#b91c1c">&#x26A0;</div>
+          <div class="log-msg">期望态漂移检测 — inst-api-staging-02 配置 checksum 不匹配，期望 rev-2026-04-30-d4e5f6，当前 rev-2026-04-28-x9y8z7</div>
+          <div class="log-sev"><span class="badge badge-high">High</span></div>
+        </div>
+        <div class="log-entry">
+          <div class="log-time">2026-04-30 14:05:00</div>
+          <div class="log-icon" style="background:#ecfdf5;color:#059669">&#x21bb;</div>
+          <div class="log-msg">自动加固执行 — [SC-001] Shell 超时从 0 修正为 300s，G_MODE=s，已验证会话正常</div>
+          <div class="log-sev"><span class="badge badge-low">Fixed</span></div>
+        </div>
+        <div class="log-entry" style="border-color:#fed7aa">
+          <div class="log-time">2026-04-30 14:00:00</div>
+          <div class="log-icon" style="background:#fffbeb;color:#d97706">&#x26A0;</div>
+          <div class="log-msg">DefaultPosture 不合规 — Network 维度当前为 audit，目标策略为 block，需人工审核</div>
+          <div class="log-sev"><span class="badge badge-high">High</span></div>
+        </div>
+      </div>
+
+      <!-- Category Summary -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Compliance by Category</div>
+            <div class="panel-title">分类合规统计</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>类别</th><th>总检查项</th><th>通过</th><th>失败</th><th>合规率</th><th>自动修复</th><th>待审核</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">&#x1f512; 密码复杂度</td>
+              <td>8</td>
+              <td style="color:#059669;font-weight:600">6</td>
+              <td style="color:#b91c1c;font-weight:600">2</td>
+              <td>75.0%</td>
+              <td>0</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">&#x1f511; 密码策略</td>
+              <td>7</td>
+              <td style="color:#059669;font-weight:600">7</td>
+              <td style="color:#059669;font-weight:600">0</td>
+              <td>100%</td>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">&#x1f6e1; SSH 加固</td>
+              <td>9</td>
+              <td style="color:#059669;font-weight:600">7</td>
+              <td style="color:#b91c1c;font-weight:600">2</td>
+              <td>77.8%</td>
+              <td>1 (回滚)</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">&#x1f4c1; 文件权限</td>
+              <td>8</td>
+              <td style="color:#059669;font-weight:600">6</td>
+              <td style="color:#b91c1c;font-weight:600">2</td>
+              <td>75.0%</td>
+              <td>1</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">&#x23f1; 会话控制</td>
+              <td>6</td>
+              <td style="color:#059669;font-weight:600">6</td>
+              <td style="color:#059669;font-weight:600">0</td>
+              <td>100%</td>
+              <td>1</td>
+              <td>0</td>
+            </tr>
+            <tr style="background:rgba(239,68,68,0.02)">
+              <td style="font-weight:700">合计</td>
+              <td style="font-weight:700">38</td>
+              <td style="font-weight:700;color:#059669">33</td>
+              <td style="font-weight:700;color:#b91c1c">5</td>
+              <td style="font-weight:700">86.8%</td>
+              <td>3</td>
+              <td>2</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: 配置                                                    -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Scan Schedule -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4cb; 扫描调度</div>
+          <div class="form-group">
+            <label class="form-label">合规检查计划（Compliance Check Schedule）</label>
+            <select class="form-select" style="width:100%">
+              <option>每 15 分钟</option>
+              <option selected>每小时</option>
+              <option>每 6 小时</option>
+              <option>每天 00:00</option>
+              <option>自定义 Cron</option>
+            </select>
+            <div class="form-hint">KSecure baselineScan gRPC 端点的调度频率</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">KSecure G_MODE 默认值</label>
+            <select class="form-select" style="width:100%">
+              <option selected>c (检查模式)</option>
+              <option>s (加固模式)</option>
+              <option>b (回滚模式)</option>
+            </select>
+            <div class="form-hint">默认运行模式为检查（c），仅检测不修改配置</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">扫描级别（ScanLevel）</label>
+            <select class="form-select" style="width:100%">
+              <option>1 - 仅关键项</option>
+              <option selected>2 - 标准扫描</option>
+              <option>3 - 深度扫描</option>
+            </select>
+            <div class="form-hint">BaselineParam.ScanLevel 控制扫描深度</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">启动时全量扫描</label>
+            <div class="toggle-switch" style="margin-top:4px">
+              <input type="checkbox" id="cfg-startup-scan" checked>
+              <label class="toggle-slider" for="cfg-startup-scan"></label>
+            </div>
+            <div class="form-hint">KSecure 启动时自动执行一次全量基线扫描</div>
+          </div>
+        </div>
+
+        <!-- Auto-Remediation Rules -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f527; 自动修复规则</div>
+          <div class="form-group">
+            <label class="form-label">自动修复安全规则</label>
+            <textarea class="form-input" rows="5" style="resize:vertical;font-family:monospace;font-size:11px"># Low/Medium 风险：自动加固 (G_MODE=s)
+risk_level <= Medium &amp;&amp; impact = safe → auto_reinforce
+
+# High/Critical 风险：人工审核
+risk_level >= High → manual_review
+
+# 加固失败：自动回滚 (G_MODE=b)
+reinforce_result = failed → auto_rollback
+
+# 回滚失败：Critical 告警
+rollback_result = failed → alert_critical</textarea>
+            <div class="form-hint">基于风险等级和影响评估的自动修复决策规则</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">加固后验证等待时间</label>
+            <input class="form-input" type="number" value="30">
+            <div class="form-hint">加固后等待 N 秒再执行服务健康检查</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">最大连续回滚次数</label>
+            <input class="form-input" type="number" value="3">
+            <div class="form-hint">连续回滚超过此次数后停止自动修复并告警</div>
+          </div>
+        </div>
+
+        <!-- Desired State Alignment -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f504; 期望态对齐</div>
+          <div class="form-group">
+            <label class="form-label">期望态对齐检查间隔</label>
+            <select class="form-select" style="width:100%">
+              <option>5 分钟</option>
+              <option selected>15 分钟</option>
+              <option>30 分钟</option>
+              <option>1 小时</option>
+            </select>
+            <div class="form-hint">ClawManager InstanceConfigRevision checksum 比对频率</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">漂移检测范围</label>
+            <div class="tag-list" style="margin-top:4px">
+              <div class="tag">&#x2713; 实例配置</div>
+              <div class="tag">&#x2713; RBAC 权限</div>
+              <div class="tag">&#x2713; 网络策略</div>
+              <div class="tag">&#x2713; 资源配额</div>
+              <div class="tag">&#x2713; 安全策略</div>
+            </div>
+            <div class="form-hint">InstanceDesiredState 与 InstanceRuntimeStatus 的比对范围</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">漂移自动对齐</label>
+            <div class="toggle-switch" style="margin-top:4px">
+              <input type="checkbox" id="cfg-auto-align">
+              <label class="toggle-slider" for="cfg-auto-align"></label>
+            </div>
+            <div class="form-hint">启用后检测到漂移时自动将运行态对齐到期望态</div>
+          </div>
+        </div>
+
+        <!-- KubeArmor DefaultPosture -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6e1;&#xfe0f; KubeArmor DefaultPosture</div>
+          <div class="form-group">
+            <label class="form-label">File DefaultPosture 目标</label>
+            <select class="form-select" style="width:100%">
+              <option selected>block</option>
+              <option>audit</option>
+            </select>
+            <div class="form-hint">未明确允许的文件操作默认策略</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Network DefaultPosture 目标</label>
+            <select class="form-select" style="width:100%">
+              <option selected>block</option>
+              <option>audit</option>
+            </select>
+            <div class="form-hint">当前为 audit，不合规，目标应为 block</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Capabilities DefaultPosture 目标</label>
+            <select class="form-select" style="width:100%">
+              <option selected>block</option>
+              <option>audit</option>
+            </select>
+            <div class="form-hint">未明确允许的能力默认策略</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CIS/STIG 策略选择</label>
+            <div class="tag-list" style="margin-top:4px">
+              <div class="tag">&#x2713; CIS Benchmark Level 1</div>
+              <div class="tag">&#x2713; CIS Benchmark Level 2</div>
+              <div class="tag">&#x2713; STIG V-24000</div>
+              <div class="tag">NSA Hardening Guide</div>
+            </div>
+            <div class="form-hint">启用的合规标准策略集</div>
+          </div>
+        </div>
+
+        <!-- Baseline Script Parameters -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4dd; 基线脚本参数</div>
+          <div class="form-group">
+            <label class="form-label">密码最小长度 (I_MIN_LENGTH)</label>
+            <input class="form-input" type="number" value="8">
+            <div class="form-hint">KSecure minlen.sh 的基线参数</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">密码最大使用天数</label>
+            <input class="form-input" type="number" value="90">
+            <div class="form-hint">passChange-maxdays.sh 的基线参数</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SSH 最大认证重试</label>
+            <input class="form-input" type="number" value="3">
+            <div class="form-hint">SSH-PwErrosNum.sh 的基线参数</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shell 超时秒数 (TMOUT)</label>
+            <input class="form-input" type="number" value="300">
+            <div class="form-hint">shelltmout.sh 的基线参数</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">登录失败锁定次数</label>
+            <input class="form-input" type="number" value="5">
+            <div class="form-hint">passLock-deny.sh 的基线参数</div>
+          </div>
+        </div>
+
+        <!-- Rollback & Notification -->
+        <div class="config-section">
+          <div class="cs-title">&#x26a0;&#xfe0f; 回滚与通知</div>
+          <div class="form-group">
+            <label class="form-label">回滚安全检查</label>
+            <div class="toggle-switch" style="margin-top:4px">
+              <input type="checkbox" id="cfg-rollback-check" checked>
+              <label class="toggle-slider" for="cfg-rollback-check"></label>
+            </div>
+            <div class="form-hint">回滚前检查备份文件是否存在和有效</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">合规漂移通知</label>
+            <div class="toggle-switch" style="margin-top:4px">
+              <input type="checkbox" id="cfg-drift-notify" checked>
+              <label class="toggle-slider" for="cfg-drift-notify"></label>
+            </div>
+            <div class="form-hint">检测到配置漂移时发送通知</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">通知渠道</label>
+            <div class="tag-list" style="margin-top:4px">
+              <div class="tag">&#x2713; Webhook</div>
+              <div class="tag">&#x2713; 邮件</div>
+              <div class="tag">&#x2713; syslog</div>
+              <div class="tag">Slack</div>
+              <div class="tag">钉钉</div>
+            </div>
+            <div class="form-hint">合规偏差和漂移事件的通知渠道</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">合规报告生成频率</label>
+            <select class="form-select" style="width:100%">
+              <option>实时</option>
+              <option selected>每日</option>
+              <option>每周</option>
+              <option>每月</option>
+            </select>
+            <div class="form-hint">自动生成合规审计报告的时间间隔</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Acceptance Criteria -->
+      <div class="app-panel" style="margin-top:22px">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Acceptance Criteria</div>
+            <div class="panel-title">验收标准</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:240px;border-radius:14px;border:1px solid #bbf7d0;background:#ecfdf5;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#059669;margin-bottom:6px">&#x2713; 配置偏差可检测</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">KSecure 38 项基线检查 + ClawManager SHA256 checksum + KubeArmor DefaultPosture 三层偏差检测</div>
+          </div>
+          <div style="flex:1;min-width:240px;border-radius:14px;border:1px solid #bbf7d0;background:#ecfdf5;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#059669;margin-bottom:6px">&#x2713; 偏差有修复建议</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">每项偏差提供具体修复操作、影响评估和 G_MODE 建议，High/Critical 需人工审核</div>
+          </div>
+          <div style="flex:1;min-width:240px;border-radius:14px;border:1px solid #bbf7d0;background:#ecfdf5;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#059669;margin-bottom:6px">&#x2713; 支持自动修正</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.6">Low/Medium 风险偏差通过 G_MODE=s 自动加固，加固失败通过 G_MODE=b 自动回滚</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

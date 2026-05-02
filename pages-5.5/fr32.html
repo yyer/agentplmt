@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr32</title>
+<link rel="stylesheet" href="../css-5.5.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr32">
+
+      <div class="subheader">
+    <strong>FR-32</strong>&nbsp;|&nbsp;可信启动与关键组件完整性度量&nbsp;|&nbsp;<span class="badge badge-p1">P1 优先级</span>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button class="btn-secondary btn-sm">导出配置</button>
+      <button class="btn-primary btn-sm">保存配置</button>
+    </div>
+  </div>
+  <div class="content-area">
+
+    <!-- Overview -->
+    <div class="app-panel-warm">
+      <div class="flex items-center gap-16">
+        <div class="score-circle score-med">
+          <span class="score-num">91</span>
+          <span class="score-label">/ 100</span>
+        </div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Integrity Score</div>
+          <div class="panel-title" style="margin-bottom:6px;">当前完整性评分：91 / 100</div>
+          <div style="font-size:.85rem;color:var(--text);line-height:1.7;">对运行环境中关键组件（容器运行时、K8s 组件、安全代理、管理服务）进行启动时和运行时的 SHA-256 完整性校验，通过 IMA/eBPF 实现内核级度量，保障可信启动链。</div>
+        </div>
+        <div class="flex gap-16">
+          <div class="stat-mini"><div class="sm-val" style="color:#059669;">10</div><div class="sm-label">校验通过</div></div>
+          <div class="stat-mini"><div class="sm-val" style="color:#dc2626;">1</div><div class="sm-label">哈希不匹配</div></div>
+          <div class="stat-mini"><div class="sm-val" style="color:#d97706;">11</div><div class="sm-label">度量对象总数</div></div>
+          <div class="stat-mini"><div class="sm-val" style="color:#6d28d9;">4</div><div class="sm-label">度量子系统</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="tab-integrity-config">完整性配置</div>
+      <div class="tab" data-tab="tab-measure-list">度量清单</div>
+      <div class="tab" data-tab="tab-ima-measure">IMA度量</div>
+      <div class="tab" data-tab="tab-verify-records">校验记录</div>
+    </div>
+
+    <!-- ═══════════ Tab: 完整性配置 ═══════════ -->
+    <div id="tab-integrity-config" class="tab-content active">
+
+      <!-- Panel 1: KubeArmor IMA 配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor &mdash; IMA Configuration</div>
+            <div class="panel-title">KubeArmor IMA 配置</div>
+          </div>
+          <span class="badge badge-sys">kubearmor</span>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">IMA 度量开关 <code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral);">enableIMA</code></div>
+            <div class="desc">启用 IMA 完整性度量，依赖 BPF LSM 内核支持。启用后 KubeArmor 将通过 eBPF 钩子收集文件哈希</div>
+          </div>
+          <div class="toggle-switch" data-toggle="ima"></div>
+        </div>
+
+        <div style="padding:12px 0;">
+          <div class="form-label">依赖: BPF LSM 支持</div>
+          <div class="form-hint" style="margin-top:2px;">内核须启用 CONFIG_BPF_LSM=y，可通过 <code>cat /sys/kernel/security/lsm</code> 确认 <code>bpf</code> 在列表中</div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);">
+          <div class="form-label">LSM 钩子</div>
+          <div style="margin-top:6px;">
+            <code style="background:#f5f0eb;padding:4px 10px;border-radius:6px;font-size:.82rem;color:var(--accent-coral);">bpf_file_ima_hash</code>
+            <span style="font-size:.78rem;color:var(--text);margin-left:8px;">挂钩点: <code>ImaBprmCheckSecurity</code></span>
+          </div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);">
+          <div class="form-label">哈希字段</div>
+          <div class="field-list">
+            <span class="field-tag">ProcessHash</span>
+            <span class="field-tag">ParentHash</span>
+            <span class="field-tag">ResourceHash</span>
+            <span class="field-tag">HashAlgo</span>
+          </div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);">
+          <div class="form-label">Visibility 配置</div>
+          <div style="font-size:.85rem;color:var(--text-h);margin-top:4px;">
+            <code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.82rem;color:var(--accent-coral);">IMA</code>
+            <span style="font-size:.78rem;color:var(--text);">bool &mdash; eBPF per-namespace map 中 index 5 的可见性标志</span>
+          </div>
+          <div class="form-hint" style="margin-top:4px;">当日志数据的 ctx.Hash == 1 时，IMA 哈希信息将包含在事件日志中</div>
+        </div>
+      </div>
+
+      <!-- Panel 2: ClawManager Config Revision SHA256 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager &mdash; Config Revision Checksum</div>
+            <div class="panel-title">ClawManager 配置版本 SHA256 校验</div>
+          </div>
+          <span class="badge badge-sys">clawmanager</span>
+        </div>
+
+        <div style="padding:10px 0;">
+          <div class="form-label">Checksum 格式</div>
+          <div style="margin-top:6px;font-family:monospace;font-size:.85rem;color:var(--text-h);background:#faf7f4;padding:10px 14px;border-radius:8px;word-break:break-all;">
+            sha256:<span style="color:var(--accent-coral);">a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2</span>
+          </div>
+          <div class="form-hint" style="margin-top:4px;">格式为 sha256: 前缀 + 64位十六进制字符</div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);">
+          <div class="form-label">数据模型: InstanceConfigRevision</div>
+          <table class="data-table" style="margin-top:8px;">
+            <thead><tr><th>字段</th><th>类型</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>id</code></td><td>uint</td><td>主键 ID</td></tr>
+              <tr><td><code>instance_id</code></td><td>uint</td><td>关联实例 ID</td></tr>
+              <tr><td><code>revision_no</code></td><td>int</td><td>版本号（递增）</td></tr>
+              <tr><td><code>content_json</code></td><td>json</td><td>配置内容 JSON</td></tr>
+              <tr><td><code>checksum</code></td><td>string</td><td>SHA-256 校验和</td></tr>
+              <tr><td><code>status</code></td><td>string</td><td>版本状态（draft / published / activated）</td></tr>
+              <tr><td><code>published_by</code></td><td>string</td><td>发布者</td></tr>
+              <tr><td><code>published_at</code></td><td>datetime</td><td>发布时间</td></tr>
+              <tr><td><code>activated_at</code></td><td>datetime</td><td>激活时间</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);">
+          <div class="form-label">计算方式</div>
+          <div class="code-block" style="margin-top:8px;">
+<span class="kw">func</span> <span class="fn">computeChecksum</span>(contentJSON <span class="kw">string</span>) <span class="kw">string</span> {
+    hash := sha256.<span class="fn">Sum256</span>([]<span class="kw">byte</span>(contentJSON))
+    <span class="kw">return</span> <span class="str">"sha256:"</span> + hex.<span class="fn">EncodeToString</span>(hash[:])
+}</div>
+          <div class="form-hint" style="margin-top:6px;">对 content_json 原始字节取 SHA-256，生成 64 字符十六进制校验和</div>
+        </div>
+      </div>
+
+      <!-- Panel 3: ClawAegis Self-Integrity -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawAegis &mdash; Self-Integrity Verification</div>
+            <div class="panel-title">ClawAegis 自身完整性校验</div>
+          </div>
+          <span class="badge badge-sys">claw-aegis</span>
+        </div>
+
+        <div style="padding:10px 0;">
+          <div class="form-label">启动时计算 12 个文件的 SHA-256 指纹</div>
+          <div class="form-hint" style="margin-top:2px;">每次启动时计算以下文件的 SHA-256 哈希，与基线比对以检测篡改</div>
+          <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">
+            <span class="integrity-file">index.ts</span>
+            <span class="integrity-file">runtime-api.ts</span>
+            <span class="integrity-file">openclaw.plugin.json</span>
+            <span class="integrity-file">package.json</span>
+            <span class="integrity-file">src/config.ts</span>
+            <span class="integrity-file">src/types.ts</span>
+            <span class="integrity-file">src/state.ts</span>
+            <span class="integrity-file">src/rules.ts</span>
+            <span class="integrity-file">src/scan-service.ts</span>
+            <span class="integrity-file">src/scan-worker.ts</span>
+            <span class="integrity-file">src/scan-worker.js</span>
+            <span class="integrity-file">src/handlers.ts</span>
+          </div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);">
+          <div class="form-label">持久化存储</div>
+          <div style="margin-top:6px;font-family:monospace;font-size:.85rem;color:var(--text-h);background:#faf7f4;padding:10px 14px;border-radius:8px;">
+            self-integrity.json
+          </div>
+          <div class="form-hint" style="margin-top:4px;">仅保存每个文件哈希的前 16 个 hex 字符，用于快速比对</div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);">
+          <div class="form-label">存储格式示例</div>
+          <div class="code-block" style="margin-top:8px;">{
+  <span class="str">"index.ts"</span>: <span class="str">"a1b2c3d4e5f6a7b8"</span>,
+  <span class="str">"runtime-api.ts"</span>: <span class="str">"b2c3d4e5f6a7b8c9"</span>,
+  <span class="str">"openclaw.plugin.json"</span>: <span class="str">"c3d4e5f6a7b8c9d0"</span>,
+  <span class="cm">// ... 共 12 个文件，每个保存前 16 hex 字符</span>
+  <span class="str">"src/handlers.ts"</span>: <span class="str">"d4e5f6a7b8c9d0e1"</span>
+}</div>
+        </div>
+      </div>
+
+      <!-- Panel 4: KSecure IMA -->
+      <div class="app-panel" style="border-color:#fde68a;background:linear-gradient(135deg,#fffdf5,#fff9eb);">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KSecure &mdash; IMA Configuration</div>
+            <div class="panel-title">KSecure IMA 配置</div>
+          </div>
+          <span class="badge badge-warn">&#9888; 待实现</span>
+        </div>
+
+        <div style="padding:10px 0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span class="badge badge-observe">PLANNED</span>
+            <span style="font-size:.82rem;color:var(--text);">KSecure IMA 集成尚在规划中，以下为建议配置</span>
+          </div>
+
+          <div class="form-label">建议内核参数</div>
+          <div class="code-block" style="margin-top:6px;">
+<span class="cm"># /etc/default/grub -> GRUB_CMDLINE_LINUX</span>
+lsm=<span class="str">integrity,selinux,smack,tomoyo,apparmor,bpf</span></div>
+          <div class="form-hint" style="margin-top:6px;">需将 <code>integrity</code> 置于 LSM 链首位以启用 IMA 度量</div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid #f0e0d6;">
+          <div class="form-label">规划路线</div>
+          <div style="font-size:.82rem;color:var(--text);line-height:1.7;margin-top:4px;">
+            <div style="padding:4px 0;">1. 内核启用 IMA/EVM 度量策略</div>
+            <div style="padding:4px 0;">2. KSecure 注册 IMA 策略钩子，收集关键文件度量值</div>
+            <div style="padding:4px 0;">3. 与 ClawManager 对接，实现度量值上报与基线比对告警</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ Tab: 度量清单 ═══════════ -->
+    <div id="tab-measure-list" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Integrity Measurement List</div>
+            <div class="panel-title">关键度量对象清单</div>
+          </div>
+          <div class="flex gap-8">
+            <button class="btn-secondary btn-sm">导出清单</button>
+            <button class="btn-primary btn-sm">重新度量</button>
+          </div>
+        </div>
+
+        <div class="overflow-x">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>类别</th>
+                <th>对象</th>
+                <th>路径</th>
+                <th>哈希算法</th>
+                <th>当前哈希</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>容器运行时</td>
+                <td style="font-weight:600;color:var(--text-h);">containerd</td>
+                <td><code>/usr/bin/containerd</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">a1b2c3d4...ef</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr>
+                <td>容器运行时</td>
+                <td style="font-weight:600;color:var(--text-h);">containerd-shim</td>
+                <td><code>/usr/bin/containerd-shim-runc-v2</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">b2c3d4e5...01</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr>
+                <td>容器运行时</td>
+                <td style="font-weight:600;color:var(--text-h);">runc</td>
+                <td><code>/usr/bin/runc</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">c3d4e5f6...ab</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr>
+                <td>K8s 组件</td>
+                <td style="font-weight:600;color:var(--text-h);">kubelet</td>
+                <td><code>/usr/bin/kubelet</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">d4e5f6a7...cd</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr>
+                <td>K8s 组件</td>
+                <td style="font-weight:600;color:var(--text-h);">kube-apiserver</td>
+                <td><code>/usr/bin/kube-apiserver</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">e5f6a7b8...ef</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr>
+                <td>K8s 组件</td>
+                <td style="font-weight:600;color:var(--text-h);">kube-controller</td>
+                <td><code>/usr/bin/kube-controller-manager</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">f6a7b8c9...01</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr>
+                <td>K8s 组件</td>
+                <td style="font-weight:600;color:var(--text-h);">kube-scheduler</td>
+                <td><code>/usr/bin/kube-scheduler</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">a7b8c9d0...23</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr style="background:rgba(239,68,68,.04);">
+                <td>KubeArmor</td>
+                <td style="font-weight:600;color:#dc2626;">kubearmor</td>
+                <td><code>/usr/bin/kubearmor</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;color:#dc2626;">b8c9d0e1...45</td>
+                <td><span class="status-icon fail">&#10007;</span></td>
+              </tr>
+              <tr>
+                <td>KSecure</td>
+                <td style="font-weight:600;color:var(--text-h);">KSecMain</td>
+                <td><code>/opt/KSec/bin/KSecMain</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">c9d0e1f2...67</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr>
+                <td>ClawManager</td>
+                <td style="font-weight:600;color:var(--text-h);">server</td>
+                <td><code>/usr/local/bin/clawmanager-server</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">d0e1f2a3...89</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+              <tr>
+                <td>OpenClaw</td>
+                <td style="font-weight:600;color:var(--text-h);">openclaw</td>
+                <td><code>~/.openclaw/bin/openclaw</code></td>
+                <td>SHA-256</td>
+                <td style="font-family:monospace;font-size:.75rem;">e1f2a3b4...ab</td>
+                <td><span class="status-icon pass">&#10003;</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ Tab: IMA度量 ═══════════ -->
+    <div id="tab-ima-measure" class="tab-content">
+
+      <!-- Panel 1: IMA 可见性配置 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">IMA Visibility Configuration</div>
+            <div class="panel-title">IMA 可见性配置</div>
+          </div>
+          <span class="badge badge-sys">kubearmor</span>
+        </div>
+
+        <div style="padding:10px 0;">
+          <div class="form-label">Per-namespace IMA visibility (eBPF map index 5)</div>
+          <div style="margin-top:8px;padding:14px;background:#faf7f4;border-radius:8px;">
+            <div style="font-size:.85rem;color:var(--text-h);font-weight:600;margin-bottom:8px;">Visibility Struct</div>
+            <div class="code-block">
+<span class="kw">type</span> Visibility <span class="kw">struct</span> {
+    <span class="cm">// index 0-4: ProcessVisibility, FileVisibility, NetworkVisibility, ...</span>
+    IMA <span class="kw">bool</span> <span class="cm">// index 5</span>
+}</div>
+          </div>
+          <div class="form-hint" style="margin-top:8px;">当 IMA 字段为 true 时，eBPF 程序将在事件日志中附带文件哈希度量值</div>
+        </div>
+
+        <div style="padding:12px 0;border-top:1px solid var(--border);">
+          <div class="form-label">日志触发条件</div>
+          <div style="margin-top:6px;font-size:.85rem;color:var(--text-h);line-height:1.7;">
+            当 <code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.82rem;color:var(--accent-coral);">ctx.Hash == 1</code> 时，事件日志数据将包含 IMA 哈希字段：
+            <code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.82rem;color:var(--accent-coral);">ProcessHash</code>,
+            <code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.82rem;color:var(--accent-coral);">ParentHash</code>,
+            <code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.82rem;color:var(--accent-coral);">ResourceHash</code>,
+            <code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.82rem;color:var(--accent-coral);">HashAlgo</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: IMA 日志格式示例 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">IMA Log Format</div>
+            <div class="panel-title">IMA 日志格式示例</div>
+          </div>
+          <span class="badge badge-sys">kubearmor</span>
+        </div>
+
+        <div class="code-block">{
+  <span class="str">"processHash"</span>: <span class="str">"sha256:abc123..."</span>,
+  <span class="str">"parentHash"</span>: <span class="str">"sha256:def456..."</span>,
+  <span class="str">"resourceHash"</span>: <span class="str">"sha256:789abc..."</span>,
+  <span class="str">"hashAlgo"</span>: <span class="str">"sha256"</span>
+}</div>
+        <div class="form-hint" style="margin-top:8px;">各字段说明：</div>
+        <div style="margin-top:6px;font-size:.82rem;color:var(--text);line-height:1.8;">
+          <div><code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral);">processHash</code> &mdash; 当前执行进程的 SHA-256 哈希（由 bpf_file_ima_hash 钩子计算）</div>
+          <div><code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral);">parentHash</code> &mdash; 父进程的 SHA-256 哈希，用于追踪进程链</div>
+          <div><code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral);">resourceHash</code> &mdash; 被访问文件/资源的 SHA-256 哈希</div>
+          <div><code style="background:#f5f0eb;padding:2px 6px;border-radius:4px;font-size:.78rem;color:var(--accent-coral);">hashAlgo</code> &mdash; 哈希算法标识，当前固定为 sha256</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ Tab: 校验记录 ═══════════ -->
+    <div id="tab-verify-records" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Integrity Verification Records</div>
+            <div class="panel-title">校验记录</div>
+          </div>
+          <div class="flex gap-8">
+            <select class="form-input" style="max-width:160px;padding:6px 12px;font-size:.78rem;">
+              <option>全部状态</option>
+              <option>校验通过</option>
+              <option>哈希不匹配</option>
+            </select>
+            <button class="btn-secondary btn-sm">刷新</button>
+          </div>
+        </div>
+
+        <!-- Record 1 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 08:00:01</span>
+            <span class="badge badge-green">VERIFIED</span>
+            <span class="badge badge-sys">kubearmor</span>
+          </div>
+          <div class="log-body">
+            <span style="font-weight:600;color:var(--text-h);">kubelet</span> hash verified <span class="status-icon pass" style="width:16px;height:16px;font-size:.6rem;">&#10003;</span>
+          </div>
+          <div class="log-detail">
+            component: kubelet | path: /usr/bin/kubelet | hash: sha256:d4e5f6...cd | match: true
+          </div>
+        </div>
+
+        <!-- Record 2 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 08:00:01</span>
+            <span class="badge badge-green">VERIFIED</span>
+            <span class="badge badge-sys">kubearmor</span>
+          </div>
+          <div class="log-body">
+            <span style="font-weight:600;color:var(--text-h);">runc</span> hash verified <span class="status-icon pass" style="width:16px;height:16px;font-size:.6rem;">&#10003;</span>
+          </div>
+          <div class="log-detail">
+            component: runc | path: /usr/bin/runc | hash: sha256:c3d4e5...ab | match: true
+          </div>
+        </div>
+
+        <!-- Record 3 - MISMATCH -->
+        <div class="log-entry" style="border-color:#fecaca;background:linear-gradient(135deg,#fff9f9,#fff5f5);">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 08:00:02</span>
+            <span class="badge badge-blocked">MISMATCH</span>
+            <span class="badge badge-critical">CRITICAL</span>
+            <span class="badge badge-sys">kubearmor</span>
+          </div>
+          <div class="log-body">
+            <span style="font-weight:600;color:#dc2626;">kubearmor</span> hash MISMATCH <span class="status-icon fail" style="width:16px;height:16px;font-size:.6rem;">&#10007;</span>
+          </div>
+          <div class="log-detail">
+            component: kubearmor | path: /usr/bin/kubearmor<br>
+            expected: sha256:b8c9d0...45<br>
+            actual:&nbsp;&nbsp;&nbsp; sha256:ff0011...22<br>
+            match: false | severity: CRITICAL | action: ALERT
+          </div>
+        </div>
+
+        <!-- Record 4 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 08:00:02</span>
+            <span class="badge badge-green">VERIFIED</span>
+            <span class="badge badge-sys">ksecure</span>
+          </div>
+          <div class="log-body">
+            <span style="font-weight:600;color:var(--text-h);">KSecMain</span> hash verified <span class="status-icon pass" style="width:16px;height:16px;font-size:.6rem;">&#10003;</span>
+          </div>
+          <div class="log-detail">
+            component: KSecMain | path: /opt/KSec/bin/KSecMain | hash: sha256:c9d0e1...67 | match: true
+          </div>
+        </div>
+
+        <!-- Record 5 -->
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-04-30 08:00:03</span>
+            <span class="badge badge-green">VERIFIED</span>
+            <span class="badge badge-sys">claw-aegis</span>
+          </div>
+          <div class="log-body">
+            <span style="font-weight:600;color:var(--text-h);">ClawAegis</span> self-integrity verified <span class="status-icon pass" style="width:16px;height:16px;font-size:.6rem;">&#10003;</span> &mdash; 12 files, all match
+          </div>
+          <div class="log-detail">
+            component: ClawAegis | files: 12 | matched: 12 | mismatched: 0<br>
+            baseline: self-integrity.json | status: ALL MATCH
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr17</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr17">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-17 &middot; P0</div><div class="page-title">记忆内容验证</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">运行审计</button><button class="btn-primary btn-sm">一键加固</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-med">68</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Memory Integrity Score</div>
+          <div class="panel-title" style="margin-bottom:6px;">当前记忆完整性评分：68 / 100</div>
+          <div style="font-size:13px;color:var(--text);">通过 SecureClaw SC-MEM-001~005 审计检查验证记忆文件完整性，Memory Integrity Monitor 实时监控文件变更。上次审计时间：2026-04-30 14:00</div>
+        </div>
+        <div style="display:flex;gap:20px;">
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">1</div><div class="label">CRITICAL</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e;">2</div><div class="label">MEDIUM</div></div>
+          <div class="stat-mini"><div class="value" style="color:#15803d;">2</div><div class="label">PASS</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="fr17-checks">审计检查</div>
+      <div class="tab" data-tab="fr17-monitor">实时监控</div>
+      <div class="tab" data-tab="fr17-config">验证配置</div>
+    </div>
+
+    <div id="fr17-checks" class="tab-content active">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">SC-MEM Audit Checks</div><div class="panel-title">记忆完整性审计检查</div></div><span class="badge-sys">secureclaw</span></div>
+        <div class="check-item">
+          <div class="check-icon fail">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">记忆文件中检测到提示词注入</div>
+            <div class="check-id">SC-MEM-002 &middot; CRITICAL &middot; OWASP ASI06 &middot; MAESTRO L2</div>
+            <div class="check-detail">MEMORY.md 中包含 "ignore previous instructions" 模式，疑似时移逻辑炸弹。</div>
+            <div style="margin-top:6px;font-size:12px;color:#8f8681;">修复: <code>openclaw secureclaw memory quarantine</code> | autoFixable: false</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">记忆文件包含可疑 base64 编码</div>
+            <div class="check-id">SC-MEM-003 &middot; MEDIUM &middot; OWASP ASI06 &middot; MAESTRO L2</div>
+            <div class="check-detail">MEMORY.md 中发现 50+ 字符 base64 块，可能隐藏恶意指令。</div>
+            <div style="margin-top:6px;font-size:12px;color:#8f8681;">修复: 审查并解码 base64 内容确认是否为良性 | autoFixable: false</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon warn">&#x2715;</div>
+          <div class="check-info">
+            <div class="check-name">记忆文件包含未授权 URL</div>
+            <div class="check-id">SC-MEM-004 &middot; MEDIUM &middot; OWASP ASI06 &middot; MAESTRO L2</div>
+            <div class="check-detail">SOUL.md 中包含非白名单域名 <code>evil.example.com</code></div>
+            <div style="margin-top:6px;font-size:12px;color:#8f8681;">修复: 确认 URL 是否合法，添加到白名单 | 允许域名: api.anthropic.com, api.openai.com, generativelanguage.googleapis.com</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">记忆文件权限合规</div>
+            <div class="check-id">SC-MEM-005 &middot; autoFixable</div>
+            <div class="check-detail">所有记忆文件权限为 600，仅所有者可读写。</div>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-icon pass">&#x2713;</div>
+          <div class="check-info">
+            <div class="check-name">Agent 目录存在</div>
+            <div class="check-id">SC-MEM-001</div>
+            <div class="check-detail">检测到 3 个 Agent 目录，记忆文件结构正常。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fr17-monitor" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Memory Integrity Monitor</div><div class="panel-title">记忆文件实时监控</div></div><span class="badge-sys">secureclaw</span></div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:14px;">基于 <code>chokidar</code> 文件监控，对记忆文件变更实时告警。启动时创建 Hash Baseline，后续变更对比基线。</div>
+        <table class="data-table">
+          <thead><tr><th>监控文件</th><th>事件</th><th>检测逻辑</th><th>告警级别</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;">soul.md / SOUL.md</td><td>文件变更</td><td>Hash 对比 + 注入扫描</td><td>CRITICAL（注入）/ HIGH（变更）</td></tr>
+            <tr><td style="font-family:monospace;">MEMORY.md</td><td>文件变更</td><td>Hash 对比 + 注入扫描</td><td>CRITICAL（注入）/ HIGH（变更）</td></tr>
+            <tr><td style="font-family:monospace;">agents/*/memory/*.md</td><td>文件变更/新增</td><td>Hash 对比 + 注入扫描</td><td>CRITICAL（注入）/ MEDIUM（新增）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr17-config" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">SecureClaw Config</div><div class="panel-title">记忆验证配置</div></div><span class="badge-sys">secureclaw</span></div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">记忆完整性扫描 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">memory.integrityChecks</code></div><div class="desc">定期检测记忆文件中的可疑内容和权限问题</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">记忆注入扫描 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">memory.promptInjectionScan</code></div><div class="desc">检测 cognitive 文件中的提示词注入模式</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><div class="name">记忆隔离区 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">memory.quarantineEnabled</code></div><div class="desc">将可疑记忆文件移入隔离区而非直接删除</div></div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <div class="form-label">认知文件完整性检查周期 <code style="font-size:11px;color:#8f8681;">行为规则 #7</code></div>
+          <select class="form-input" style="max-width:300px;">
+            <option>每 12 小时（默认）</option>
+            <option>每 6 小时</option>
+            <option>每 24 小时</option>
+            <option>每小时</option>
+          </select>
+          <div class="form-hint">检查 SOUL.md、IDENTITY.md、TOOLS.md、AGENTS.md、SECURITY.md 是否被篡改</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

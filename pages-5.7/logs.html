@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-logs</title>
+<link rel="stylesheet" href="../css-5.7.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-logs">
+
+  <div class="content-area">
+
+    <!-- Alert Banner -->
+    <div class="alert-banner" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:16px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:20px">&#9888;&#65039;</span>
+      <div>
+        <div style="font-weight:600;color:#92400e">安全事件提醒</div>
+        <div style="font-size:12px;color:#a16207">过去 24 小时内检测到 3 起协议异常事件、1 起认证失败事件</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="subheader" style="position:static;margin-bottom:16px;padding:12px 20px;background:#fff;border-radius:14px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <select style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px">
+          <option>全部级别</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option>
+        </select>
+        <select style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px">
+          <option>全部类型</option><option>认证失败</option><option>签名验证失败</option><option>协议降级</option><option>重放攻击</option><option>资源超额</option><option>熔断触发</option>
+        </select>
+        <select style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px">
+          <option>全部代理</option><option>Agent-Executor</option><option>Agent-Reviewer</option><option>Agent-Planner</option><option>OpenClaw-Skill</option>
+        </select>
+        <input type="text" placeholder="搜索事件..." style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;flex:1;min-width:120px">
+        <button class="btn-secondary btn-sm">导出日志</button>
+      </div>
+    </div>
+
+    <!-- Log Table -->
+    <div class="panel" style="padding:0;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--bg-warm);border-bottom:2px solid var(--border)">
+            <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--text-h)">时间</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--text-h)">级别</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--text-h)">类型</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--text-h)">源代理</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--text-h)">目标代理</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--text-h)">事件摘要</th>
+            <th style="padding:10px 14px;text-align:left;font-weight:600;color:var(--text-h)">协议</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:10px 14px;font-family:monospace;color:var(--text-m)">10:23:15.432</td>
+            <td style="padding:10px 14px"><span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px">CRITICAL</span></td>
+            <td style="padding:10px 14px">签名验证失败</td>
+            <td style="padding:10px 14px;font-family:monospace">Agent-Executor-03</td>
+            <td style="padding:10px 14px;font-family:monospace">Agent-Reviewer-01</td>
+            <td style="padding:10px 14px">消息签名不匹配，SHA-256 校验失败，疑似中间人篡改</td>
+            <td style="padding:10px 14px;font-family:monospace">A2A/v2.1</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);background:#fff7f7">
+            <td style="padding:10px 14px;font-family:monospace;color:var(--text-m)">10:18:42.891</td>
+            <td style="padding:10px 14px"><span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px">HIGH</span></td>
+            <td style="padding:10px 14px">重放攻击</td>
+            <td style="padding:10px 14px;font-family:monospace">Agent-Executor-02</td>
+            <td style="padding:10px 14px;font-family:monospace">Agent-Planner-01</td>
+            <td style="padding:10px 14px">检测到 nonce 重用，timestamp 偏移 >300s，Anti-replay 拦截</td>
+            <td style="padding:10px 14px;font-family:monospace">A2A/v2.1</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:10px 14px;font-family:monospace;color:var(--text-m)">10:12:07.556</td>
+            <td style="padding:10px 14px"><span style="background:#fffbeb;color:#d97706;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px">MEDIUM</span></td>
+            <td style="padding:10px 14px">协议降级尝试</td>
+            <td style="padding:10px 14px;font-family:monospace">OpenClaw-Skill-07</td>
+            <td style="padding:10px 14px;font-family:monospace">Agent-Executor-01</td>
+            <td style="padding:10px 14px">请求降级至 A2A/v1.0，已被协议版本固定策略拒绝</td>
+            <td style="padding:10px 14px;font-family:monospace">A2A/v2.1</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:10px 14px;font-family:monospace;color:var(--text-m)">09:58:33.214</td>
+            <td style="padding:10px 14px"><span style="background:#fffbeb;color:#d97706;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px">MEDIUM</span></td>
+            <td style="padding:10px 14px">资源超额</td>
+            <td style="padding:10px 14px;font-family:monospace">Agent-Executor-05</td>
+            <td style="padding:10px 14px;font-family:monospace">-</td>
+            <td style="padding:10px 14px">CPU 使用率 92%，超过 quota 80% 阈值，触发速率限制</td>
+            <td style="padding:10px 14px;font-family:monospace">A2A/v2.1</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:10px 14px;font-family:monospace;color:var(--text-m)">09:45:11.778</td>
+            <td style="padding:10px 14px"><span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px">HIGH</span></td>
+            <td style="padding:10px 14px">认证失败</td>
+            <td style="padding:10px 14px;font-family:monospace">Unknown-Agent</td>
+            <td style="padding:10px 14px;font-family:monospace">Agent-Discovery</td>
+            <td style="padding:10px 14px">Bootstrap Token 无效 (agt_boot_ 前缀不匹配)，注册拒绝</td>
+            <td style="padding:10px 14px;font-family:monospace">A2A/v2.1</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:10px 14px;font-family:monospace;color:var(--text-m)">09:30:45.012</td>
+            <td style="padding:10px 14px"><span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px">LOW</span></td>
+            <td style="padding:10px 14px">熔断恢复</td>
+            <td style="padding:10px 14px;font-family:monospace">System-CircuitBreaker</td>
+            <td style="padding:10px 14px;font-family:monospace">Agent-Executor-03</td>
+            <td style="padding:10px 14px">连续错误率降至 5% 以下，半开状态探测通过，熔断恢复</td>
+            <td style="padding:10px 14px;font-family:monospace">Internal</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Stats Row -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px">
+      <div class="panel" style="text-align:center;padding:14px">
+        <div style="font-size:24px;font-weight:700;color:#dc2626">3</div>
+        <div style="font-size:11px;color:var(--text-m)">协议异常</div>
+      </div>
+      <div class="panel" style="text-align:center;padding:14px">
+        <div style="font-size:24px;font-weight:700;color:#d97706">1</div>
+        <div style="font-size:11px;color:var(--text-m)">认证失败</div>
+      </div>
+      <div class="panel" style="text-align:center;padding:14px">
+        <div style="font-size:24px;font-weight:700;color:#7c3aed">1</div>
+        <div style="font-size:11px;color:var(--text-m)">资源超额</div>
+      </div>
+      <div class="panel" style="text-align:center;padding:14px">
+        <div style="font-size:24px;font-weight:700;color:#16a34a">1</div>
+        <div style="font-size:11px;color:var(--text-m)">熔断恢复</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

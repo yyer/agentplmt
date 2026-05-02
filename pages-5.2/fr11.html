@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr11</title>
+<link rel="stylesheet" href="../css-5.2.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr11">
+
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-11 &middot; P0</div><div class="page-title">敏感操作审批与人工确认</div></div><div style="display:flex;gap:8px;"><span class="badge" style="background:#fee2e2;color:#b91c1c;font-size:12px;padding:5px 14px;">3 待审批</span><button class="btn-secondary btn-sm">审批配置</button></div></div>
+  <div class="content-area">
+    <div class="tabs">
+      <div class="tab active" data-tab="fr11-pending">待审批 (3)</div>
+      <div class="tab" data-tab="fr11-history">审批历史</div>
+      <div class="tab" data-tab="fr11-config">审批规则</div>
+    </div>
+
+    <div id="fr11-pending" class="tab-content active">
+      <div class="approval-card" style="border-left:4px solid #dc2626;">
+        <div class="approval-header"><div class="approval-title">高危命令执行请求</div><div style="display:flex;gap:6px;"><span class="badge badge-critical">CRITICAL</span><span class="badge badge-p0">需审批</span></div></div>
+        <div class="approval-meta">Agent: <span class="code">agent-openclaw-prod-02</span> | 实例: openclaw-prod-02 | 请求时间: 2026-04-30 15:28:44</div>
+        <div class="approval-detail">
+tool: Bash | command: "sudo systemctl restart nginx"<br>
+风险: 权限提升命令 (sudo) + 系统服务管理<br>
+触发规则: permission_escalation → require_approval
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text);">影响分析：重启 nginx 服务将导致该实例上所有 Web 服务短暂中断（约 2-5 秒）</div>
+        <div class="approval-actions"><button class="btn-primary btn-sm">批准执行</button><button class="btn-danger btn-sm">拒绝</button><button class="btn-secondary btn-sm">查看详情</button></div>
+      </div>
+
+      <div class="approval-card" style="border-left:4px solid #d59a22;">
+        <div class="approval-header"><div class="approval-title">批量文件删除请求</div><div style="display:flex;gap:6px;"><span class="badge badge-high">HIGH</span><span class="badge badge-p0">需审批</span></div></div>
+        <div class="approval-meta">Agent: <span class="code">agent-openclaw-prod-01</span> | 实例: openclaw-prod-01 | 请求时间: 2026-04-30 15:22:11</div>
+        <div class="approval-detail">
+tool: Bash | command: "rm -rf /workspace/old-logs/"<br>
+风险: 递归删除目录 (destructive) + workspace 外路径<br>
+触发规则: destructive → require_approval + workspace_delete_guard
+        </div>
+        <div class="approval-actions"><button class="btn-primary btn-sm">批准执行</button><button class="btn-danger btn-sm">拒绝</button><button class="btn-secondary btn-sm">查看详情</button></div>
+      </div>
+
+      <div class="approval-card" style="border-left:4px solid #3b82f6;">
+        <div class="approval-header"><div class="approval-title">记忆写入超限</div><div style="display:flex;gap:6px;"><span class="badge badge-medium">MEDIUM</span><span class="badge badge-p1">需确认</span></div></div>
+        <div class="approval-meta">Agent: <span class="code">agent-openclaw-prod-01</span> | 实例: openclaw-prod-01 | 请求时间: 2026-04-30 15:15:33</div>
+        <div class="approval-detail">
+tool: memory_store | target: MEMORY.md | content_size: 12,400 chars (limit: 8,192)<br>
+风险: 记忆写入超出字符上限 (MEMORY_WRITE_MAX_CHARS) + 疑似注入内容<br>
+触发规则: memory_guard → BLOCK (可人工覆盖)
+        </div>
+        <div class="approval-actions"><button class="btn-primary btn-sm">批准写入</button><button class="btn-danger btn-sm">拒绝</button><button class="btn-secondary btn-sm">查看内容</button></div>
+      </div>
+    </div>
+
+    <div id="fr11-history" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Approval History</div><div class="panel-title">审批历史记录</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>时间</th><th>Agent</th><th>操作类型</th><th>风险级别</th><th>审批结果</th><th>审批人</th><th>耗时</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;font-size:12px;">2026-04-30 14:55</td><td>agent-prod-01</td><td>文件删除</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-allowed">已批准</span></td><td>admin</td><td>2m 15s</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px;">2026-04-30 13:30</td><td>agent-prod-02</td><td>sudo 命令</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-blocked">已拒绝</span></td><td>admin</td><td>45s</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px;">2026-04-30 11:20</td><td>agent-prod-01</td><td>外联请求</td><td><span class="badge badge-medium">MEDIUM</span></td><td><span class="badge badge-allowed">已批准</span></td><td>admin</td><td>1m 30s</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px;">2026-04-29 17:45</td><td>agent-prod-02</td><td>配置修改</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-blocked">已拒绝</span></td><td>security-admin</td><td>8m 22s</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr11-config" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Approval Rules</div><div class="panel-title">审批规则配置</div></div></div>
+        <table class="data-table">
+          <thead><tr><th>操作类型</th><th>匹配条件</th><th>风险级别</th><th>审批模式</th><th>超时动作</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">文件删除</td><td><span class="code">rm -rf</span>、workspace 外删除</td><td><span class="badge badge-high">HIGH</span></td><td>单次审批</td><td>自动拒绝 (5min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">sudo 命令</td><td><span class="code">sudo</span>、<span class="code">chmod 777</span></td><td><span class="badge badge-critical">CRITICAL</span></td><td>单次审批</td><td>自动拒绝 (3min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">实例停机</td><td>stop/restart 实例</td><td><span class="badge badge-critical">CRITICAL</span></td><td>双人审批</td><td>自动拒绝 (10min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">凭据访问</td><td><span class="code">.env</span>、<span class="code">credentials/</span></td><td><span class="badge badge-critical">CRITICAL</span></td><td>始终阻断</td><td>—</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">记忆超限写入</td><td>content > 8192 chars</td><td><span class="badge badge-medium">MEDIUM</span></td><td>单次审批</td><td>自动拒绝 (5min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+            <tr><td style="font-weight:600;">非白名单外联</td><td>非 egressAllowlist 域名</td><td><span class="badge badge-high">HIGH</span></td><td>单次审批</td><td>自动拒绝 (3min)</td><td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

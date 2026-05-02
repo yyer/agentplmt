@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">Credential Security Audit</div><div class="page-title">凭据安全审计</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">运行审计</button><button class="btn-primary btn-sm">一键加固</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-low">45</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Audit Score</div>
+          <div class="panel-title" style="margin-bottom:4px;">当前审计评分：45 / 100</div>
+          <div style="font-size:13px;color:var(--text);">上次审计：2026-04-30 14:00 | 13 项检查（SC-MEM × 5 + SC-CRED × 8）中 8 项未通过</div>
+        </div>
+        <div style="display:flex;gap:20px;">
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">1</div><div class="label">CRITICAL</div></div>
+          <div class="stat-mini"><div class="value" style="color:#c2410c;">4</div><div class="label">HIGH</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e;">3</div><div class="label">MEDIUM</div></div>
+          <div class="stat-mini"><div class="value" style="color:#15803d;">5</div><div class="label">PASS</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Infostealer Targets</div><div class="panel-title">信息窃取器已知目标路径</div></div><span class="badge-sys">secureclaw</span></div>
+      <div style="font-size:13px;color:var(--text);margin-bottom:12px;">基于 SecureClaw <code>supply-chain-ioc.json</code> 数据库，以下路径是已知信息窃取器（Atomic Stealer/AMOS、Redline、Lumma、Vidar）的目标</div>
+      <table class="data-table">
+        <thead><tr><th>目标路径</th><th>风险说明</th><th>加固建议</th></tr></thead>
+        <tbody>
+          <tr><td style="font-family:monospace;font-size:12px;">~/.openclaw/.env</td><td>明文 API Key</td><td>加密为 .env.enc (AES-256-GCM)</td></tr>
+          <tr><td style="font-family:monospace;font-size:12px;">~/.openclaw/credentials/</td><td>凭据 JSON 文件</td><td>chmod 600 + 监控变更</td></tr>
+          <tr><td style="font-family:monospace;font-size:12px;">~/.openclaw/openclaw.json</td><td>主配置含 API Key</td><td>chmod 600 + 迁移到 K8s Secret</td></tr>
+          <tr><td style="font-family:monospace;font-size:12px;">~/.openclaw/agents/*/MEMORY.md</td><td>可能含泄露凭据</td><td>SC-CRED-007 审计 + 脱敏</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px;padding:10px;background:#fee2e2;border-radius:10px;font-size:12px;color:#b91c1c;">
+        <strong>威胁情报:</strong> ClawHavoc 攻击活动 C2: <code style="font-size:11px;">91.92.242.30</code>，针对 OpenClaw 生态的信息窃取活动。请确保网络策略阻断该 IP。
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">KSecure — Ransomware Decoy</div><div class="panel-title">勒索病毒诱饵检测状态</div></div><span class="badge-sys">ksecure</span></div>
+      <table class="data-table">
+        <thead><tr><th>配置项</th><th>当前值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">switch-on</td><td><span class="badge badge-green">true</span></td><td>勒索防护开关</td></tr>
+          <tr><td style="font-weight:600;">kill-process</td><td><span class="badge badge-off">false</span></td><td>仅阻断不杀进程</td></tr>
+          <tr><td style="font-weight:600;">诱饵文件自愈</td><td>60 秒</td><td>删除后 60s 自动重建</td></tr>
+          <tr><td style="font-weight:600;">eBPF LSM 钩子</td><td>4 个</td><td>inode_unlink / file_open / inode_rename × 2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

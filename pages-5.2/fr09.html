@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr09</title>
+<link rel="stylesheet" href="../css-5.2.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr09">
+
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-09 &middot; P0</div><div class="page-title">工具白名单与能力分域</div></div><div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">+ 注册工具</button><button class="btn-primary btn-sm">保存配置</button></div></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Tool Classification</div><div class="panel-title">工具分类与分级配置</div></div></div>
+      <table class="data-table">
+        <thead><tr><th>工具名称</th><th>安全级别</th><th>分类</th><th>调用策略</th><th>速率限制</th><th>审批要求</th><th>适用画像</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">ReadFile</td><td><span class="badge badge-low">LOW</span></td><td>只读</td><td>直接允许</td><td>无限制</td><td>无</td><td>全部</td></tr>
+          <tr><td style="font-weight:600;">WebSearch</td><td><span class="badge badge-low">LOW</span></td><td>只读</td><td>直接允许</td><td>60/min</td><td>无</td><td>全部</td></tr>
+          <tr><td style="font-weight:600;">WriteFile</td><td><span class="badge badge-medium">MEDIUM</span></td><td>有限写</td><td>workspace 内允许</td><td>30/min</td><td>workspace 外需确认</td><td>办公/开发/运维</td></tr>
+          <tr><td style="font-weight:600;">Bash</td><td><span class="badge badge-critical">CRITICAL</span></td><td>高危执行</td><td>命令级检测</td><td>15/min</td><td>高危命令需审批</td><td>开发/运维</td></tr>
+          <tr><td style="font-weight:600;">memory_store</td><td><span class="badge badge-medium">MEDIUM</span></td><td>有限写</td><td>大小/内容检测</td><td>10/min</td><td>超限内容需确认</td><td>办公/开发/运维</td></tr>
+          <tr><td style="font-weight:600;">Edit</td><td><span class="badge badge-medium">MEDIUM</span></td><td>有限写</td><td>路径检测</td><td>30/min</td><td>保护路径需确认</td><td>开发/运维</td></tr>
+          <tr><td style="font-weight:600;">curl/wget</td><td><span class="badge badge-critical">CRITICAL</span></td><td>对外连接</td><td>白名单+外泄检测</td><td>10/min</td><td>非白名单需审批</td><td>开发</td></tr>
+          <tr><td style="font-weight:600;">npm/pip install</td><td><span class="badge badge-high">HIGH</span></td><td>系统管理</td><td>需审批</td><td>5/min</td><td>始终需确认</td><td>运维</td></tr>
+          <tr><td style="font-weight:600;">docker</td><td><span class="badge badge-high">HIGH</span></td><td>系统管理</td><td>需审批</td><td>5/min</td><td>始终需确认</td><td>运维</td></tr>
+          <tr><td style="font-weight:600;">kubectl</td><td><span class="badge badge-critical">CRITICAL</span></td><td>系统管理</td><td>阻断（仅运维+审批）</td><td>3/min</td><td>始终需审批</td><td>运维</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Dangerous Command Categories</div><div class="panel-title">危险命令模式库（SecureClaw）</div></div><span class="badge-sys">secureclaw</span></div>
+      <table class="data-table">
+        <thead><tr><th>类别</th><th>严重性</th><th>默认动作</th><th>示例模式</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">remote_code_execution</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-enforce">block</span></td><td><span class="code">curl | sh</span> <span class="code">wget | bash</span> <span class="code">curl | python</span></td></tr>
+          <tr><td style="font-weight:600;">dynamic_execution</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-enforce">block</span></td><td><span class="code">eval(</span> <span class="code">exec(</span> <span class="code">Function(</span> <span class="code">os.system(</span></td></tr>
+          <tr><td style="font-weight:600;">destructive</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-observe">require_approval</span></td><td><span class="code">rm -rf</span> <span class="code">mkfs.</span> <span class="code">dd if=</span> <span class="code">DROP TABLE</span></td></tr>
+          <tr><td style="font-weight:600;">permission_escalation</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-observe">require_approval</span></td><td><span class="code">chmod 777</span> <span class="code">sudo</span></td></tr>
+          <tr><td style="font-weight:600;">config_modification</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-observe">require_approval</span></td><td><span class="code">.bashrc</span> <span class="code">.zshrc</span> <span class="code">crontab</span> <span class="code">sudoers</span></td></tr>
+          <tr><td style="font-weight:600;">deserialization</td><td><span class="badge badge-high">HIGH</span></td><td><span class="badge badge-observed">warn</span></td><td><span class="code">pickle.load</span> <span class="code">yaml.unsafe_load</span></td></tr>
+          <tr><td style="font-weight:600;">data_exfiltration</td><td><span class="badge badge-critical">CRITICAL</span></td><td><span class="badge badge-enforce">block</span></td><td><span class="code">curl -d @</span> <span class="code">wget --post-file</span> <span class="code">nc -</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr66</title>
+<link rel="stylesheet" href="../css-5.11.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr66">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">&#x1f3d7;&#xfe0f; 日志架构</div>
+      <div class="tab" data-tab="spec">&#x1f4cb; 日志规范</div>
+      <div class="tab" data-tab="collect">&#x1f4e5; 日志采集</div>
+      <div class="tab" data-tab="query">&#x1f50d; 日志查询</div>
+      <div class="tab" data-tab="config">&#x2699;&#xfe0f; 配置</div>
+    </div>
+
+    <!-- ============ TAB 1: 日志架构 ============ -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- 全生命周期架构 -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Lifecycle Logging Architecture</div>
+        <div class="panel-title">智能体全生命周期日志记录架构</div>
+        <p style="font-size:13px;color:var(--text);margin:12px 0 18px;line-height:1.8">对输入、计划、模型输出、工具调用、系统执行、审批、异常处置和恢复全过程记录。覆盖 ClawManager AI Observatory 审计服务、KSecure/KubeArmor 系统调用日志与 gRPC 日志流、ClawAegis 防御事件日志三大日志源。</p>
+
+        <div class="lifecycle-flow">
+          <div class="lifecycle-stage">
+            <div class="ls-icon icon-cm">&#x1f4e5;</div>
+            <div class="ls-title">Input</div>
+            <div class="ls-desc">用户请求输入<br>HTTP/SSE 入口记录</div>
+            <div class="ls-system sys-cm">ClawManager</div>
+          </div>
+          <div class="lifecycle-arrow">&#x27a1;</div>
+          <div class="lifecycle-stage">
+            <div class="ls-icon icon-cm">&#x1f4cb;</div>
+            <div class="ls-title">Planning</div>
+            <div class="ls-desc">模型决策记录<br>ModelInvocation</div>
+            <div class="ls-system sys-cm">ClawManager</div>
+          </div>
+          <div class="lifecycle-arrow">&#x27a1;</div>
+          <div class="lifecycle-stage">
+            <div class="ls-icon icon-cm">&#x1f4e4;</div>
+            <div class="ls-title">Output</div>
+            <div class="ls-desc">模型响应输出<br>SSE 流记录</div>
+            <div class="ls-system sys-cm">ClawManager</div>
+          </div>
+          <div class="lifecycle-arrow">&#x27a1;</div>
+          <div class="lifecycle-stage">
+            <div class="ls-icon icon-ka">&#x1f527;</div>
+            <div class="ls-title">Tool Call</div>
+            <div class="ls-desc">技能执行记录<br>InstanceCommand</div>
+            <div class="ls-system sys-cm">ClawManager</div>
+          </div>
+          <div class="lifecycle-arrow">&#x27a1;</div>
+          <div class="lifecycle-stage">
+            <div class="ls-icon icon-ka">&#x2699;&#xfe0f;</div>
+            <div class="ls-title">System Exec</div>
+            <div class="ls-desc">系统执行日志<br>KubeArmor + KSecure</div>
+            <div class="ls-system sys-ka">KubeArmor</div>
+          </div>
+          <div class="lifecycle-arrow">&#x27a1;</div>
+          <div class="lifecycle-stage">
+            <div class="ls-icon icon-ca">&#x1f6e1;&#xfe0f;</div>
+            <div class="ls-title">Approval</div>
+            <div class="ls-desc">人工审批记录<br>ClawAegis Hooks</div>
+            <div class="ls-system sys-ca">ClawAegis</div>
+          </div>
+          <div class="lifecycle-arrow">&#x27a1;</div>
+          <div class="lifecycle-stage">
+            <div class="ls-icon icon-sc">&#x26a0;&#xfe0f;</div>
+            <div class="ls-title">Exception</div>
+            <div class="ls-desc">风险检测日志<br>risk.detected 事件</div>
+            <div class="ls-system sys-sc">SecureClaw</div>
+          </div>
+          <div class="lifecycle-arrow">&#x27a1;</div>
+          <div class="lifecycle-stage">
+            <div class="ls-icon icon-ks">&#x1f504;</div>
+            <div class="ls-title">Recovery</div>
+            <div class="ls-desc">修复恢复记录<br>处置动作审计</div>
+            <div class="ls-system sys-ks">KSecure</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 各阶段日志来源 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Phase-to-System Mapping</div>
+            <div class="panel-title">各阶段日志来源与记录方式</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>阶段</th><th>描述</th><th>日志来源系统</th><th>核心组件</th><th>记录内容</th><th>关联键</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge phase-input">Input</span></td>
+              <td>用户请求输入</td>
+              <td><span class="badge badge-sys">ClawManager</span></td>
+              <td>AI Gateway</td>
+              <td>SessionID, RequestID, UserID, InstanceID, 原始 Prompt</td>
+              <td>trace_id, session_id</td>
+            </tr>
+            <tr>
+              <td><span class="badge phase-planning">Planning</span></td>
+              <td>模型决策过程</td>
+              <td><span class="badge badge-sys">ClawManager</span></td>
+              <td>ModelInvocation</td>
+              <td>ModelID, PromptTokens, CompletionTokens, EstimatedCost, 决策输出</td>
+              <td>trace_id, request_id</td>
+            </tr>
+            <tr>
+              <td><span class="badge phase-output">Output</span></td>
+              <td>模型响应输出</td>
+              <td><span class="badge badge-sys">ClawManager</span></td>
+              <td>AI Gateway (SSE)</td>
+              <td>CompletionTokens, ActualCost, Latency, Streaming Status, 响应内容</td>
+              <td>trace_id, request_id</td>
+            </tr>
+            <tr>
+              <td><span class="badge phase-tool">Tool Call</span></td>
+              <td>技能调用执行</td>
+              <td><span class="badge badge-sys">ClawManager</span></td>
+              <td>InstanceCommand</td>
+              <td>IssuedAt, DispatchedAt, StartedAt, FinishedAt, IssuedBy, ResultJSON</td>
+              <td>trace_id, instance_id</td>
+            </tr>
+            <tr>
+              <td><span class="badge phase-system">System Exec</span></td>
+              <td>系统级执行</td>
+              <td><span class="badge badge-sys" style="background:rgba(59,130,246,0.1);color:#2563eb">KubeArmor</span> <span class="badge badge-sys" style="background:rgba(16,185,129,0.1);color:#059669">KSecure</span></td>
+              <td>Alert/Log + SecLog</td>
+              <td>ProcessName, Operation, Resource, HostPID, Action, Result</td>
+              <td>pod_name + timestamp</td>
+            </tr>
+            <tr>
+              <td><span class="badge phase-approval">Approval</span></td>
+              <td>人工审批确认</td>
+              <td><span class="badge badge-sys" style="background:rgba(245,158,11,0.1);color:#d97706">ClawAegis</span></td>
+              <td>Defense Hooks</td>
+              <td>before_dispatch, before_agent_reply, 审批人, 审批结果</td>
+              <td>trace_id, instance_id</td>
+            </tr>
+            <tr>
+              <td><span class="badge phase-exception">Exception</span></td>
+              <td>风险检测异常</td>
+              <td><span class="badge badge-sys" style="background:rgba(139,92,246,0.1);color:#7c3aed">SecureClaw</span></td>
+              <td>Audit Service</td>
+              <td>gateway.risk.detected, risk_type, severity, 检测规则</td>
+              <td>trace_id</td>
+            </tr>
+            <tr>
+              <td><span class="badge phase-recovery">Recovery</span></td>
+              <td>修复恢复动作</td>
+              <td><span class="badge badge-sys" style="background:rgba(16,185,129,0.1);color:#059669">KSecure</span> <span class="badge badge-sys">ClawManager</span></td>
+              <td>SecLog + Command</td>
+              <td>处置动作, 恢复结果, 验证状态, KSecure SecLog 恢复记录</td>
+              <td>trace_id, host_name</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- AI Observatory 架构 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">AI Observatory Architecture</div>
+            <div class="panel-title">ClawManager AI Observatory 审计服务架构</div>
+          </div>
+          <span class="badge badge-enforce">运行中</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div style="border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px">&#x1f3e2; AI Observatory 核心能力</div>
+            <div style="font-size:12px;color:var(--text);line-height:2">
+              <div>&#x2713; <strong>55KB 审计逻辑</strong> — 覆盖全生命周期事件的完整审计逻辑</div>
+              <div>&#x2713; <strong>审计事件服务</strong> — Audit Event Service 统一事件入口</div>
+              <div>&#x2713; <strong>ModelInvocation 完整记录</strong> — 请求/响应/Token/Cost/Latency</div>
+              <div>&#x2713; <strong>CostRecord 关联</strong> — 每个决策关联成本记录</div>
+              <div>&#x2713; <strong>InstanceCommand 生命周期</strong> — 4阶段时间戳 + 结果JSON</div>
+              <div>&#x2713; <strong>InstanceConfigRevision 校验</strong> — SHA256 完整性</div>
+              <div>&#x2713; <strong>gateway.risk.detected 事件</strong> — 风险检测审计</div>
+            </div>
+          </div>
+          <div style="border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.85);padding:18px">
+            <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px">&#x1f6e1;&#xfe0f; ClawAegis 防御事件日志</div>
+            <div style="font-size:12px;color:var(--text);line-height:2">
+              <div>&#x2713; <strong>before_dispatch Hook</strong> — 动作分发前审计记录</div>
+              <div>&#x2713; <strong>before_agent_reply Hook</strong> — Agent 回复前审计记录</div>
+              <div>&#x2713; <strong>审批流程日志</strong> — 人工审批动作与结果</div>
+              <div>&#x2713; <strong>风险拦截日志</strong> — 被阻断的操作记录</div>
+              <div>&#x2713; <strong>审批人记录</strong> — 审批人身份与审批时间</div>
+              <div>&#x2713; <strong>审批超时记录</strong> — 审批超时自动处理</div>
+              <div>&#x2713; <strong>与 AI Observatory 联动</strong> — trace_id 关联</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 验收标准 -->
+      <div class="app-panel" style="border-left:4px solid #ef4444">
+        <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:12px">&#x2705; 验收标准</div>
+        <div style="font-size:12px;color:var(--text);line-height:2.2">
+          <div>&#x2713; <strong>安全事件有完整日志</strong> — 8阶段全覆盖，从 Input 到 Recovery 每个环节都有对应系统记录</div>
+          <div>&#x2713; <strong>日志包含时间/来源/目标/动作</strong> — 每条日志必须包含 Timestamp, Source, Target, Action 四要素</div>
+          <div>&#x2713; <strong>支持按时间/类型/实例查询</strong> — 多维度查询支持，时间范围 + 事件类型 + 实例ID 组合过滤</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB 2: 日志规范 ============ -->
+    <div class="tab-content" id="tab-spec">
+
+      <!-- 通用日志规范 -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Log Specification</div>
+        <div class="panel-title">生命周期日志规范</div>
+        <p style="font-size:12px;color:var(--text);margin:10px 0;line-height:1.8">每个生命阶段的日志必须包含: 时间戳(Timestamp)、来源(Source)、目标(Target)、动作(Action) 四要素。跨系统日志通过 trace_id 或 PodName+Timestamp 关联。</p>
+      </div>
+
+      <!-- ClawManager 字段规范 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ClawManager ModelInvocation</div>
+            <div class="panel-title">模型调用日志字段规范</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>字段名</th><th>类型</th><th>必填</th><th>描述</th><th>示例</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace">TraceID</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>追踪关联ID</td><td>trace-7f3a9c2e</td></tr>
+            <tr><td style="font-family:monospace">SessionID</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>会话ID</td><td>sess-a1b2c3d4</td></tr>
+            <tr><td style="font-family:monospace">RequestID</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>请求ID</td><td>req-7f3a</td></tr>
+            <tr><td style="font-family:monospace">UserID</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>用户ID</td><td>user-zhangwei</td></tr>
+            <tr><td style="font-family:monospace">InstanceID</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>实例ID</td><td>inst-prod-03</td></tr>
+            <tr><td style="font-family:monospace">ModelID</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>模型标识</td><td>gpt-4o</td></tr>
+            <tr><td style="font-family:monospace">PromptTokens</td><td>int</td><td><span class="badge badge-critical">必须</span></td><td>输入Token数</td><td>2847</td></tr>
+            <tr><td style="font-family:monospace">CompletionTokens</td><td>int</td><td><span class="badge badge-critical">必须</span></td><td>输出Token数</td><td>1203</td></tr>
+            <tr><td style="font-family:monospace">TotalTokens</td><td>int</td><td><span class="badge badge-critical">必须</span></td><td>总Token数</td><td>4050</td></tr>
+            <tr><td style="font-family:monospace">EstimatedCost</td><td>float</td><td><span class="badge badge-high">推荐</span></td><td>预估成本</td><td>0.0608</td></tr>
+            <tr><td style="font-family:monospace">ActualCost</td><td>float</td><td><span class="badge badge-high">推荐</span></td><td>实际成本</td><td>0.0608</td></tr>
+            <tr><td style="font-family:monospace">Latency</td><td>int(ms)</td><td><span class="badge badge-critical">必须</span></td><td>响应延迟</td><td>1423</td></tr>
+            <tr><td style="font-family:monospace">Streaming</td><td>bool</td><td><span class="badge badge-critical">必须</span></td><td>是否流式</td><td>true</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- KubeArmor Alert 字段规范 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Alert (44 fields)</div>
+            <div class="panel-title">KubeArmor 告警日志字段规范</div>
+          </div>
+          <span class="badge badge-sys" style="background:rgba(59,130,246,0.1);color:#2563eb">KubeArmor</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>字段名</th><th>类型</th><th>必填</th><th>描述</th><th>示例</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace">Timestamp</td><td>time</td><td><span class="badge badge-critical">必须</span></td><td>事件时间戳</td><td>2026-05-01T14:23:03.421Z</td></tr>
+            <tr><td style="font-family:monospace">ClusterName</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>集群名称</td><td>prod-cluster-01</td></tr>
+            <tr><td style="font-family:monospace">HostName</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>主机名</td><td>node-03</td></tr>
+            <tr><td style="font-family:monospace">NamespaceName</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>命名空间</td><td>security</td></tr>
+            <tr><td style="font-family:monospace">PodName</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>Pod名称 (被动关联键)</td><td>web-frontend-7d4f</td></tr>
+            <tr><td style="font-family:monospace">ContainerID</td><td>string</td><td><span class="badge badge-high">推荐</span></td><td>容器ID</td><td>containerd://a1b2c3...</td></tr>
+            <tr><td style="font-family:monospace">ContainerName</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>容器名称</td><td>inst-prod-03</td></tr>
+            <tr><td style="font-family:monospace">HostPID</td><td>int</td><td><span class="badge badge-critical">必须</span></td><td>主机进程ID</td><td>28451</td></tr>
+            <tr><td style="font-family:monospace">PPID</td><td>int</td><td><span class="badge badge-high">推荐</span></td><td>父进程ID</td><td>28440</td></tr>
+            <tr><td style="font-family:monospace">PID</td><td>int</td><td><span class="badge badge-critical">必须</span></td><td>进程ID</td><td>28452</td></tr>
+            <tr><td style="font-family:monospace">UID</td><td>int</td><td><span class="badge badge-high">推荐</span></td><td>用户ID</td><td>1000</td></tr>
+            <tr><td style="font-family:monospace">PolicyName</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>策略名称 (Alert独有)</td><td>block-egress-external</td></tr>
+            <tr><td style="font-family:monospace">Severity</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>严重度 (Alert独有)</td><td>high</td></tr>
+            <tr><td style="font-family:monospace">Tags</td><td>string</td><td><span class="badge badge-high">推荐</span></td><td>标签 (Alert独有)</td><td>network,exfiltration</td></tr>
+            <tr><td style="font-family:monospace">Message</td><td>string</td><td><span class="badge badge-high">推荐</span></td><td>告警消息</td><td>Blocked egress to external</td></tr>
+            <tr><td style="font-family:monospace">Type</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>事件类型</td><td>ContainerLog</td></tr>
+            <tr><td style="font-family:monospace">Source</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>来源</td><td>pod/web-frontend</td></tr>
+            <tr><td style="font-family:monospace">Operation</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>操作类型</td><td>Network</td></tr>
+            <tr><td style="font-family:monospace">Resource</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>目标资源</td><td>203.0.113.50:443</td></tr>
+            <tr><td style="font-family:monospace">Data</td><td>string</td><td><span class="badge badge-medium">可选</span></td><td>扩展数据</td><td>{"fd":17}</td></tr>
+            <tr><td style="font-family:monospace">Action</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>执行动作 (Alert独有)</td><td>Block</td></tr>
+            <tr><td style="font-family:monospace">Result</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>执行结果</td><td>Passed</td></tr>
+            <tr><td style="font-family:monospace">ProcessName</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>进程名</td><td>curl</td></tr>
+            <tr><td style="font-family:monospace">ParentProcessName</td><td>string</td><td><span class="badge badge-high">推荐</span></td><td>父进程名</td><td>kubectl</td></tr>
+            <tr><td style="font-family:monospace">ProcessHash</td><td>string</td><td><span class="badge badge-high">推荐</span></td><td>进程Hash</td><td>sha256:a1b2c3...</td></tr>
+            <tr><td style="font-family:monospace">ParentHash</td><td>string</td><td><span class="badge badge-medium">可选</span></td><td>父进程Hash</td><td>sha256:d4e5f6...</td></tr>
+            <tr><td style="font-family:monospace">ResourceHash</td><td>string</td><td><span class="badge badge-medium">可选</span></td><td>资源Hash</td><td>sha256:g7h8i9...</td></tr>
+            <tr><td style="font-family:monospace">HashAlgo</td><td>string</td><td><span class="badge badge-medium">可选</span></td><td>Hash算法</td><td>SHA256</td></tr>
+            <tr><td style="font-family:monospace">EventData</td><td>object</td><td><span class="badge badge-medium">可选</span></td><td>扩展事件数据</td><td>{"syscall":"connect"}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- KSecure SecLog 字段规范 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KSecure SecLog (9 fields)</div>
+            <div class="panel-title">KSecure 安全日志字段规范</div>
+          </div>
+          <span class="badge badge-sys" style="background:rgba(16,185,129,0.1);color:#059669">KSecure</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>字段名</th><th>类型</th><th>必填</th><th>描述</th><th>示例</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace">Time</td><td>time</td><td><span class="badge badge-critical">必须</span></td><td>事件时间戳</td><td>2026-05-01T14:23:03.198Z</td></tr>
+            <tr><td style="font-family:monospace">LogType</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>日志类型</td><td>SystemLog</td></tr>
+            <tr><td style="font-family:monospace">Action</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>执行动作</td><td>Allow</td></tr>
+            <tr><td style="font-family:monospace">HostName</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>主机名 (关联键)</td><td>node-03</td></tr>
+            <tr><td style="font-family:monospace">Source</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>来源</td><td>/usr/bin/kubectl</td></tr>
+            <tr><td style="font-family:monospace">Path</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>文件路径 (关联键)</td><td>/etc/kubernetes/policies/</td></tr>
+            <tr><td style="font-family:monospace">Operation</td><td>string</td><td><span class="badge badge-critical">必须</span></td><td>操作类型</td><td>File</td></tr>
+            <tr><td style="font-family:monospace">User</td><td>string</td><td><span class="badge badge-high">推荐</span></td><td>用户</td><td>root</td></tr>
+            <tr><td style="font-family:monospace">PID</td><td>int</td><td><span class="badge badge-critical">必须</span></td><td>进程ID</td><td>28452</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 生命周期阶段字段映射 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Phase Field Mapping</div>
+            <div class="panel-title">各阶段必需字段汇总</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>阶段</th><th>来源系统</th><th>日志格式</th><th>必需字段</th><th>保留期</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge phase-input">Input</span></td><td>ClawManager</td><td>JSON Audit Event</td><td>TraceID, SessionID, RequestID, UserID, InstanceID, Prompt</td><td>90 天</td></tr>
+            <tr><td><span class="badge phase-planning">Planning</span></td><td>ClawManager</td><td>ModelInvocation JSON</td><td>TraceID, ModelID, PromptTokens, CompletionTokens, EstimatedCost</td><td>180 天</td></tr>
+            <tr><td><span class="badge phase-output">Output</span></td><td>ClawManager</td><td>SSE Stream + JSON</td><td>TraceID, CompletionTokens, ActualCost, Latency, Streaming</td><td>90 天</td></tr>
+            <tr><td><span class="badge phase-tool">Tool Call</span></td><td>ClawManager</td><td>InstanceCommand JSON</td><td>IssuedAt, DispatchedAt, StartedAt, FinishedAt, IssuedBy, ResultJSON</td><td>180 天</td></tr>
+            <tr><td><span class="badge phase-system">System Exec</span></td><td>KubeArmor / KSecure</td><td>Alert/Log/SecLog</td><td>Timestamp, PodName, ProcessName, Operation, Resource, Action, Result</td><td>365 天</td></tr>
+            <tr><td><span class="badge phase-approval">Approval</span></td><td>ClawAegis</td><td>Hook Event JSON</td><td>HookType, ApproverID, Decision, Timestamp, InstanceID</td><td>365 天</td></tr>
+            <tr><td><span class="badge phase-exception">Exception</span></td><td>SecureClaw</td><td>Audit Event JSON</td><td>TraceID, RiskType, Severity, DetectionRule, BlockedAction</td><td>365 天</td></tr>
+            <tr><td><span class="badge phase-recovery">Recovery</span></td><td>KSecure + CM</td><td>SecLog + Command</td><td>TraceID, RemediationAction, Result, Verified, KSecure SecLog</td><td>365 天</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ TAB 3: 日志采集 ============ -->
+    <div class="tab-content" id="tab-collect">
+
+      <!-- 采集流水线架构 -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Log Collection Pipeline</div>
+        <div class="panel-title">日志采集流水线架构</div>
+        <p style="font-size:12px;color:var(--text);margin:10px 0 16px;line-height:1.8">三大日志源通过 gRPC 流式采集 + 审计事件推送汇聚至中心存储。KubeArmor/KSecure 的 gRPC LogService 提供实时日志流，ClawManager AI Observatory 通过事件服务推送审计事件。</p>
+
+        <div class="pipeline-flow">
+          <div class="pipeline-node">
+            <div class="pn-icon">&#x1f6e1;&#xfe0f;</div>
+            <div class="pn-title">KubeArmor</div>
+            <div class="pn-desc">gRPC LogService<br>WatchMessages<br>WatchAlerts<br>WatchLogs</div>
+            <div class="pn-endpoint">:32767</div>
+          </div>
+          <div class="pipeline-arrow">&#x27a1;</div>
+          <div class="pipeline-node">
+            <div class="pn-icon">&#x1f512;</div>
+            <div class="pn-title">KSecure</div>
+            <div class="pn-desc">gRPC LogService<br>WatchMessages<br>WatchAlerts<br>WatchLogs</div>
+            <div class="pn-endpoint">:32768</div>
+          </div>
+          <div class="pipeline-arrow">&#x27a1;</div>
+          <div class="pipeline-node" style="border-color:#dc2626;background:rgba(239,68,68,0.04)">
+            <div class="pn-icon">&#x1f3e2;</div>
+            <div class="pn-title">ClawManager</div>
+            <div class="pn-desc">AI Observatory<br>Audit Event Service<br>ModelInvocation<br>InstanceCommand</div>
+            <div class="pn-endpoint">:8080</div>
+          </div>
+          <div class="pipeline-arrow">&#x27a1;</div>
+          <div class="pipeline-node" style="border-color:#059669;background:rgba(16,185,129,0.04)">
+            <div class="pn-icon">&#x1f4be;</div>
+            <div class="pn-title">Central Storage</div>
+            <div class="pn-desc">统一日志存储<br>索引 + 归档<br>查询优化</div>
+            <div class="pn-endpoint">PostgreSQL + S3</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- gRPC LogService 端点 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">gRPC LogService Endpoints</div>
+            <div class="panel-title">gRPC 日志流服务端点</div>
+          </div>
+          <span class="badge badge-enforce">已连接</span>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>系统</th><th>服务端点</th><th>流方法</th><th>描述</th><th>数据格式</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-sys" style="background:rgba(59,130,246,0.1);color:#2563eb">KubeArmor</span></td>
+              <td style="font-family:monospace">kubearmor:32767</td>
+              <td>WatchMessages</td>
+              <td>全量消息流 (Alert + Log)</td>
+              <td>Protobuf</td>
+              <td><span class="badge badge-low">已连接</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-sys" style="background:rgba(59,130,246,0.1);color:#2563eb">KubeArmor</span></td>
+              <td style="font-family:monospace">kubearmor:32767</td>
+              <td>WatchAlerts</td>
+              <td>仅告警流 (44 字段)</td>
+              <td>Protobuf</td>
+              <td><span class="badge badge-low">已连接</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-sys" style="background:rgba(59,130,246,0.1);color:#2563eb">KubeArmor</span></td>
+              <td style="font-family:monospace">kubearmor:32767</td>
+              <td>WatchLogs</td>
+              <td>仅日志流 (34 字段)</td>
+              <td>Protobuf</td>
+              <td><span class="badge badge-low">已连接</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-sys" style="background:rgba(16,185,129,0.1);color:#059669">KSecure</span></td>
+              <td style="font-family:monospace">ksecure:32768</td>
+              <td>WatchMessages</td>
+              <td>全量消息流</td>
+              <td>Protobuf</td>
+              <td><span class="badge badge-low">已连接</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-sys" style="background:rgba(16,185,129,0.1);color:#059669">KSecure</span></td>
+              <td style="font-family:monospace">ksecure:32768</td>
+              <td>WatchAlerts</td>
+              <td>告警流</td>
+              <td>Protobuf</td>
+              <td><span class="badge badge-low">已连接</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-sys" style="background:rgba(16,185,129,0.1);color:#059669">KSecure</span></td>
+              <td style="font-family:monospace">ksecure:32768</td>
+              <td>WatchLogs</td>
+              <td>系统日志流 (SecLog 9 字段)</td>
+              <td>Protobuf</td>
+              <td><span class="badge badge-low">已连接</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-sys">ClawManager</span></td>
+              <td style="font-family:monospace">clawmanager:8080</td>
+              <td>Audit Event API</td>
+              <td>AI Observatory 审计事件推送</td>
+              <td>JSON</td>
+              <td><span class="badge badge-low">已连接</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-sys" style="background:rgba(245,158,11,0.1);color:#d97706">ClawAegis</span></td>
+              <td style="font-family:monospace">clawaegis:9090</td>
+              <td>Defense Hook API</td>
+              <td>防御事件日志 (before_dispatch/reply)</td>
+              <td>JSON</td>
+              <td><span class="badge badge-low">已连接</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 日志源统计 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Log Source Statistics</div>
+            <div class="panel-title">日志源采集统计</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>系统</th><th>端点</th><th>格式</th><th>日均量</th><th>峰值速率</th><th>采集状态</th><th>延迟</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>KubeArmor Alert</td>
+              <td>kubearmor:32767</td>
+              <td>Protobuf (44 fields)</td>
+              <td>48,200</td>
+              <td>120/s</td>
+              <td><span class="badge badge-low">正常</span></td>
+              <td>&lt; 50ms</td>
+            </tr>
+            <tr>
+              <td>KubeArmor Log</td>
+              <td>kubearmor:32767</td>
+              <td>Protobuf (34 fields)</td>
+              <td>284,500</td>
+              <td>850/s</td>
+              <td><span class="badge badge-low">正常</span></td>
+              <td>&lt; 30ms</td>
+            </tr>
+            <tr>
+              <td>KSecure SecLog</td>
+              <td>ksecure:32768</td>
+              <td>Protobuf (9 fields)</td>
+              <td>156,800</td>
+              <td>420/s</td>
+              <td><span class="badge badge-low">正常</span></td>
+              <td>&lt; 40ms</td>
+            </tr>
+            <tr>
+              <td>ClawManager ModelInvocation</td>
+              <td>clawmanager:8080</td>
+              <td>JSON</td>
+              <td>12,847</td>
+              <td>35/s</td>
+              <td><span class="badge badge-low">正常</span></td>
+              <td>&lt; 20ms</td>
+            </tr>
+            <tr>
+              <td>ClawManager InstanceCommand</td>
+              <td>clawmanager:8080</td>
+              <td>JSON</td>
+              <td>8,432</td>
+              <td>22/s</td>
+              <td><span class="badge badge-low">正常</span></td>
+              <td>&lt; 20ms</td>
+            </tr>
+            <tr>
+              <td>ClawAegis Defense Hooks</td>
+              <td>clawaegis:9090</td>
+              <td>JSON</td>
+              <td>5,621</td>
+              <td>15/s</td>
+              <td><span class="badge badge-low">正常</span></td>
+              <td>&lt; 25ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ TAB 4: 日志查询 ============ -->
+    <div class="tab-content" id="tab-query">
+
+      <!-- 查询面板 -->
+      <div class="app-panel-warm">
+        <div class="panel-eyebrow">Log Query</div>
+        <div class="panel-title">日志查询面板</div>
+        <div style="display:flex;gap:12px;margin-top:16px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label class="form-label">时间范围</label>
+            <select class="form-select" style="width:100%">
+              <option>最近 1 小时</option>
+              <option selected>最近 24 小时</option>
+              <option>最近 7 天</option>
+              <option>最近 30 天</option>
+              <option>自定义范围</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label class="form-label">实例ID</label>
+            <input type="text" class="form-input" placeholder="例如: inst-prod-03">
+          </div>
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label class="form-label">事件类型</label>
+            <select class="form-select" style="width:100%">
+              <option selected>全部类型</option>
+              <option>Input (用户请求)</option>
+              <option>Planning (模型决策)</option>
+              <option>Output (模型响应)</option>
+              <option>Tool Call (技能调用)</option>
+              <option>System Exec (系统执行)</option>
+              <option>Approval (审批)</option>
+              <option>Exception (异常)</option>
+              <option>Recovery (恢复)</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label class="form-label">严重度</label>
+            <select class="form-select" style="width:100%">
+              <option selected>全部</option>
+              <option>Critical</option>
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label class="form-label">Trace ID</label>
+            <input type="text" class="form-input" placeholder="trace-7f3a9c2e" style="font-family:monospace">
+          </div>
+          <button class="btn-primary" style="margin-bottom:0;height:38px">&#x1f50d; 查询</button>
+        </div>
+      </div>
+
+      <!-- 预设查询 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Quick Queries</div>
+            <div class="panel-title">预设查询模板</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-secondary btn-sm" style="border-color:#dc2626;color:#dc2626">&#x26a0;&#xfe0f; 今日高风险操作</button>
+          <button class="btn-secondary btn-sm">&#x1f517; trace-7f3a 全生命周期</button>
+          <button class="btn-secondary btn-sm">&#x1f6e1;&#xfe0f; pod-x KubeArmor 告警</button>
+          <button class="btn-secondary btn-sm">&#x1f512; KSecure 文件访问日志</button>
+          <button class="btn-secondary btn-sm">&#x1f916; 模型调用成本排行</button>
+          <button class="btn-secondary btn-sm">&#x2705; 今日审批记录</button>
+          <button class="btn-secondary btn-sm">&#x1f504; 异常处置与恢复</button>
+        </div>
+      </div>
+
+      <!-- 查询结果 -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Query Results</div>
+            <div class="panel-title">查询结果 <span style="font-weight:400;color:#8f8681;font-size:12px">(共 247 条, 显示最新 12 条)</span></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x1f4be; 导出CSV</button>
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+          </div>
+        </div>
+
+        <div class="query-result expanded">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:23:03.421</span>
+            <span class="qr-phase phase-exception">Exception</span>
+            <span class="qr-sys" style="background:rgba(59,130,246,0.1);color:#2563eb;border-radius:6px;padding:2px 8px;font-size:10px">KubeArmor</span>
+            <span class="qr-action">网络策略告警 — 阻断异常出站连接</span>
+            <span class="qr-sev"><span class="badge badge-high">High</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-7f3a9c2e | policy_name: block-egress-external | severity: high<br>
+tags: network,exfiltration | action: Block | result: Passed<br>
+source: pod/web-frontend-7d4f | resource: 203.0.113.50:443<br>
+process_name: curl | process_hash: sha256:a1b2c3d4e5f6...<br>
+container_name: inst-prod-03 | namespace: security | host_pid: 28451<br>
+pod_name: web-frontend-7d4f | cluster: prod-cluster-01 | host: node-03
+          </div>
+        </div>
+
+        <div class="query-result">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:23:03.198</span>
+            <span class="qr-phase phase-system">System Exec</span>
+            <span class="qr-sys" style="background:rgba(59,130,246,0.1);color:#2563eb;border-radius:6px;padding:2px 8px;font-size:10px">KubeArmor</span>
+            <span class="qr-action">文件访问 — kubectl 写入网络策略文件</span>
+            <span class="qr-sev"><span class="badge badge-low">Low</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-7f3a9c2e | operation: File | resource: /etc/kubernetes/policies/netpol-block-egress.yaml<br>
+process_name: kubectl | host_pid: 28451 | ppid: 28440 | pid: 28452<br>
+container_name: inst-prod-03 | namespace: security | result: Passed
+          </div>
+        </div>
+
+        <div class="query-result">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:23:03.012</span>
+            <span class="qr-phase phase-tool">Tool Call</span>
+            <span class="qr-sys" style="background:rgba(239,68,68,0.1);color:#dc2626;border-radius:6px;padding:2px 8px;font-size:10px">ClawManager</span>
+            <span class="qr-action">InstanceCommand 下发 — kubectl-apply-networkpolicy</span>
+            <span class="qr-sev"><span class="badge badge-medium">Medium</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-7f3a9c2e | issued_by: ai-gateway | command: kubectl-apply-networkpolicy<br>
+issued_at: 14:23:03.012 | dispatched_at: 14:23:03.045 | started_at: 14:23:03.089<br>
+instance_id: inst-prod-03 | skill: network-security | result_json: pending
+          </div>
+        </div>
+
+        <div class="query-result">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:23:02.708</span>
+            <span class="qr-phase phase-planning">Planning</span>
+            <span class="qr-sys" style="background:rgba(239,68,68,0.1);color:#dc2626;border-radius:6px;padding:2px 8px;font-size:10px">ClawManager</span>
+            <span class="qr-action">CostRecord — 决策成本关联</span>
+            <span class="qr-sev"><span class="badge badge-low">Low</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-7f3a9c2e | session_id: sess-a1b2c3d4 | request_id: req-7f3a<br>
+decision: remediate | target: pod/web-frontend | cost_type: model_invocation<br>
+estimated_cost: $0.0608 | cost_center: security-ops
+          </div>
+        </div>
+
+        <div class="query-result">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:23:01.285</span>
+            <span class="qr-phase phase-output">Output</span>
+            <span class="qr-sys" style="background:rgba(239,68,68,0.1);color:#dc2626;border-radius:6px;padding:2px 8px;font-size:10px">ClawManager</span>
+            <span class="qr-action">ModelInvocation — gpt-4o 模型响应完成</span>
+            <span class="qr-sev"><span class="badge badge-low">Low</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-7f3a9c2e | model_id: gpt-4o | streaming: true<br>
+prompt_tokens: 2,847 | completion_tokens: 1,203 | total_tokens: 4,050<br>
+estimated_cost: $0.0608 | actual_cost: $0.0608 | latency: 1,423ms
+          </div>
+        </div>
+
+        <div class="query-result">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:23:01.142</span>
+            <span class="qr-phase phase-input">Input</span>
+            <span class="qr-sys" style="background:rgba(239,68,68,0.1);color:#dc2626;border-radius:6px;padding:2px 8px;font-size:10px">ClawManager</span>
+            <span class="qr-action">用户请求 — 分析异常网络连接</span>
+            <span class="qr-sev"><span class="badge badge-low">Low</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-7f3a9c2e | session_id: sess-a1b2c3d4 | request_id: req-7f3a<br>
+user_id: user-zhangwei | instance_id: inst-prod-03 | streaming: true<br>
+prompt: "分析 pod web-frontend 的异常网络连接并给出修复建议"
+          </div>
+        </div>
+
+        <div class="query-result">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:20:15.882</span>
+            <span class="qr-phase phase-approval">Approval</span>
+            <span class="qr-sys" style="background:rgba(245,158,11,0.1);color:#d97706;border-radius:6px;padding:2px 8px;font-size:10px">ClawAegis</span>
+            <span class="qr-action">before_dispatch — 高危操作需人工审批</span>
+            <span class="qr-sev"><span class="badge badge-high">High</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-5e8b1d04 | hook: before_dispatch | instance_id: inst-prod-05<br>
+action: pod_delete | approver: admin-liwei | decision: approved<br>
+approved_at: 14:20:45.120 | reason: "Pod 已确认无服务流量, 允许删除"
+          </div>
+        </div>
+
+        <div class="query-result">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:18:33.567</span>
+            <span class="qr-phase phase-recovery">Recovery</span>
+            <span class="qr-sys" style="background:rgba(16,185,129,0.1);color:#059669;border-radius:6px;padding:2px 8px;font-size:10px">KSecure</span>
+            <span class="qr-action">恢复动作 — KSecure SecLog 记录恢复操作</span>
+            <span class="qr-sev"><span class="badge badge-low">Low</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-4a2c7f01 | time: 14:18:33.567 | log_type: SystemLog<br>
+action: Allow | host_name: node-03 | source: /usr/bin/kubectl<br>
+path: /etc/kubernetes/deployments/app-v2.yaml | operation: File | user: root | pid: 30124<br>
+remediation: deployment_rollback | verified: true
+          </div>
+        </div>
+
+        <div class="query-result">
+          <div class="qr-header">
+            <span class="qr-time">2026-05-01 14:15:22.091</span>
+            <span class="qr-phase phase-exception">Exception</span>
+            <span class="qr-sys" style="background:rgba(139,92,246,0.1);color:#7c3aed;border-radius:6px;padding:2px 8px;font-size:10px">SecureClaw</span>
+            <span class="qr-action">gateway.risk.detected — 可疑文件删除操作</span>
+            <span class="qr-sev"><span class="badge badge-critical">Critical</span></span>
+          </div>
+          <div class="qr-detail">
+trace_id: trace-3b9d6e82 | event: gateway.risk.detected<br>
+risk_type: destructive_action | severity: critical<br>
+target: /var/log/app/audit.log | operation: File.Delete<br>
+detection_rule: "high-value-file-deletion" | blocked: true<br>
+remediation: operation_blocked + alert_sent
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ TAB 5: 配置 ============ -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+        <!-- 日志保留配置 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4be; 日志保留配置</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">ModelInvocation 保留期</div><div class="desc">AI Gateway 模型调用记录</div></div>
+            <select class="form-select" style="width:140px">
+              <option>30 天</option>
+              <option selected>180 天</option>
+              <option>365 天</option>
+              <option>永久</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">CostRecord 保留期</div><div class="desc">成本关联决策记录</div></div>
+            <select class="form-select" style="width:140px">
+              <option>30 天</option>
+              <option selected>180 天</option>
+              <option>365 天</option>
+              <option>永久</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">InstanceCommand 保留期</div><div class="desc">技能执行命令记录</div></div>
+            <select class="form-select" style="width:140px">
+              <option>30 天</option>
+              <option>90 天</option>
+              <option selected>180 天</option>
+              <option>365 天</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KubeArmor Alert/Log 保留期</div><div class="desc">安全事件日志</div></div>
+            <select class="form-select" style="width:140px">
+              <option>30 天</option>
+              <option>90 天</option>
+              <option>180 天</option>
+              <option selected>365 天</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KSecure SecLog 保留期</div><div class="desc">系统安全日志</div></div>
+            <select class="form-select" style="width:140px">
+              <option>30 天</option>
+              <option>90 天</option>
+              <option>180 天</option>
+              <option selected>365 天</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">ClawAegis Hook 保留期</div><div class="desc">防御事件日志</div></div>
+            <select class="form-select" style="width:140px">
+              <option>30 天</option>
+              <option>90 天</option>
+              <option selected>180 天</option>
+              <option>365 天</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 存储后端 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4e6; 存储后端配置</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">主存储</div><div class="desc">热数据查询存储</div></div>
+            <select class="form-select" style="width:160px">
+              <option selected>PostgreSQL</option>
+              <option>ClickHouse</option>
+              <option>Elasticsearch</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">归档存储</div><div class="desc">冷数据归档存储</div></div>
+            <select class="form-select" style="width:160px">
+              <option selected>S3 Compatible</option>
+              <option>Azure Blob</option>
+              <option>GCS</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">归档触发</div><div class="desc">超过保留期 70% 时自动归档</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">压缩算法</div><div class="desc">归档数据压缩方式</div></div>
+            <select class="form-select" style="width:160px">
+              <option>gzip</option>
+              <option selected>zstd</option>
+              <option>lz4</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">压缩级别</div><div class="desc">归档压缩级别 (1-9)</div></div>
+            <input type="number" class="form-input" value="3" style="width:80px;text-align:center">
+          </div>
+        </div>
+
+        <!-- gRPC 流配置 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f517; gRPC 流配置</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KubeArmor gRPC 端点</div><div class="desc">KubeArmor LogService 地址</div></div>
+            <input type="text" class="form-input" value="kubearmor:32767" style="width:160px;font-family:monospace">
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KSecure gRPC 端点</div><div class="desc">KSecure LogService 地址</div></div>
+            <input type="text" class="form-input" value="ksecure:32768" style="width:160px;font-family:monospace">
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">重连间隔 (秒)</div><div class="desc">gRPC 连接断开后重连间隔</div></div>
+            <input type="number" class="form-input" value="5" style="width:80px;text-align:center">
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">最大重连次数</div><div class="desc">连续重连失败最大次数</div></div>
+            <input type="number" class="form-input" value="10" style="width:80px;text-align:center">
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">批量大小</div><div class="desc">gRPC 批量推送大小</div></div>
+            <input type="number" class="form-input" value="100" style="width:80px;text-align:center">
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">TLS 加密</div><div class="desc">启用 gRPC TLS 加密传输</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <!-- 字段选择与采样 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4ca; 字段选择与采样</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KubeArmor Alert 全字段</div><div class="desc">采集全部 44 个字段 (含 EventData)</div></div>
+            <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KubeArmor Log 全字段</div><div class="desc">采集全部 34 个字段</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">SSE 流内容记录</div><div class="desc">记录 AI Gateway SSE 流式响应内容</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">Prompt 内容记录</div><div class="desc">记录用户原始 Prompt (脱敏后)</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">采样率</div><div class="desc">低优先级日志采样率 (0-100%)</div></div>
+            <input type="number" class="form-input" value="100" style="width:80px;text-align:center"> <span style="font-size:11px;color:#8f8681;margin-left:4px">%</span>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KSecure Operation 过滤</div><div class="desc">仅采集 File/Network/Process 类型</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <!-- 查询优化 -->
+        <div class="config-section">
+          <div class="cs-title">&#x2699;&#xfe0f; 查询优化</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">trace_id 索引</div><div class="desc">为 trace_id 创建专用索引</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">时间分区</div><div class="desc">按日/周/月自动分区</div></div>
+            <select class="form-select" style="width:140px">
+              <option>按日</option>
+              <option selected>按周</option>
+              <option>按月</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">查询超时</div><div class="desc">最大查询执行时间</div></div>
+            <input type="number" class="form-input" value="30" style="width:80px;text-align:center"> <span style="font-size:11px;color:#8f8681;margin-left:4px">秒</span>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">结果缓存</div><div class="desc">查询结果缓存时间</div></div>
+            <input type="number" class="form-input" value="300" style="width:80px;text-align:center"> <span style="font-size:11px;color:#8f8681;margin-left:4px">秒</span>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">分页大小</div><div class="desc">默认分页返回条数</div></div>
+            <input type="number" class="form-input" value="50" style="width:80px;text-align:center">
+          </div>
+        </div>
+
+        <!-- 归档与 KubeArmor 集成 -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6e1;&#xfe0f; KubeArmor/KSecure 集成配置</div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KubeArmor 集成</div><div class="desc">启用 KubeArmor gRPC 日志流采集</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">KSecure 集成</div><div class="desc">启用 KSecure gRPC 日志流采集</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">ClawAegis Hook 采集</div><div class="desc">采集 before_dispatch/before_agent_reply 事件</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">归档策略</div><div class="desc">自动归档到冷存储</div></div>
+            <select class="form-select" style="width:140px">
+              <option>手动</option>
+              <option selected>自动 (保留期 70%)</option>
+              <option>自动 (保留期 90%)</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><div class="name">归档加密</div><div class="desc">归档数据启用 AES-256 加密</div></div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 保存按钮 -->
+      <div style="margin-top:22px;display:flex;justify-content:flex-end;gap:12px">
+        <button class="btn-secondary">&#x21bb; 恢复默认</button>
+        <button class="btn-primary">&#x1f4be; 保存配置</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

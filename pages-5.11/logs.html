@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-logs</title>
+<link rel="stylesheet" href="../css-5.11.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-logs">
+
+  <div class="content-area">
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card sc-total"><span class="stat-val">14</span><span class="stat-label">日志总数</span></div>
+      <div class="stat-card sc-critical"><span class="stat-val">1</span><span class="stat-label">Critical</span></div>
+      <div class="stat-card sc-high"><span class="stat-val">4</span><span class="stat-label">High</span></div>
+      <div class="stat-card sc-medium"><span class="stat-val">5</span><span class="stat-label">Medium</span></div>
+      <div class="stat-card sc-low"><span class="stat-val">4</span><span class="stat-label">Low</span></div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div class="alert-banner warn">
+      &#x26a0;&#xfe0f; <strong>注意:</strong> SEC-5.11-0007 (FR-67) 检测到InstanceCommand日志签名校验失败，可能存在日志篡改风险，请立即调查。
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-bar">
+      <label>时间</label>
+      <input class="form-input" type="date" value="2026-05-01">
+      <div class="filter-sep"></div>
+      <label>层级</label>
+      <select class="form-input">
+        <option>全部 FR</option>
+        <option>FR-65</option><option>FR-66</option><option>FR-67</option>
+        <option>FR-68</option><option>FR-69</option><option>FR-70</option><option>FR-71</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label>严重度</label>
+      <select class="form-input">
+        <option>全部</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+      </select>
+      <div class="filter-sep"></div>
+      <input class="form-input search-input" placeholder="搜索日志内容...">
+    </div>
+
+    <!-- ============ LOG ENTRIES ============ -->
+
+    <!-- 1. FR-65: 全链路追踪 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 08:14:22</span>
+        <span class="log-id">SEC-5.11-0001</span>
+        <span class="log-defense l-fr65">FR-65</span>
+        <span class="badge badge-low">LOW</span>
+      </div>
+      <div class="log-body">
+        <strong>全链路追踪完成</strong> &mdash; TraceID <code>TraceID-7f3a</code> 完成8步全链路追踪，从用户请求到最终处置全部步骤已关联记录。链路完整，无断点。
+      </div>
+      <div class="log-detail"><span class="dk">trace_id:</span> <span class="dv">TraceID-7f3a</span>
+<span class="dk">steps_completed:</span> <span class="dv">8/8</span>
+<span class="dk">chain:</span> <span class="dv">UserRequest &#x2192; PermissionCheck &#x2192; ToolDispatch &#x2192; KubeArmorPolicy &#x2192; CommandExecution &#x2192; AegisIntercept &#x2192; RiskAssessment &#x2192; Disposition</span>
+<span class="dk">duration:</span> <span class="dv">342ms</span>
+<span class="dk">integrity:</span> <span class="dv">COMPLETE (no gaps)</span>
+<span class="dk">correlation_id:</span> <span class="dv">CORR-7f3a-20260501</span></div>
+    </div>
+
+    <!-- 2. FR-65: 链路断点 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 09:37:15</span>
+        <span class="log-id">SEC-5.11-0002</span>
+        <span class="log-defense l-fr65">FR-65</span>
+        <span class="badge badge-high">HIGH</span>
+      </div>
+      <div class="log-body">
+        <strong>链路断点检测</strong> &mdash; TraceID <code>TraceID-a2b1</code> 在工具调用步骤(step 4)缺失KubeArmor日志记录，链路不完整。可能原因：KubeArmor gRPC流断开或策略未匹配。
+      </div>
+      <div class="log-detail"><span class="dk">trace_id:</span> <span class="dv">TraceID-a2b1</span>
+<span class="dk">steps_completed:</span> <span class="dv">7/8</span>
+<span class="dk">missing_step:</span> <span class="dv">step 4 - KubeArmorPolicy enforcement</span>
+<span class="dk">expected_log_source:</span> <span class="dv">kubearmor-grpc-watch-alerts</span>
+<span class="dk">last_seen_step:</span> <span class="dv">step 3 - ToolDispatch (timestamp 09:37:12)</span>
+<span class="dk">next_seen_step:</span> <span class="dv">step 5 - CommandExecution (timestamp 09:37:18)</span>
+<span class="dk">gap_duration:</span> <span class="dv">6s (expected &lt;2s)</span>
+<span class="dk">action:</span> <span class="dv">Investigating KubeArmor pod health and gRPC connection status</span></div>
+    </div>
+
+    <!-- 3. FR-66: 生命周期日志 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 10:05:44</span>
+        <span class="log-id">SEC-5.11-0003</span>
+        <span class="log-defense l-fr66">FR-66</span>
+        <span class="badge badge-low">LOW</span>
+      </div>
+      <div class="log-body">
+        <strong>生命周期日志完整记录</strong> &mdash; <code>InstanceCommand</code> 完整记录 <code>stop_openclaw</code> 命令的全部生命周期事件：创建 &#x2192; 审批 &#x2192; 分发 &#x2192; 执行 &#x2192; 结果回传 &#x2192; 归档。
+      </div>
+      <div class="log-detail"><span class="dk">command_id:</span> <span class="dv">CMD-20260501-0042</span>
+<span class="dk">command_type:</span> <span class="dv">InstanceCommand / stop_openclaw</span>
+<span class="dk">instance_id:</span> <span class="dv">instance-oc-07</span>
+<span class="dk">lifecycle_events:</span>
+  <span class="dv">[1] CREATED    10:05:44 - operator:admin-zhangwei</span>
+  <span class="dv">[2] APPROVED   10:05:46 - approver:admin-chenlei</span>
+  <span class="dv">[3] DISPATCHED 10:05:48 - target:openclaw-agent-07</span>
+  <span class="dv">[4] EXECUTING  10:05:50 - pid:28431</span>
+  <span class="dv">[5] COMPLETED  10:06:12 - exit_code:0, duration:22s</span>
+  <span class="dv">[6] ARCHIVED   10:06:13 - log_retention:365d</span>
+<span class="dk">completeness:</span> <span class="dv">6/6 events recorded</span></div>
+    </div>
+
+    <!-- 4. FR-66: 日志采集 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 11:22:08</span>
+        <span class="log-id">SEC-5.11-0004</span>
+        <span class="log-defense l-fr66">FR-66</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>日志采集流断开重连</strong> &mdash; KubeArmor <code>gRPC WatchAlerts</code> 流断开，已自动重连。断开期间可能丢失部分告警日志，建议核查断开时段的事件完整性。
+      </div>
+      <div class="log-detail"><span class="dk">source:</span> <span class="dv">kubearmor-grpc-watch-alerts</span>
+<span class="dk">event:</span> <span class="dv">stream disconnected</span>
+<span class="dk">disconnected_at:</span> <span class="dv">2026-05-01T11:21:52Z</span>
+<span class="dk">reconnected_at:</span> <span class="dv">2026-05-01T11:22:08Z</span>
+<span class="dk">gap_duration:</span> <span class="dv">16s</span>
+<span class="dk">estimated_missed_alerts:</span> <span class="dv">0-3 (based on avg rate)</span>
+<span class="dk">reconnect_status:</span> <span class="dv">SUCCESS</span>
+<span class="dk">action:</span> <span class="dv">Verifying alert continuity with TraceID correlation</span></div>
+    </div>
+
+    <!-- 5. FR-67: 日志签名 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 12:00:00</span>
+        <span class="log-id">SEC-5.11-0005</span>
+        <span class="log-defense l-fr67">FR-67</span>
+        <span class="badge badge-low">LOW</span>
+      </div>
+      <div class="log-body">
+        <strong>日志数字签名完成</strong> &mdash; 关键操作日志已使用 <code>RSA-SHA256</code> 签名。签名覆盖本周期所有InstanceCommand、PermissionChange、RiskAlert事件。
+      </div>
+      <div class="log-detail"><span class="dk">signing_algorithm:</span> <span class="dv">RSA-SHA256</span>
+<span class="dk">key_id:</span> <span class="dv">LOG-SIGN-KEY-2026-Q2</span>
+<span class="dk">signed_batch:</span> <span class="dv">2026-05-01T00:00:00 ~ 2026-05-01T12:00:00</span>
+<span class="dk">events_signed:</span> <span class="dv">347</span>
+<span class="dk">signature_hash:</span> <span class="dv">a4f8e2...c7d1 (truncated)</span>
+<span class="dk">log_types:</span> <span class="dv">InstanceCommand, PermissionChange, RiskAlert, AegisIntercept</span>
+<span class="dk">next_signing:</span> <span class="dv">2026-05-01T18:00:00Z</span></div>
+    </div>
+
+    <!-- 6. FR-67: 篡改检测 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 13:15:33</span>
+        <span class="log-id">SEC-5.11-0006</span>
+        <span class="log-defense l-fr67">FR-67</span>
+        <span class="badge badge-high">HIGH</span>
+      </div>
+      <div class="log-body">
+        <strong>自完整性检测发现指纹不匹配</strong> &mdash; <code>SelfIntegrityRecord</code> 发现 <code>handlers.ts</code> 文件指纹不匹配。文件可能被未授权修改，需立即调查变更来源。
+      </div>
+      <div class="log-detail"><span class="dk">check_type:</span> <span class="dv">SelfIntegrityRecord</span>
+<span class="dk">file:</span> <span class="dv">/app/src/handlers.ts</span>
+<span class="dk">expected_sha256:</span> <span class="dv">7b3a9f...e2c4</span>
+<span class="dk">actual_sha256:</span> <span class="dv">4d8c21...f7a9</span>
+<span class="dk">fingerprint_mismatch:</span> <span class="dv">TRUE</span>
+<span class="dk">last_known_good:</span> <span class="dv">2026-04-30T23:59:00Z</span>
+<span class="dk">detected_at:</span> <span class="dv">2026-05-01T13:15:33Z</span>
+<span class="dk">file_size_change:</span> <span class="dv">+2,341 bytes</span>
+<span class="dk">possible_cause:</span> <span class="dv">Unauthorized modification or incomplete deployment</span>
+<span class="dk">action:</span> <span class="dv">1) Compare with git HEAD 2) Review deployment logs 3) Alert security team</span></div>
+    </div>
+
+    <!-- 7. FR-67: 签名验证失败 -->
+    <div class="log-entry log-critical">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 14:08:57</span>
+        <span class="log-id">SEC-5.11-0007</span>
+        <span class="log-defense l-fr67">FR-67</span>
+        <span class="badge badge-critical">CRITICAL</span>
+      </div>
+      <div class="log-body">
+        <strong>日志签名校验失败</strong> &mdash; <code>InstanceCommand</code> 日志签名校验失败，日志内容可能已被篡改。涉及命令 <code>restart_openclaw</code>，原始签名与当前内容不匹配。
+      </div>
+      <div class="log-detail"><span class="dk">verification_type:</span> <span class="dv">RSA-SHA256 signature verification</span>
+<span class="dk">log_record_id:</span> <span class="dv">CMD-20260501-0038</span>
+<span class="dk">command:</span> <span class="dv">restart_openclaw</span>
+<span class="dk">original_signature:</span> <span class="dv">SIG-3f8a2b...c9e1</span>
+<span class="dk">verification_result:</span> <span class="dv">FAILED - content hash mismatch</span>
+<span class="dk">stored_hash:</span> <span class="dv">8d7c4f...a3b2</span>
+<span class="dk">computed_hash:</span> <span class="dv">1e9f5a...d8c7</span>
+<span class="dk">tampered_fields:</span> <span class="dv">possibly: execution_timestamp, exit_code</span>
+<span class="dk">severity:</span> <span class="dv">CRITICAL - potential audit log tampering</span>
+<span class="dk">action:</span> <span class="dv">1) Quarantine affected log 2) Escalate to CISO 3) Initiate forensic investigation</span></div>
+    </div>
+
+    <!-- 8. FR-68: 合规偏差 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 14:30:12</span>
+        <span class="log-id">SEC-5.11-0008</span>
+        <span class="log-defense l-fr68">FR-68</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>合规偏差检测</strong> &mdash; KSecure基线检查 <code>SSH-EmptyPW</code> 失败，当前系统配置允许空密码登录，违反CIS Benchmark 5.2.2要求。
+      </div>
+      <div class="log-detail"><span class="dk">check_id:</span> <span class="dv">KS-BL-SSH-EmptyPW</span>
+<span class="dk">baseline_version:</span> <span class="dv">v2.3</span>
+<span class="dk">expected_state:</span> <span class="dv">PermitEmptyPasswords no</span>
+<span class="dk">actual_state:</span> <span class="dv">PermitEmptyPasswords yes</span>
+<span class="dk">cis_reference:</span> <span class="dv">CIS Benchmark 5.2.2 - Ensure SSH PermitEmptyPasswords is disabled</span>
+<span class="dk">severity:</span> <span class="dv">MEDIUM</span>
+<span class="dk">remediation:</span> <span class="dv">Set PermitEmptyPasswords no in /etc/ssh/sshd_config</span>
+<span class="dk">auto_fix_available:</span> <span class="dv">YES (G_MODE=s)</span></div>
+    </div>
+
+    <!-- 9. FR-68: 自动修复 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 14:31:05</span>
+        <span class="log-id">SEC-5.11-0009</span>
+        <span class="log-defense l-fr68">FR-68</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>自动修复执行</strong> &mdash; <code>G_MODE=s</code> 自动执行 <code>sha512.sh</code> 修复脚本。密码哈希算法已从MD5加固为SHA-512，同时修复SSH空密码配置偏差。
+      </div>
+      <div class="log-detail"><span class="dk">fix_mode:</span> <span class="dv">G_MODE=s (auto-remediate)</span>
+<span class="dk">fix_script:</span> <span class="dv">sha512.sh</span>
+<span class="dk">triggered_by:</span> <span class="dv">SEC-5.11-0008 (SSH-EmptyPW deviation)</span>
+<span class="dk">changes_applied:</span>
+  <span class="dv">1) /etc/ssh/sshd_config: PermitEmptyPasswords yes &#x2192; no</span>
+  <span class="dv">2) /etc/pam.d/common-password: md5 &#x2192; sha512</span>
+<span class="dk">verification:</span> <span class="dv">PASSED - both checks now compliant</span>
+<span class="dk">pre_fix_snapshot:</span> <span class="dv">SNAP-PRE-20260501-143105</span>
+<span class="dk">post_fix_snapshot:</span> <span class="dv">SNAP-POST-20260501-143112</span></div>
+    </div>
+
+    <!-- 10. FR-68: 期望态漂移 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 15:42:18</span>
+        <span class="log-id">SEC-5.11-0010</span>
+        <span class="log-defense l-fr68">FR-68</span>
+        <span class="badge badge-high">HIGH</span>
+      </div>
+      <div class="log-body">
+        <strong>期望态漂移检测</strong> &mdash; <code>InstanceDesiredState</code> 与 <code>RuntimeStatus</code> 不一致。实例期望状态为 <code>running</code>，但运行时状态为 <code>degraded</code>，漂移时长已超过15分钟。
+      </div>
+      <div class="log-detail"><span class="dk">instance_id:</span> <span class="dv">instance-oc-12</span>
+<span class="dk">desired_state:</span> <span class="dv">running (healthy, all checks pass)</span>
+<span class="dk">runtime_status:</span> <span class="dv">degraded (3/5 health checks failing)</span>
+<span class="dk">drift_detected_at:</span> <span class="dv">2026-05-01T15:27:00Z</span>
+<span class="dk">drift_duration:</span> <span class="dv">15m18s (threshold: 10m)</span>
+<span class="dk">failing_checks:</span>
+  <span class="dv">1) DiskUsage: 92% (threshold 85%)</span>
+  <span class="dv">2) MemoryUsage: 89% (threshold 80%)</span>
+  <span class="dv">3) ProcessCount: 487 (threshold 300)</span>
+<span class="dk">action:</span> <span class="dv">Auto-scale or restart instance pending approval</span></div>
+    </div>
+
+    <!-- 11. FR-69: 自动隔离 -->
+    <div class="log-entry log-high">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 16:10:44</span>
+        <span class="log-id">SEC-5.11-0011</span>
+        <span class="log-defense l-fr69">FR-69</span>
+        <span class="badge badge-high">HIGH</span>
+      </div>
+      <div class="log-body">
+        <strong>自动隔离触发</strong> &mdash; Agent <code>agent-rogue</code> 循环触发5次/5min，超过Loop Guard阈值(3次/5min)，已自动执行 <code>quarantine</code> 隔离操作。
+      </div>
+      <div class="log-detail"><span class="dk">agent_id:</span> <span class="dv">agent-rogue</span>
+<span class="dk">trigger_rule:</span> <span class="dv">Loop Guard (3 repeats / 5min threshold)</span>
+<span class="dk">actual_count:</span> <span class="dv">5 repeats in 4m42s</span>
+<span class="dk">pattern:</span> <span class="dv">Repetitive curl requests to external endpoint</span>
+<span class="dk">action_taken:</span> <span class="dv">QUARANTINE</span>
+<span class="dk">quarantine_time:</span> <span class="dv">2026-05-01T16:10:44Z</span>
+<span class="dk">recovery_requires_approval:</span> <span class="dv">TRUE (security team approval required)</span>
+<span class="dk">related_trace:</span> <span class="dv">TraceID-7f3a (step 7 risk assessment)</span></div>
+    </div>
+
+    <!-- 12. FR-69: 网络断开 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 16:11:02</span>
+        <span class="log-id">SEC-5.11-0012</span>
+        <span class="log-defense l-fr69">FR-69</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>网络隔离策略执行</strong> &mdash; <code>NetworkPolicy</code> 全出站拒绝已应用于 <code>instance-17</code>（与agent-rogue关联实例），所有出站流量已阻断。
+      </div>
+      <div class="log-detail"><span class="dk">policy_type:</span> <span class="dv">NetworkPolicy</span>
+<span class="dk">policy_name:</span> <span class="dv">deny-all-egress-quarantine</span>
+<span class="dk">target_instance:</span> <span class="dv">instance-17</span>
+<span class="dk">related_agent:</span> <span class="dv">agent-rogue</span>
+<span class="dk">egress_rules:</span> <span class="dv">DENY ALL (0.0.0.0/0)</span>
+<span class="dk">applied_at:</span> <span class="dv">2026-05-01T16:11:02Z</span>
+<span class="dk">triggered_by:</span> <span class="dv">SEC-5.11-0011 (auto-quarantine)</span>
+<span class="dk">reversal_requires:</span> <span class="dv">Admin approval + 15min cooldown</span></div>
+    </div>
+
+    <!-- 13. FR-70: 证据快照 -->
+    <div class="log-entry log-medium">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 16:11:15</span>
+        <span class="log-id">SEC-5.11-0013</span>
+        <span class="log-defense l-fr70">FR-70</span>
+        <span class="badge badge-medium">MEDIUM</span>
+      </div>
+      <div class="log-body">
+        <strong>证据快照保留</strong> &mdash; <code>ConfigRevision</code> SHA256快照已保留，事件ID <code>EVD-0042</code>。快照包含隔离前的完整配置状态，用于后续证据链回放与合规审计。
+      </div>
+      <div class="log-detail"><span class="dk">event_id:</span> <span class="dv">EVD-0042</span>
+<span class="dk">snapshot_type:</span> <span class="dv">ConfigRevision SHA256</span>
+<span class="dk">related_incident:</span> <span class="dv">SEC-5.11-0011 (agent-rogue quarantine)</span>
+<span class="dk">snapshot_contents:</span>
+  <span class="dv">- InstanceConfig (instance-17)</span>
+  <span class="dv">- AgentState (agent-rogue)</span>
+  <span class="dv">- NetworkPolicy (pre-quarantine)</span>
+  <span class="dv">- ProcessList (47 processes captured)</span>
+  <span class="dv">- FileIntegrityBaseline (312 files)</span>
+<span class="dk">sha256:</span> <span class="dv">9f4e7c...b2a8</span>
+<span class="dk">timestamp_signed:</span> <span class="dv">YES (RSA-SHA256, key LOG-SIGN-KEY-2026-Q2)</span>
+<span class="dk">retention:</span> <span class="dv">365 days (compliance requirement)</span>
+<span class="dk">chain_of_custody:</span> <span class="dv">EVD-0041 &#x2192; EVD-0042 (continuous)</span></div>
+    </div>
+
+    <!-- 14. FR-71: 规则优化 -->
+    <div class="log-entry log-low">
+      <div class="log-header">
+        <span class="log-time">2026-05-01 17:30:00</span>
+        <span class="log-id">SEC-5.11-0014</span>
+        <span class="log-defense l-fr71">FR-71</span>
+        <span class="badge badge-low">LOW</span>
+      </div>
+      <div class="log-body">
+        <strong>规则优化完成</strong> &mdash; RiskRule <code>R-007</code> 误报率从12%降至3%。优化内容：调整正则Pattern排除健康检查模式，Severity从CRITICAL降级为HIGH。已通过A/B验证，当前版本v3.7.2。
+      </div>
+      <div class="log-detail"><span class="dk">rule_id:</span> <span class="dv">R-007 (循环命令检测)</span>
+<span class="dk">optimization_cycle:</span> <span class="dv">CYC-2026-014</span>
+<span class="dk">change_id:</span> <span class="dv">CHG-0342</span>
+<span class="dk">before:</span>
+  <span class="dv">Pattern: while\s+true.+curl</span>
+  <span class="dv">Severity: CRITICAL</span>
+  <span class="dv">FP Rate: 12%</span>
+<span class="dk">after:</span>
+  <span class="dv">Pattern: while\s+true.+(curl|wget).+(?!health)</span>
+  <span class="dv">Severity: HIGH</span>
+  <span class="dv">FP Rate: 3%</span>
+<span class="dk">ab_test_duration:</span> <span class="dv">7 days (2026-04-21 ~ 2026-04-28)</span>
+<span class="dk">ab_test_sample:</span> <span class="dv">1,247 alerts</span>
+<span class="dk">approved_by:</span> <span class="dv">陈磊(安全团队)</span>
+<span class="dk">version:</span> <span class="dv">v3.7.2</span>
+<span class="dk">deploy_strategy:</span> <span class="dv">灰度 10% &#x2192; 50% &#x2192; 100%</span></div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button class="page-btn disabled">&laquo;</button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn disabled">&raquo;</button>
+      <span class="page-info">共 14 条日志</span>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

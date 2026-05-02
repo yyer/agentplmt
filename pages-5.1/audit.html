@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.1.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">Security Audit</div>
+      <div class="page-title">安全审计报告</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-secondary btn-sm">运行审计</button>
+      <button class="btn-primary btn-sm">一键加固</button>
+    </div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-low">52</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Audit Score</div>
+          <div class="panel-title" style="margin-bottom:4px;">当前审计评分：52 / 100</div>
+          <div style="font-size:13px;color:var(--text);">上次审计时间：2026-04-30 14:00 | 34 项检查中 12 项未通过</div>
+        </div>
+        <div style="display:flex;gap:20px;">
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">3</div><div class="label">CRITICAL</div></div>
+          <div class="stat-mini"><div class="value" style="color:#c2410c;">5</div><div class="label">HIGH</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e;">4</div><div class="label">MEDIUM</div></div>
+          <div class="stat-mini"><div class="value" style="color:#6b7280;">22</div><div class="label">PASS</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Failed Checks</div><div class="panel-title">未通过检查项</div></div></div>
+
+      <div class="check-item">
+        <div class="check-icon fail">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">网关未绑定到回环地址</div>
+          <div class="check-id">SC-GW-001 &middot; CRITICAL &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+          <div class="check-detail">gateway.bind 当前值: "0.0.0.0"，应设置为 "loopback"。当前配置允许外部访问 Agent 网关。</div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon fail">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">网关认证已禁用</div>
+          <div class="check-id">SC-GW-002 &middot; CRITICAL &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+          <div class="check-detail">auth.mode 未设置为 "password" 或 "token"。任何人可无需认证访问 Agent。</div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon fail">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">记忆文件中检测到提示词注入</div>
+          <div class="check-id">SC-MEM-002 &middot; CRITICAL &middot; OWASP ASI06 &middot; MAESTRO L2</div>
+          <div class="check-detail">MEMORY.md 中包含 "ignore previous instructions" 模式，疑似已被注入。</div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon warn">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">.env 文件包含明文 API Key</div>
+          <div class="check-id">SC-CRED-003 &middot; HIGH &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+          <div class="check-detail">.env 文件中发现 sk-ant-api03... 模式。建议迁移到凭据存储。</div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon warn">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">执行审批已禁用</div>
+          <div class="check-id">SC-EXEC-001 &middot; HIGH &middot; OWASP ASI02 &middot; MAESTRO L3</div>
+          <div class="check-detail">exec.approvals 设置为 "off"，代码执行无审批保护。</div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon warn">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">状态目录权限过宽</div>
+          <div class="check-id">SC-CRED-001 &middot; HIGH &middot; OWASP ASI03 &middot; MAESTRO L4</div>
+          <div class="check-detail">~/.openclaw/ 权限为 755，应为 700（仅所有者可访问）。</div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon warn">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">使用默认控制令牌</div>
+          <div class="check-id">SC-CTRL-001 &middot; MEDIUM &middot; OWASP ASI01 &middot; MAESTRO L3</div>
+          <div class="check-detail">openclaw.json 中未配置 controlTokens，使用默认值存在被猜测风险。</div>
+        </div>
+      </div>
+
+      <div class="check-item">
+        <div class="check-icon warn">&#x2715;</div>
+        <div class="check-info">
+          <div class="check-name">沙盒模式未设置为 "all"</div>
+          <div class="check-id">SC-EXEC-003 &middot; MEDIUM &middot; OWASP ASI05 &middot; MAESTRO L3</div>
+          <div class="check-detail">sandbox.mode 不是 "all"，部分代码不在沙盒中执行。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

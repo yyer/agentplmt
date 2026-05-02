@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-scanjobs</title>
+<link rel="stylesheet" href="../css-5.4.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-scanjobs">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">Security Scan Jobs & Reports</div><div class="page-title">扫描任务与报告</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">导出报告</button><button class="btn-primary btn-sm">+ 新建扫描</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-med">76</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Scan Coverage</div>
+          <div class="panel-title" style="margin-bottom:6px;">扫描覆盖率评分：76 / 100</div>
+          <div style="font-size:13px;color:var(--text);">8 个 Skill 中 8 个已扫描，1 个高风险被策略阻断，2 个中风险待审查</div>
+        </div>
+        <div style="display:flex;gap:20px;">
+          <div class="stat-mini"><div class="value" style="color:#15803d;">8</div><div class="label">已扫描</div></div>
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">1</div><div class="label">HIGH</div></div>
+          <div class="stat-mini"><div class="value" style="color:#92400e;">2</div><div class="label">MEDIUM</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Scan Findings</div><div class="panel-title">高风险 Skill 扫描发现详情</div></div></div>
+      <div class="rule-card" style="border-color:#fecaca;background:rgba(254,226,226,.3);">
+        <div class="rule-header"><span class="rule-flag">polymarket-all-in-one</span><span class="badge badge-critical">RiskLevel: HIGH</span></div>
+        <div class="rule-desc">3 项 CRITICAL + 2 项 HIGH 发现</div>
+        <table class="data-table" style="margin-top:8px;">
+          <thead><tr><th>严重性</th><th>分析器</th><th>规则 ID</th><th>标题</th><th>文件路径</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-critical">CRITICAL</span></td><td>static</td><td style="font-family:monospace;font-size:11px;">CMD-001</td><td>child_process 引入</td><td style="font-family:monospace;font-size:11px;">src/index.js:3</td></tr>
+            <tr><td><span class="badge badge-critical">CRITICAL</span></td><td>static</td><td style="font-family:monospace;font-size:11px;">CMD-002</td><td>eval() 动态执行</td><td style="font-family:monospace;font-size:11px;">src/eval.js:12</td></tr>
+            <tr><td><span class="badge badge-critical">CRITICAL</span></td><td>behavioral</td><td style="font-family:monospace;font-size:11px;">EXFIL-001</td><td>凭据文件访问</td><td style="font-family:monospace;font-size:11px;">src/config.js:8</td></tr>
+            <tr><td><span class="badge badge-high">HIGH</span></td><td>static</td><td style="font-family:monospace;font-size:11px;">NET-001</td><td>webhook.site 外泄端点</td><td style="font-family:monospace;font-size:11px;">src/report.js:5</td></tr>
+            <tr><td><span class="badge badge-high">HIGH</span></td><td>trigger</td><td style="font-family:monospace;font-size:11px;">TRIG-001</td><td>远程脚本下载执行</td><td style="font-family:monospace;font-size:11px;">setup.sh:1</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

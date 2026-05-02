@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.6.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+      
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">Execution Chain Audit</div>
+      <div class="page-title">执行链审计报告</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-secondary btn-sm">导出报告</button>
+      <button class="btn-primary btn-sm">运行审计</button>
+    </div>
+  </div>
+  <div class="content-area">
+
+    <!-- Panel 1: 审计评分 -->
+    <div class="app-panel-warm">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div class="score-circle score-med">82</div>
+        <div style="flex:1">
+          <div class="panel-eyebrow">Audit Score</div>
+          <div class="panel-title" style="margin-bottom:6px;">当前审计评分：82 / 100</div>
+          <div style="font-size:13px;color:var(--text);">上次审计时间：2026-04-30 16:00 | 执行环境外联收敛综合评估</div>
+        </div>
+        <div style="display:flex;gap:20px;">
+          <div class="stat-mini"><div class="value" style="color:#dc2626;">3</div><div class="label">P0</div></div>
+          <div class="stat-mini"><div class="value" style="color:#d59a22;">3</div><div class="label">P1</div></div>
+          <div class="stat-mini"><div class="value" style="color:#15803d;">18</div><div class="label">通过</div></div>
+          <div class="stat-mini"><div class="value" style="color:#b91c1c;">5</div><div class="label">待修复</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 2: 统计概览 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div><div class="panel-eyebrow">Statistics Overview</div><div class="panel-title">统计概览</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+        <div style="text-align:center;padding:16px;border-radius:14px;background:#faf7f4;border:1px solid #f1e7e1;">
+          <div style="font-size:2rem;font-weight:800;color:var(--text-h);">6</div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#8f8681;margin-top:4px;">FRs 总数</div>
+        </div>
+        <div style="text-align:center;padding:16px;border-radius:14px;background:#fef2f2;border:1px solid #fecaca;">
+          <div style="font-size:2rem;font-weight:800;color:#b91c1c;">3</div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#b91c1c;margin-top:4px;">P0 优先级</div>
+        </div>
+        <div style="text-align:center;padding:16px;border-radius:14px;background:#fef3c7;border:1px solid #fde68a;">
+          <div style="font-size:2rem;font-weight:800;color:#92400e;">3</div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#92400e;margin-top:4px;">P1 优先级</div>
+        </div>
+        <div style="text-align:center;padding:16px;border-radius:14px;background:#f0fdf4;border:1px solid #bbf7d0;">
+          <div style="font-size:2rem;font-weight:800;color:#15803d;">18</div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:#15803d;margin-top:4px;">检查通过</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:#fef2f2;border:1px solid #fecaca;font-size:12px;color:#b91c1c;">
+        <strong>5 项待修复</strong> — 涉及 FR-34、FR-36、FR-37、FR-38，详见下方各 FR 合规状态
+      </div>
+    </div>
+
+    <!-- Panel 3: 合规对标 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div><div class="panel-eyebrow">Compliance Alignment</div><div class="panel-title">合规对标</div></div>
+      </div>
+      <div class="compliance-row">
+        <div class="compliance-id">ASI05</div>
+        <div class="compliance-name">意外代码执行</div>
+        <div class="compliance-fr">FR-34~39</div>
+      </div>
+      <div class="compliance-row">
+        <div class="compliance-id">ASI02</div>
+        <div class="compliance-name">工具滥用</div>
+        <div class="compliance-fr">FR-39</div>
+      </div>
+      <div class="compliance-row">
+        <div class="compliance-id">AIA08</div>
+        <div class="compliance-name">运行环境风险</div>
+        <div class="compliance-fr">FR-34, 37~39</div>
+      </div>
+      <div class="compliance-row">
+        <div class="compliance-id">AIA09</div>
+        <div class="compliance-name">可追溯性失效</div>
+        <div class="compliance-fr">FR-38</div>
+      </div>
+    </div>
+
+    <!-- Panel 4: 各FR合规状态 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div><div class="panel-eyebrow">FR Compliance Status</div><div class="panel-title">各 FR 合规状态</div></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>FR</th><th>名称</th><th>优先级</th><th>检查项</th><th>通过</th><th>待修复</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:700;font-family:monospace;color:#dc2626;">FR-34</td>
+            <td>代码生成与执行分离</td>
+            <td><span class="badge badge-p0">P0</span></td>
+            <td>5</td>
+            <td style="font-weight:600;color:#15803d;">4</td>
+            <td style="font-weight:600;color:#b91c1c;">1</td>
+            <td><span class="badge badge-warn">&#9888;&#65039;</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;font-family:monospace;color:#dc2626;">FR-35</td>
+            <td>执行审批与人工审核</td>
+            <td><span class="badge badge-p0">P0</span></td>
+            <td>4</td>
+            <td style="font-weight:600;color:#15803d;">4</td>
+            <td style="font-weight:600;color:#15803d;">0</td>
+            <td><span class="badge badge-green">&#10003;</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;font-family:monospace;color:#92400e;">FR-36</td>
+            <td>静态扫描与拦截</td>
+            <td><span class="badge badge-p1">P1</span></td>
+            <td>4</td>
+            <td style="font-weight:600;color:#15803d;">3</td>
+            <td style="font-weight:600;color:#b91c1c;">1</td>
+            <td><span class="badge badge-warn">&#9888;&#65039;</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;font-family:monospace;color:#92400e;">FR-37</td>
+            <td>安全解释器与禁用</td>
+            <td><span class="badge badge-p1">P1</span></td>
+            <td>3</td>
+            <td style="font-weight:600;color:#15803d;">2</td>
+            <td style="font-weight:600;color:#b91c1c;">1</td>
+            <td><span class="badge badge-warn">&#9888;&#65039;</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;font-family:monospace;color:#92400e;">FR-38</td>
+            <td>执行链审计与留痕</td>
+            <td><span class="badge badge-p1">P1</span></td>
+            <td>4</td>
+            <td style="font-weight:600;color:#15803d;">3</td>
+            <td style="font-weight:600;color:#b91c1c;">1</td>
+            <td><span class="badge badge-warn">&#9888;&#65039;</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;font-family:monospace;color:#dc2626;">FR-39</td>
+            <td>执行环境外联收敛</td>
+            <td><span class="badge badge-p0">P0</span></td>
+            <td>4</td>
+            <td style="font-weight:600;color:#15803d;">4</td>
+            <td style="font-weight:600;color:#15803d;">0</td>
+            <td><span class="badge badge-green">&#10003;</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Panel 5: 优先修复建议 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div><div class="panel-eyebrow">Priority Fix Recommendations</div><div class="panel-title">优先修复建议</div></div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p0">P0</div>
+        <div class="fix-info">
+          <div class="fix-fr">FR-34: 代码生成与执行分离</div>
+          <div class="fix-desc">完善 Script Provenance 对 AI 生成脚本的来源标记覆盖，确保所有 AI 生成代码在执行前均被标记和审计</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p0">P0</div>
+        <div class="fix-info">
+          <div class="fix-fr">FR-39: 执行环境外联收敛</div>
+          <div class="fix-desc">部署 deny-by-default 网络策略到所有执行环境，确保默认拒绝出口策略在所有实例类型上一致生效</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p1">P1</div>
+        <div class="fix-info">
+          <div class="fix-fr">FR-36: 静态扫描与拦截</div>
+          <div class="fix-desc">增加多语言静态扫描支持（当前仅 shell/python），扩展覆盖 Node.js、PowerShell、Go 等语言</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p1">P1</div>
+        <div class="fix-info">
+          <div class="fix-fr">FR-37: 安全解释器与禁用</div>
+          <div class="fix-desc">统一进程白名单策略到 KubeArmor ClusterPolicy，实现跨命名空间的一致性进程管控</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p1">P1</div>
+        <div class="fix-info">
+          <div class="fix-fr">FR-38: 执行链审计与留痕</div>
+          <div class="fix-desc">启用 KubeArmor IMA 度量增强完整性审计，实现运行时二进制完整性校验和度量日志</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

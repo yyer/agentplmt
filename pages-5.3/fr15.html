@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr15</title>
+<link rel="stylesheet" href="../css-5.3.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr15">
+
+  <div class="subheader">
+    <div class="subheader-left"><div class="eyebrow">FR-15 &middot; P0</div><div class="page-title">数据加密存储</div></div>
+    <div style="display:flex;gap:8px;"><button class="btn-secondary btn-sm">导出配置</button><button class="btn-primary btn-sm">保存配置</button></div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px;">加密存储架构</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        系统采用多层加密策略：<br>
+        <strong>1. K8s Secret</strong> — API Key、凭据等敏感配置存储在 K8s Secret 中，由集群 etcd 加密。<br>
+        <strong>2. 凭据代理</strong> — AI Gateway 通过 <code>SecretRefService</code> 在代理时解析 K8s Secret，应用层不持久化明文。<br>
+        <strong>3. .env 加密</strong> — SecureClaw 凭据加固模块将 <code>.env</code> 加密为 <code>.env.enc</code>（AES-256-GCM）。<br>
+        <strong>4. 字段级保护</strong> — 数据库模型中 <code>json:"-"</code> 标签阻止敏感字段 API 暴露。
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="fr15-k8s">K8s Secret 管理</div>
+      <div class="tab" data-tab="fr15-proxy">凭据代理</div>
+      <div class="tab" data-tab="fr15-hardening">凭据加固</div>
+    </div>
+
+    <div id="fr15-k8s" class="tab-content active">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">K8s Secret Service</div><div class="panel-title">K8s Secret 管理</div></div><span class="badge-sys">clawmanager</span></div>
+        <div class="form-group">
+          <div class="form-label">Secret 命名空间 <code style="font-size:11px;color:#8f8681;">CLAWMANAGER_SECRET_NAMESPACE</code></div>
+          <input type="text" class="form-input" value="clawreef" style="font-family:monospace;">
+          <div class="form-hint">回退链：CLAWMANAGER_SECRET_NAMESPACE → MODEL_SECRET_NAMESPACE → /var/run/secrets/kubernetes.io/serviceaccount/namespace</div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Secret 引用格式</div>
+          <div style="font-family:monospace;font-size:13px;padding:14px;background:#faf7f4;border-radius:10px;line-height:2;">
+            <div><code>name:key</code> — 默认命名空间</div>
+            <div><code>namespace/name:key</code> — 指定命名空间</div>
+            <div><code>k8s-secret/namespace/name:key</code> — 完整格式</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Secret 名称</th><th>命名空间</th><th>类型</th><th>Key 数</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;font-weight:600;">clawreef-3-assistant-openclaw-bootstrap</td><td>clawreef-user-1</td><td>Opaque</td><td>12</td><td>实例 #3 Bootstrap 环境变量</td></tr>
+            <tr><td style="font-family:monospace;font-weight:600;">llm-keys</td><td>clawreef</td><td>Opaque</td><td>3</td><td>LLM 模型 API Key 存储</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr15-proxy" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Credential Proxy</div><div class="panel-title">AI Gateway 凭据代理</div></div><span class="badge-sys">clawmanager</span></div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:14px;">AI Gateway 在代理 LLM 请求时，通过 <code>SecretRefService.ResolveString()</code> 解析 API Key。优先使用 inline <code>api_key</code>，为空时回退到 <code>api_key_secret_ref</code>。</div>
+        <table class="data-table">
+          <thead><tr><th>模型</th><th>api_key</th><th>api_key_secret_ref</th><th>解析结果</th><th>Header</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">claude-3-5-sonnet</td><td>—</td><td style="font-family:monospace;font-size:12px;">clawreef/llm-keys:anthropic</td><td>K8s Secret → <code>x-api-key</code></td><td>x-api-key: &lt;resolved&gt;</td></tr>
+            <tr><td style="font-weight:600;">gpt-4o</td><td>sk-proj-***</td><td>—</td><td>Inline → <code>Authorization</code></td><td>Authorization: Bearer &lt;key&gt;</td></tr>
+            <tr><td style="font-weight:600;">gemini-pro</td><td>—</td><td style="font-family:monospace;font-size:12px;">clawreef/llm-keys:google</td><td>K8s Secret → <code>?key=</code></td><td>Query: key=&lt;resolved&gt;</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="fr15-hardening" class="tab-content">
+      <div class="app-panel">
+        <div class="panel-header"><div><div class="panel-eyebrow">Credential Hardening</div><div class="panel-title">SecureClaw 凭据加固</div></div><span class="badge-sys">secureclaw</span></div>
+        <div style="font-size:13px;color:var(--text);margin-bottom:14px;">自动执行 5 项加固操作，优先级 2（在网关加固之后运行）</div>
+        <table class="data-table">
+          <thead><tr><th>操作</th><th>目标</th><th>算法/方法</th><th>审计检查</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;">chmod 700</td><td><code>~/.openclaw/</code></td><td>权限收紧</td><td>SC-CRED-001</td></tr>
+            <tr><td style="font-weight:600;">chmod 600</td><td><code>~/.openclaw/openclaw.json</code></td><td>权限收紧</td><td>SC-CRED-002</td></tr>
+            <tr><td style="font-weight:600;">chmod 600</td><td><code>credentials/*.json</code></td><td>权限收紧</td><td>SC-CRED-004</td></tr>
+            <tr><td style="font-weight:600;">chmod 600</td><td><code>agents/{agent}/auth-profiles.json</code></td><td>权限收紧</td><td>SC-CRED-005</td></tr>
+            <tr><td style="font-weight:600;">.env → .env.enc</td><td><code>~/.openclaw/.env</code></td><td>AES-256-GCM</td><td>SC-CRED-003</td></tr>
+            <tr><td style="font-weight:600;">API Key 脱敏</td><td><code>soul.md / MEMORY.md / SOUL.md</code></td><td>正则替换 → <code>[REDACTED_BY_SECURECLAW]</code></td><td>SC-CRED-007</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

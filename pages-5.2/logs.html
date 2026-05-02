@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-logs</title>
+<link rel="stylesheet" href="../css-5.2.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-logs">
+
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">Permission & Approval Log</div><div class="page-title">权限与审批日志</div></div><button class="btn-secondary btn-sm">导出</button></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <select class="form-input" style="max-width:180px;padding:7px 12px;font-size:12px;">
+          <option>全部类型</option><option>认证事件</option><option>权限阻断</option><option>审批操作</option><option>跨代理调用</option>
+        </select>
+        <select class="form-input" style="max-width:140px;padding:7px 12px;font-size:12px;">
+          <option>全部动作</option><option>BLOCKED</option><option>APPROVED</option><option>REJECTED</option><option>OBSERVED</option>
+        </select>
+        <input type="text" class="form-input" placeholder="搜索..." style="max-width:220px;padding:7px 12px;font-size:12px;">
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:28:44</span><span class="log-id">approval.pending</span><span class="badge badge-observed">PENDING</span><span class="badge badge-critical">CRITICAL</span><span class="badge-sys">claw-aegis</span></div>
+        <div class="log-body">Agent <span class="code">agent-openclaw-prod-02</span> 请求执行 <span class="code">sudo systemctl restart nginx</span>，等待人工审批</div>
+        <div class="log-detail">strategy: command_block → require_approval | rule: permission_escalation<br>agent_profile: developer | timeout: 3min | auto_action: reject</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:25:17</span><span class="log-id">selfProtection</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-critical">CRITICAL</span><span class="badge-sys">claw-aegis</span></div>
+        <div class="log-body">Agent 尝试访问受保护插件目录 <span class="code">~/.openclaw/extensions/claw-aegis/</span>，已阻断</div>
+        <div class="log-detail">strategy: self_protection_guard | protected: claw-aegis plugin<br>action: BLOCK | agent: agent-openclaw-prod-01</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:18:05</span><span class="log-id">cross-agent</span><span class="badge badge-observed">OBSERVED</span><span class="badge badge-medium">MEDIUM</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">跨代理调用 prod-01 → prod-02，意图校验通过，权限不继承</div>
+        <div class="log-detail">caller: prod-01 (office) | callee: prod-02 (developer) | intent: "构建代码"<br>permission_inheritance: NONE | delegation_depth: 1/3</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 15:10:33</span><span class="log-id">exfiltrationGuard</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-critical">CRITICAL</span><span class="badge-sys">claw-aegis</span></div>
+        <div class="log-body">检测到数据外泄链路：读取 <span class="code">.env</span> 后发起 <span class="code">curl POST</span>，已阻断</div>
+        <div class="log-detail">strategy: exfiltration_guard | matchedConditions: [priorSecretRead, outboundCall]<br>agent: agent-openclaw-prod-01 | profile: office</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 14:55:21</span><span class="log-id">riskRule</span><span class="badge badge-observed">REROUTED</span><span class="badge badge-high">HIGH</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">AI Gateway 风险规则命中，请求路由到安全模型</div>
+        <div class="log-detail">event: gateway.request.rerouted | hit_rules: [api_key_like]<br>original_model: gpt-4o | rerouted_to: secure-internal-model | severity: high<br>instance: openclaw-prod-01 | trace_id: trc_a1b2c3d4</div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header"><span class="log-time">2026-04-30 14:42:30</span><span class="log-id">cross-agent</span><span class="badge badge-blocked">BLOCKED</span><span class="badge badge-high">HIGH</span><span class="badge-sys">clawmanager</span></div>
+        <div class="log-body">跨代理调用被阻断：只读型 Agent 试图调用开发型 Agent</div>
+        <div class="log-detail">caller: dev-01 (read-only) | callee: prod-02 (developer)<br>reason: low-privilege agent cannot delegate to higher-privilege agent</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

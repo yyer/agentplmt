@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr73</title>
+<link rel="stylesheet" href="../css-5.12.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr73">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">机密计算架构</div>
+      <div class="tab" data-tab="tee">TEE环境管理</div>
+      <div class="tab" data-tab="isolation">运行时隔离</div>
+      <div class="tab" data-tab="attestation">远程验证</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ===================== TAB 1: 机密计算架构 ===================== -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:#4338ca">3</div>
+          <div class="sc-label">TEE硬件类型</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">5</div>
+          <div class="sc-label">TEE就绪实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">2</div>
+          <div class="sc-label">待加固实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">92%</div>
+          <div class="sc-label">验证合规率</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">78</div>
+          <div class="sc-label">安全评分</div>
+        </div>
+      </div>
+
+      <!-- Architecture Overview -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Confidential Computing Architecture</div>
+            <div class="panel-title">机密计算三层架构</div>
+          </div>
+          <span class="badge badge-pass">&#x2713; 已部署</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+          机密计算架构为高敏Agent、高敏知识库、高敏数据处理链路提供使用态隔离保护。当前KubeArmor通过BPF-LSM/AppArmor/SELinux三后端强制提供软件级隔离基线，KSecure通过eBPF LSM Hook（inode_unlink/file_open/inode_rename）提供内核级隔离，TEE在此基础上叠加硬件级保护，实现从软件隔离到硬件隔离的纵深防御。ClawManager当前Instance模型缺少SecurityContext配置，需增强以支持TEE调度和机密工作负载。
+        </p>
+
+        <!-- Layer 3: Application -->
+        <div class="arch-layer" style="background:linear-gradient(135deg,rgba(237,233,254,0.5),rgba(237,233,254,0.2));border:1px solid #ddd6fe">
+          <div class="al-header">
+            <div class="al-num" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">3</div>
+            <div class="al-title">应用层 - 高敏数据处理与Agent运行</div>
+            <span class="badge badge-purple">Enclave Workload</span>
+          </div>
+          <div class="al-items">
+            <div class="al-item">
+              <div class="item-name">高敏Agent隔离</div>
+              <div class="item-desc">财务/医疗/法律等高敏Agent在TEE Enclave内运行，隔离宿主机窥探。ClawManager标记GPUEnabled类比TEE能力标志，需新增TEEEnabled字段。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">高敏知识库保护</div>
+              <div class="item-desc">RAG检索结果和向量数据库在加密内存中处理，宿主机无法读取明文。知识库查询链路端到端加密。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">数据处理链路</div>
+              <div class="item-desc">敏感数据清洗、特征提取、模型推理全流程在Enclave中执行，Data Sealing保护持久化数据。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">ModelArmor集成</div>
+              <div class="item-desc">KubeArmor ModelArmor对pickle注入提供模型级安全防护，与TEE内存隔离形成纵深：软件防注入+硬件防窥探。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 2: Runtime Isolation -->
+        <div class="arch-layer" style="background:linear-gradient(135deg,rgba(219,234,254,0.5),rgba(219,234,254,0.2));border:1px solid #bfdbfe">
+          <div class="al-header">
+            <div class="al-num" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">2</div>
+            <div class="al-title">运行时隔离层 - 加密内存与远程验证</div>
+            <span class="badge badge-blue">Runtime Isolation</span>
+          </div>
+          <div class="al-items">
+            <div class="al-item">
+              <div class="item-name">TEE加密内存</div>
+              <div class="item-desc">Enclave内存页由CPU加密引擎保护，宿主机OS和Hypervisor无法读取。EPC（Enclave Page Cache）大小决定可用加密内存。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">远程验证(Attestation)</div>
+              <div class="item-desc">基于硬件签名的Quote验证TEE环境真实性。远程方通过验证Quote确认工作负载运行在未被篡改的TEE中。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">KubeArmor隔离互补</div>
+              <div class="item-desc">5个预设策略（protectEnv/protectProc/protectFile/protectNetwork/protectCapabilities）提供软件级进程/文件/网络隔离，与TEE硬件隔离互补。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">KSecure eBPF隔离</div>
+              <div class="item-desc">inode_unlink/file_open/inode_rename三个LSM Hook提供内核级文件操作隔离，防止未授权的文件删除、读取和重命名。</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 1: Hardware TEE -->
+        <div class="arch-layer" style="background:linear-gradient(135deg,rgba(254,226,226,0.5),rgba(254,226,226,0.2));border:1px solid #fecaca">
+          <div class="al-header">
+            <div class="al-num" style="background:linear-gradient(135deg,#ef6b4a,#dc2626)">1</div>
+            <div class="al-title">硬件TEE层 - 可信执行环境</div>
+            <span class="badge badge-high">Hardware Root of Trust</span>
+          </div>
+          <div class="al-items">
+            <div class="al-item">
+              <div class="item-name">Intel SGX</div>
+              <div class="item-desc">Enclave模式，128MB-512MB EPC，适合小型高敏计算（密钥管理、特征加密）。需SGX SDK和DCAP远程验证服务。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">Intel TDX</div>
+              <div class="item-desc">Trust Domain模式，整VM加密内存，适合大型工作负载（模型推理、RAG检索）。TDX 1.0支持1TB+加密内存。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">AMD SEV-SNP</div>
+              <div class="item-desc">Secure Nested Paging，VM级加密+完整性保护。反向映射表防内存重放攻击。适合通用机密计算场景。</div>
+            </div>
+            <div class="al-item">
+              <div class="item-name">ARM TrustZone</div>
+              <div class="item-desc">Secure World/Normal World隔离，适合边缘部署和移动端Agent。OP-TEE提供可信OS支持。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Isolation Baseline -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Current Isolation Baseline</div>
+            <div class="panel-title">当前隔离能力基线与增强路径</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- KubeArmor Baseline -->
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#3b82f6"></div>
+            <div class="rc-header">
+              <span class="rc-title">KubeArmor BPF-LSM 隔离基线</span>
+              <span class="badge badge-blue">3后端</span>
+            </div>
+            <div class="rc-body">
+              当前提供BPF-LSM/AppArmor/SELinux三后端强制隔离。DefaultPosture可将file/network/capabilities/device设为block实现强隔离。5个预设策略覆盖进程保护(protectProc)、环境隔离(protectEnv)等。IMA集成通过bprm_check_security LSM Hook和bpf_ima_file_hash()实现完整性验证。但当前仅软件级隔离，无法防御宿主机内核级窥探。
+              <div style="margin-top:10px;padding:10px;background:#faf7f4;border-radius:10px;font-size:11px;color:var(--text)">
+                <strong>增强路径：</strong>DefaultPosture block模式 + TEE硬件隔离 = 软硬件纵深防御。TEE不可用时自动降级为block模式兜底。
+              </div>
+            </div>
+          </div>
+          <!-- KSecure Baseline -->
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#dc2626"></div>
+            <div class="rc-header">
+              <span class="rc-title">KSecure eBPF 隔离基线</span>
+              <span class="badge badge-high">内核级</span>
+            </div>
+            <div class="rc-body">
+              当前通过3个eBPF LSM Hook提供内核级文件隔离：inode_unlink阻止未授权删除、file_open阻止未授权读取、inode_rename阻止未授权重命名。dmidecode -s system-uuid提供硬件身份标识，为远程验证(Attestation)的硬件身份组件奠定基础。当前可防御应用层和部分内核层威胁，但无法防御物理内存读取。
+              <div style="margin-top:10px;padding:10px;background:#faf7f4;border-radius:10px;font-size:11px;color:var(--text)">
+                <strong>增强路径：</strong>eBPF LSM Hook + TEE内存加密 = 内核隔离+内存加密双重保护。system-UUID纳入远程验证身份链。
+              </div>
+            </div>
+          </div>
+          <!-- ClawManager SecurityContext -->
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#f59e0b"></div>
+            <div class="rc-header">
+              <span class="rc-title">ClawManager SecurityContext 增强</span>
+              <span class="badge badge-warn">需增强</span>
+            </div>
+            <div class="rc-body">
+              当前Instance模型包含CPUCores/MemoryGB/DiskGB/GPUEnabled/GPUType资源规格，K8s Pod管理中<strong>未设置SecurityContext</strong>，Pod以默认权限运行，存在提权风险。需新增：RunAsNonRoot强制非root运行、ReadOnlyRootFilesystem阻止文件系统写入、DropAllCapabilities移除所有Linux能力、SeccompProfile限制系统调用、AllowPrivilegeEscalation=false阻止提权。
+              <div style="margin-top:10px">
+                <div class="diff-container">
+                  <div class="diff-line diff-removed">SecurityContext: nil (当前)</div>
+                  <div class="diff-line diff-added">SecurityContext: { RunAsNonRoot: true, ReadOnlyRootFilesystem: true, Capabilities: { Drop: ["ALL"] }, AllowPrivilegeEscalation: false, SeccompProfile: { Type: "RuntimeDefault" } }</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- TEE Enhancement -->
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#6d28d9"></div>
+            <div class="rc-header">
+              <span class="rc-title">TEE 硬件隔离增强</span>
+              <span class="badge badge-purple">P2 目标</span>
+            </div>
+            <div class="rc-body">
+              在KubeArmor+KSecure软件隔离基线上叠加硬件TEE保护，实现三层纵深：1) KubeArmor策略强制访问控制（软件级）；2) KSecure eBPF Hook内核级文件保护（内核级）；3) TEE加密内存+远程验证（硬件级）。类比GPUEnabled字段，Instance模型需新增TEEEnabled和TEEType字段。当TEE不可用时，自动降级至KubeArmor DefaultPosture block模式作为兜底策略。
+              <div style="margin-top:10px;padding:10px;background:#f5f1ed;border-radius:10px;font-size:11px;color:var(--text)">
+                <strong>验收标准覆盖：</strong>1) 支持TEE环境 (SGX/TDX/SEV) &#x2713; | 2) 高敏数据运行时隔离 (内存加密+策略强制) &#x2713; | 3) 远程可验证性 (Quote+Identity) &#x2713;
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Confidential Data Flow</div>
+            <div class="panel-title">高敏数据机密计算链路</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#ef6b4a,#dc2626)">1</div>
+          <div class="flow-step-content">
+            <div class="fs-title">高敏数据输入</div>
+            <div class="fs-desc">用户提交高敏请求（财务数据/医疗记录/法律文件），ClawManager识别数据敏感级别，标记为TEE-Required。请求进入调度队列，等待分配至TEE就绪实例。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">敏感级别识别</span>
+              <span class="badge badge-sys">TEE调度标记</span>
+              <span class="badge badge-sys">ClawManager</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#f59e0b,#d97706)">2</div>
+          <div class="flow-step-content">
+            <div class="fs-title">TEE环境验证</div>
+            <div class="fs-desc">工作负载调度至TEE实例前，执行远程验证：生成Quote（含TEE度量值和硬件签名），提交至验证服务确认TEE环境未被篡改。KSecure dmidecode system-UUID作为硬件身份组件参与身份绑定。验证通过后工作负载进入Enclave。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">Quote生成</span>
+              <span class="badge badge-sys">远程验证</span>
+              <span class="badge badge-sys">硬件身份绑定</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">3</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Enclave内处理</div>
+            <div class="fs-desc">高敏数据在TEE加密内存中解密处理：Agent推理、知识库检索、数据清洗/特征提取全部在Enclave内执行。KubeArmor protectEnv/protectProc策略同时生效，阻止进程逃逸和环境变量泄露。ModelArmor检测pickle反序列化注入。宿主机无法读取Enclave内存内容。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">加密内存计算</span>
+              <span class="badge badge-sys">KubeArmor策略</span>
+              <span class="badge badge-sys">ModelArmor</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">4</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Data Sealing与输出</div>
+            <div class="fs-desc">处理结果通过Data Sealing加密存储，密钥绑定TEE硬件身份，确保只有同一TEE环境可解封。输出结果经过脱敏检查后返回。KSecure file_open Hook确保数据文件仅被授权进程读取，inode_unlink Hook防止数据被未授权删除。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">Data Sealing</span>
+              <span class="badge badge-sys">脱敏检查</span>
+              <span class="badge badge-sys">KSecure Hook</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enhancement Gap -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Enhancement Gap Analysis</div>
+            <div class="panel-title">现状差距与增强路径</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>能力维度</th><th>当前状态</th><th>目标状态</th><th>差距</th><th>增强方案</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">硬件TEE支持</td>
+              <td><span class="badge badge-fail">&#x2717; 不支持</span></td>
+              <td><span class="badge badge-pass">SGX/TDX/SEV</span></td>
+              <td>无TEE硬件集成</td>
+              <td>部署TEE硬件节点，配置SGX/TDX/SEV运行时</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">加密内存隔离</td>
+              <td><span class="badge badge-fail">&#x2717; 不支持</span></td>
+              <td><span class="badge badge-pass">Enclave内存加密</span></td>
+              <td>内存明文可读</td>
+              <td>TEE Enclave运行时部署，EPC内存分配</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">远程验证</td>
+              <td><span class="badge badge-warn">部分 (KSecure UUID)</span></td>
+              <td><span class="badge badge-pass">Quote验证+身份绑定</span></td>
+              <td>仅硬件身份，无TEE度量</td>
+              <td>DCAP/SEV验证服务部署，集成system-UUID</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">SecurityContext</td>
+              <td><span class="badge badge-fail">&#x2717; 未设置</span></td>
+              <td><span class="badge badge-pass">非root+只读+能力限制</span></td>
+              <td>Pod默认权限运行</td>
+              <td>ClawManager Instance模型增加SecurityContext字段</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">软件隔离基线</td>
+              <td><span class="badge badge-pass">&#x2713; 已具备</span></td>
+              <td><span class="badge badge-pass">KubeArmor+KSecure</span></td>
+              <td>已具备软件级隔离</td>
+              <td>DefaultPosture block模式强化，5预设策略全覆盖</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">降级兜底</td>
+              <td><span class="badge badge-warn">部分</span></td>
+              <td><span class="badge badge-pass">block模式兜底</span></td>
+              <td>无正式降级策略</td>
+              <td>TEE不可用时自动切换KubeArmor DefaultPosture block</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 2: TEE环境管理 ===================== -->
+    <div class="tab-content" id="tab-tee">
+
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">5</div>
+          <div class="sc-label">TEE就绪实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#4338ca">2</div>
+          <div class="sc-label">SGX实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#3b82f6">2</div>
+          <div class="sc-label">TDX实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">1</div>
+          <div class="sc-label">SEV实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">384 GB</div>
+          <div class="sc-label">总EPC内存</div>
+        </div>
+      </div>
+
+      <!-- Toggles -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">TEE Scheduling Policy</div>
+            <div class="panel-title">TEE调度策略</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">启用TEE调度 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">teeSchedulingEnabled</code></div>
+            <div class="desc">根据工作负载敏感级别自动调度至TEE实例。高敏Agent/知识库/数据链路优先分配至TEE环境，类比GPUEnabled调度GPU实例。</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">高敏工作负载强制验证 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">requireAttestationForHighSensitivity</code></div>
+            <div class="desc">高敏数据必须经过TEE远程验证后才允许处理。enforce模式：验证失败拒绝执行；observe模式：验证失败记录告警但允许执行；off模式：不要求验证。</div>
+          </div>
+          <div style="display:flex;align-items:center;">
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce" data-mode="enforce">enforce</div>
+              <div class="mode-btn" data-mode="observe">observe</div>
+              <div class="mode-btn" data-mode="off">off</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">TEE不可用时KubeArmor兜底 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">fallbackToKubeArmorBlock</code></div>
+            <div class="desc">当TEE实例不可用时，自动启用KubeArmor DefaultPosture block模式（file/network/capabilities/device全部block）作为软件级隔离兜底，确保高敏工作负载仍受保护。</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="toggle-label">
+            <div class="name">自动EPC内存扩容 <code style="background:#f5f1ed;border-radius:4px;padding:1px 6px;font-size:11px;font-family:monospace;color:#c2410c;">autoEPCExpansion</code></div>
+            <div class="desc">当EPC内存使用率超过80%时，自动触发ENCLS[EAUG]添加EPC页面（SGX2特性）。SGX1实例将触发EPC换页告警。</div>
+          </div>
+          <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- TEE Instance Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">TEE-Enabled Instances</div>
+            <div class="panel-title">TEE实例管理</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x2699; 批量验证</button>
+            <button class="btn-primary btn-sm">+ 注册TEE实例</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>实例</th><th>TEE类型</th><th>EPC大小</th><th>验证状态</th><th>工作负载类型</th><th>安全等级</th><th>SecurityContext</th><th>KubeArmor策略</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-sgx-001</td>
+              <td><span class="badge badge-purple">Intel SGX</span></td>
+              <td>512 MB</td>
+              <td><span class="badge badge-pass">&#x2713; 已验证</span></td>
+              <td>密钥管理/KMS</td>
+              <td><span class="badge badge-critical">极高</span></td>
+              <td><span class="badge badge-pass">已加固</span></td>
+              <td>DefaultPosture:block</td>
+              <td><button class="btn-secondary btn-sm">管理</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-sgx-002</td>
+              <td><span class="badge badge-purple">Intel SGX</span></td>
+              <td>256 MB</td>
+              <td><span class="badge badge-pass">&#x2713; 已验证</span></td>
+              <td>特征加密/脱敏</td>
+              <td><span class="badge badge-high">高</span></td>
+              <td><span class="badge badge-pass">已加固</span></td>
+              <td>protectEnv+protectProc</td>
+              <td><button class="btn-secondary btn-sm">管理</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-tdx-001</td>
+              <td><span class="badge badge-blue">Intel TDX</span></td>
+              <td>128 GB</td>
+              <td><span class="badge badge-pass">&#x2713; 已验证</span></td>
+              <td>模型推理(高敏)</td>
+              <td><span class="badge badge-critical">极高</span></td>
+              <td><span class="badge badge-pass">已加固</span></td>
+              <td>DefaultPosture:block</td>
+              <td><button class="btn-secondary btn-sm">管理</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-tdx-002</td>
+              <td><span class="badge badge-blue">Intel TDX</span></td>
+              <td>128 GB</td>
+              <td><span class="badge badge-warn">&#x26a0; 即将过期</span></td>
+              <td>RAG检索(高敏知识库)</td>
+              <td><span class="badge badge-high">高</span></td>
+              <td><span class="badge badge-pass">已加固</span></td>
+              <td>protectFile+protectNetwork</td>
+              <td><button class="btn-secondary btn-sm">管理</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-sev-001</td>
+              <td><span class="badge badge-high">AMD SEV-SNP</span></td>
+              <td>64 GB</td>
+              <td><span class="badge badge-pass">&#x2713; 已验证</span></td>
+              <td>通用机密计算</td>
+              <td><span class="badge badge-high">高</span></td>
+              <td><span class="badge badge-warn">部分加固</span></td>
+              <td>protectProc</td>
+              <td><button class="btn-secondary btn-sm">管理</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-worker-003</td>
+              <td><span class="badge badge-off">无TEE</span></td>
+              <td>-</td>
+              <td><span class="badge badge-off">N/A</span></td>
+              <td>一般数据处理</td>
+              <td><span class="badge badge-medium">中</span></td>
+              <td><span class="badge badge-fail">&#x2717; 未设置</span></td>
+              <td>DefaultPosture:audit</td>
+              <td><button class="btn-secondary btn-sm">加固</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-worker-007</td>
+              <td><span class="badge badge-off">无TEE</span></td>
+              <td>-</td>
+              <td><span class="badge badge-off">N/A</span></td>
+              <td>Agent常规任务</td>
+              <td><span class="badge badge-low">低</span></td>
+              <td><span class="badge badge-fail">&#x2717; 未设置</span></td>
+              <td>无策略</td>
+              <td><button class="btn-secondary btn-sm">加固</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Instance Model Enhancement -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Instance Model Enhancement</div>
+            <div class="panel-title">ClawManager Instance模型增强</div>
+          </div>
+          <span class="badge badge-sys">ClawManager</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          当前ClawManager Instance模型包含CPUCores、MemoryGB、DiskGB、GPUEnabled、GPUType等资源规格字段。类比GPUEnabled标记GPU能力，需新增TEEEnabled和TEEType标记TEE能力，SecurityContext字段当前为空需增强。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="config-section">
+            <div class="cs-title">当前模型字段</div>
+            <div style="font-family:monospace;font-size:12px;line-height:1.8;color:var(--text)">
+              CPUCores: 4<br>
+              MemoryGB: 16<br>
+              DiskGB: 100<br>
+              GPUEnabled: true<br>
+              GPUType: "NVIDIA-A100"<br>
+              SecurityContext: <span style="color:#dc2626;font-weight:600">nil</span><br>
+              TEEEnabled: <span style="color:#dc2626;font-weight:600">未定义</span><br>
+              TEEType: <span style="color:#dc2626;font-weight:600">未定义</span>
+            </div>
+          </div>
+          <div class="config-section">
+            <div class="cs-title">增强后模型字段</div>
+            <div style="font-family:monospace;font-size:12px;line-height:1.8;color:var(--text)">
+              CPUCores: 4<br>
+              MemoryGB: 16<br>
+              DiskGB: 100<br>
+              GPUEnabled: true<br>
+              GPUType: "NVIDIA-A100"<br>
+              TEEEnabled: <span style="color:#059669;font-weight:600">true</span><br>
+              TEEType: <span style="color:#059669;font-weight:600">"Intel-TDX"</span><br>
+              EPCSizeMB: 131072<br>
+              SecurityContext: <span style="color:#059669;font-weight:600">{ RunAsNonRoot: true, ... }</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DefaultPosture Fallback -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Fallback: KubeArmor DefaultPosture</div>
+            <div class="panel-title">TEE不可用时KubeArmor降级策略</div>
+          </div>
+          <span class="badge badge-sys">KubeArmor</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          当TEE实例不可用（硬件故障/容量不足/验证失败）时，系统自动降级至KubeArmor DefaultPosture block模式，实现软件级隔离兜底。block模式下file/network/capabilities/device四维度默认拒绝，仅允许KubeArmor策略明确放行的操作。
+        </p>
+        <table class="data-table">
+          <thead><tr><th>DefaultPosture维度</th><th>当前值</th><th>降级值</th><th>效果</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">file</td>
+              <td><span class="badge badge-observe">audit</span></td>
+              <td><span class="badge badge-enforce">block</span></td>
+              <td>未授权文件访问全部拒绝，仅策略放行操作允许</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">network</td>
+              <td><span class="badge badge-observe">audit</span></td>
+              <td><span class="badge badge-enforce">block</span></td>
+              <td>未授权网络连接全部拒绝，防止数据外泄</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">capabilities</td>
+              <td><span class="badge badge-observe">audit</span></td>
+              <td><span class="badge badge-enforce">block</span></td>
+              <td>未授权Linux能力全部拒绝，阻止提权</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">device</td>
+              <td><span class="badge badge-off">off</span></td>
+              <td><span class="badge badge-enforce">block</span></td>
+              <td>未授权设备访问全部拒绝，保护硬件资源</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 3: 运行时隔离 ===================== -->
+    <div class="tab-content" id="tab-isolation">
+
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:#4338ca">4</div>
+          <div class="sc-label">隔离机制</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">384 GB</div>
+          <div class="sc-label">加密内存总量</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">72%</div>
+          <div class="sc-label">EPC使用率</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">5</div>
+          <div class="sc-label">KubeArmor预设</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">0/7</div>
+          <div class="sc-label">SecurityContext覆盖</div>
+        </div>
+      </div>
+
+      <!-- Runtime Isolation Rule Cards -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Runtime Isolation Rules</div>
+            <div class="panel-title">运行时隔离机制</div>
+          </div>
+          <span class="badge badge-pass">&#x2713; 活跃</span>
+        </div>
+
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#dc2626"></div>
+          <div class="rc-header">
+            <span class="rc-title">内存加密隔离 (TEE Memory Encryption)</span>
+            <span class="badge badge-critical">硬件级</span>
+          </div>
+          <div class="rc-body">
+            TEE Enclave内存页由CPU加密引擎(MEE/EPC)保护，宿主机OS和Hypervisor无法读取Enclave内存内容。Intel SGX使用Enclave Page Cache (EPC)存储加密内存页，MEE在内存总线上加密/解密；Intel TDX使用TD加密内存，整个VM内存受保护；AMD SEV-SNP使用内存加密引擎+反向映射表防止内存重放攻击。当Enclave内代码访问EPC页面时，CPU自动解密；宿主机DMA读取仅获取密文。EPC大小影响可并发保护的Enclave数量，SGX2支持动态EPC页面添加(ENCLS[EAUG])。
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <span class="badge badge-sys">SGX EPC加密</span>
+              <span class="badge badge-sys">TDX VM加密</span>
+              <span class="badge badge-sys">SEV-SNP内存加密</span>
+              <span class="badge badge-sys">MEE总线加密</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#3b82f6"></div>
+          <div class="rc-header">
+            <span class="rc-title">远程验证流程 (Attestation Flow)</span>
+            <span class="badge badge-high">硬件+服务</span>
+          </div>
+          <div class="rc-body">
+            远程验证确保TEE环境可信：1) Enclave内生成Report(含MRENCLAVE/MRSIGNER度量值)；2) Quoting Enclave将Report签名生成Quote；3) Quote提交至远程验证服务(IAS/DCAP for SGX, AMD KDS for SEV)；4) 验证服务检查Quote签名和度量值；5) 返回验证结果。KSecure dmidecode -s system-uuid作为硬件身份组件参与身份绑定，确保物理机器身份与TEE身份关联。验证通过后授予数据访问权限。
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <span class="badge badge-sys">Report生成</span>
+              <span class="badge badge-sys">Quote签名</span>
+              <span class="badge badge-sys">DCAP验证</span>
+              <span class="badge badge-sys">system-UUID绑定</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#8b5cf6"></div>
+          <div class="rc-header">
+            <span class="rc-title">数据封存 (Data Sealing)</span>
+            <span class="badge badge-purple">持久化保护</span>
+          </div>
+          <div class="rc-body">
+            Data Sealing将Enclave内数据加密持久化，密钥绑定TEE硬件身份(MRENCLAVE或MRSIGNER)，确保只有同一TEE环境(或同一签发者)可解封数据。SGX支持两种Sealing策略：MRENCLAVE绑定(同一Enclave代码可解封)和MRSIGNER绑定(同一签发者的不同版本Enclave可解封)。适用于高敏知识库向量数据、加密模型参数、会话密钥等持久化场景。KSecure inode_unlink Hook确保Sealed Data文件不被未授权删除。
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <span class="badge badge-sys">MRENCLAVE绑定</span>
+              <span class="badge badge-sys">MRSIGNER绑定</span>
+              <span class="badge badge-sys">AES-GCM-256加密</span>
+              <span class="badge badge-sys">KSecure inode_unlink保护</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rc-stripe" style="background:#f59e0b"></div>
+          <div class="rc-header">
+            <span class="rc-title">进程隔离 (Process Isolation)</span>
+            <span class="badge badge-high">软件+硬件</span>
+          </div>
+          <div class="rc-body">
+            软件级进程隔离由KubeArmor protectProc预设策略实现：限制进程执行、阻止未授权进程创建、防止进程间信号注入。KSecure eBPF LSM Hook提供内核级进程文件保护：file_open Hook阻止未授权进程读取关键文件，inode_rename Hook防止关键进程二进制被替换。硬件级进程隔离由TEE Enclave边界实现：Enclave内进程与宿主机完全隔离，即使宿主机root也无法访问Enclave内存。SecurityContext RunAsNonRoot+DropAllCapabilities确保Pod进程最小权限。
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+              <span class="badge badge-sys">KubeArmor protectProc</span>
+              <span class="badge badge-sys">KSecure file_open</span>
+              <span class="badge badge-sys">TEE Enclave边界</span>
+              <span class="badge badge-sys">SecurityContext RunAsNonRoot</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KubeArmor Presets -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">KubeArmor Preset Policies</div>
+            <div class="panel-title">KubeArmor 5个预设策略（软件级隔离补充）</div>
+          </div>
+          <span class="badge badge-sys">KubeArmor</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          KubeArmor提供5个预设安全策略，作为TEE硬件隔离的软件级补充。在TEE不可用或作为纵深防御层时，这些策略提供进程/文件/网络/能力/环境维度的强制隔离。
+        </p>
+        <table class="data-table">
+          <thead><tr><th>预设策略</th><th>保护维度</th><th>关键能力</th><th>与TEE协同</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600">protectEnv</td>
+              <td>环境变量</td>
+              <td>阻止未授权环境变量读取/修改，防止敏感信息泄露</td>
+              <td>保护Enclave外环境变量，防止宿主机窥探敏感配置</td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">protectProc</td>
+              <td>进程</td>
+              <td>限制进程执行路径，阻止未授权进程创建和信号注入</td>
+              <td>保护Enclave外进程，防止进程逃逸攻击</td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">protectFile</td>
+              <td>文件系统</td>
+              <td>限制文件读写权限，保护Sealed Data和配置文件</td>
+              <td>保护Enclave外Data Sealing文件，防止未授权读取</td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">protectNetwork</td>
+              <td>网络</td>
+              <td>限制网络连接，仅允许白名单地址通信</td>
+              <td>限制Enclave外网络出口，防止数据外泄</td>
+              <td><span class="badge badge-observe">OBSERVE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600">protectCapabilities</td>
+              <td>Linux能力</td>
+              <td>限制Linux能力集，阻止提权和特权操作</td>
+              <td>与SecurityContext DropAllCapabilities协同，纵深防提权</td>
+              <td><span class="badge badge-enforce">ENFORCE</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SecurityContext Enhancement -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">SecurityContext Enhancement</div>
+            <div class="panel-title">ClawManager Pod SecurityContext增强方案</div>
+          </div>
+          <span class="badge badge-warn">&#x26a0; 当前未设置</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          当前ClawManager创建K8s Pod时未设置SecurityContext，所有Pod以默认权限运行。需为不同安全等级的实例配置差异化SecurityContext，TEE实例需最高安全级别。
+        </p>
+        <table class="data-table">
+          <thead><tr><th>SecurityContext字段</th><th>TEE实例</th><th>高敏实例(无TEE)</th><th>普通实例</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">RunAsNonRoot</td>
+              <td><span class="badge badge-enforce">true</span></td>
+              <td><span class="badge badge-enforce">true</span></td>
+              <td><span class="badge badge-enforce">true</span></td>
+              <td>强制非root运行，所有实例必须遵守</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">ReadOnlyRootFilesystem</td>
+              <td><span class="badge badge-enforce">true</span></td>
+              <td><span class="badge badge-enforce">true</span></td>
+              <td><span class="badge badge-observe">false</span></td>
+              <td>TEE和高敏实例只读根文件系统，阻止写入</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">Capabilities.Drop</td>
+              <td><span class="badge badge-enforce">["ALL"]</span></td>
+              <td><span class="badge badge-enforce">["ALL"]</span></td>
+              <td><span class="badge badge-observe">["NET_RAW","SYS_ADMIN"]</span></td>
+              <td>TEE和高敏实例移除所有Linux能力</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">AllowPrivilegeEscalation</td>
+              <td><span class="badge badge-enforce">false</span></td>
+              <td><span class="badge badge-enforce">false</span></td>
+              <td><span class="badge badge-enforce">false</span></td>
+              <td>所有实例禁止提权，阻止sudo/suid提权</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">SeccompProfile</td>
+              <td>RuntimeDefault</td>
+              <td>RuntimeDefault</td>
+              <td>RuntimeDefault</td>
+              <td>限制系统调用，阻止危险syscall</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">FSGroup</td>
+              <td>2000</td>
+              <td>2000</td>
+              <td>1000</td>
+              <td>文件系统组，限制文件访问权限</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;font-family:monospace;font-size:12px">RunAsUser</td>
+              <td>1000</td>
+              <td>1000</td>
+              <td>1000</td>
+              <td>指定非root用户ID运行</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ModelArmor Integration -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">ModelArmor Integration</div>
+            <div class="panel-title">ModelArmor模型级安全与TEE协同</div>
+          </div>
+          <span class="badge badge-sys">KubeArmor</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:16px">
+          KubeArmor ModelArmor对pickle反序列化注入提供模型级安全防护，与TEE内存隔离形成纵深：ModelArmor在软件层阻止恶意pickle载荷执行，TEE在硬件层防止模型参数和推理结果被宿主机窥探。两者组合覆盖模型安全的两个关键维度——防注入(软件)和防泄露(硬件)。
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#f59e0b"></div>
+            <div class="rc-header">
+              <span class="rc-title">ModelArmor - 防注入层</span>
+              <span class="badge badge-high">软件级</span>
+            </div>
+            <div class="rc-body">
+              检测pickle反序列化中的恶意载荷（os.system/subprocess/Popen等），阻止模型文件中的代码注入攻击。在模型加载前扫描pickle字节码，识别和拦截恶意__reduce__方法。覆盖torch.load/torch.save等常用模型加载路径。
+            </div>
+          </div>
+          <div class="rule-card">
+            <div class="rc-stripe" style="background:#6d28d9"></div>
+            <div class="rc-header">
+              <span class="rc-title">TEE内存隔离 - 防泄露层</span>
+              <span class="badge badge-purple">硬件级</span>
+            </div>
+            <div class="rc-body">
+              模型参数和推理结果在TEE加密内存中处理，宿主机无法读取模型权重和推理中间结果。即使攻击者获得宿主机root权限，也无法通过内存转储获取模型参数。Data Sealing保护持久化模型文件，MRENCLAVE绑定确保只有授权Enclave可加载。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 4: 远程验证 ===================== -->
+    <div class="tab-content" id="tab-attestation">
+
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">5</div>
+          <div class="sc-label">已验证实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">1</div>
+          <div class="sc-label">待续期实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">24h</div>
+          <div class="sc-label">验证周期</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">147</div>
+          <div class="sc-label">本月验证次数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">92%</div>
+          <div class="sc-label">验证合规率</div>
+        </div>
+      </div>
+
+      <!-- Attestation Score -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Attestation Compliance</div>
+            <div class="panel-title">远程验证合规概览</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:36px;margin-bottom:20px">
+          <div class="score-circle score-med">92</div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;color:var(--text-h);margin-bottom:6px">验证合规评分：92 / 100</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.8">
+              5台TEE实例中4台验证状态正常，1台(ins-tdx-002)验证即将过期需续期。2台无TEE实例(ins-worker-003/007)未纳入验证体系，需评估是否需要TEE升级。本月147次远程验证中0次失败，2次超时重试后成功。
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;min-width:200px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,0.85);border:1px solid #eadfd8">
+              <span style="font-size:12px;color:var(--text)">SGX实例合规</span>
+              <span style="font-size:13px;font-weight:700;color:#059669">100%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,0.85);border:1px solid #eadfd8">
+              <span style="font-size:12px;color:var(--text)">TDX实例合规</span>
+              <span style="font-size:13px;font-weight:700;color:#d97706">50%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,0.85);border:1px solid #eadfd8">
+              <span style="font-size:12px;color:var(--text)">SEV实例合规</span>
+              <span style="font-size:13px;font-weight:700;color:#059669">100%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,0.85);border:1px solid #eadfd8">
+              <span style="font-size:12px;color:var(--text)">非TEE实例</span>
+              <span style="font-size:13px;font-weight:700;color:#dc2626">N/A</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attestation Flow -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Remote Attestation Flow</div>
+            <div class="panel-title">远程验证流程</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#ef6b4a,#dc2626)">1</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Quote Generation (Quote生成)</div>
+            <div class="fs-desc">TEE Enclave内生成REPORT(含MRENCLAVE/MRSIGNER度量值+Enclave属性)。Quoting Enclave(AESMD)将REPORT转换为QUOTE，使用硬件签名密钥( Provisioned Key )签名。Intel SGX通过DCAP(Direct Attestation)获取证书链，AMD SEV通过ARK/ASK证书链签名。KSecure dmidecode -s system-uuid作为硬件身份组件嵌入Quote元数据，关联物理机器身份。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">REPORT生成</span>
+              <span class="badge badge-sys">QUOTE签名</span>
+              <span class="badge badge-sys">DCAP/ARK证书</span>
+              <span class="badge badge-sys">system-UUID</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#f59e0b,#d97706)">2</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Quote Verification (Quote验证)</div>
+            <div class="fs-desc">远程验证服务接收QUOTE，验证证书链有效性( Intel根证书→中间证书→QE证书 )，检查QUOTE签名和TCB状态(TCB版本是否最新)。确认MRENCLAVE度量值匹配预期值(白名单比对)。验证TCB状态不包括已知的SGX安全咨询(SA)补丁缺失。验证超时设置30秒，失败自动重试2次。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">证书链验证</span>
+              <span class="badge badge-sys">TCB状态检查</span>
+              <span class="badge badge-sys">MRENCLAVE白名单</span>
+              <span class="badge badge-sys">SA补丁检查</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">3</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Identity Binding (身份绑定)</div>
+            <div class="fs-desc">验证通过后，将TEE身份(MRENCLAVE+MRSIGNER)与KSecure system-UUID硬件身份、ClawManager Instance ID绑定，形成三元组：<code>{InstanceID, system-UUID, MRENCLAVE}</code>。后续数据访问和API调用需携带此三元组作为身份凭证。身份绑定记录存入Attestation Registry，支持查询和审计。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">三元组绑定</span>
+              <span class="badge badge-sys">Attestation Registry</span>
+              <span class="badge badge-sys">身份凭证</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#059669,#047857)">4</div>
+          <div class="flow-step-content">
+            <div class="fs-title">Access Grant (访问授权)</div>
+            <div class="fs-desc">身份绑定确认后，向Enclave授予数据访问权限。高敏知识库向量数据、加密模型参数、会话密钥等通过安全通道传输至Enclave。访问授权有效期24小时(可配置)，到期需重新验证。授权期间如检测到TCB状态变化(如新安全补丁发布)，自动触发重新验证。验证失败时KubeArmor DefaultPosture block模式自动激活作为降级保护。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">数据访问授权</span>
+              <span class="badge badge-sys">24h有效期</span>
+              <span class="badge badge-sys">TCB变更检测</span>
+              <span class="badge badge-sys">降级保护</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attestation Records -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Attestation Records</div>
+            <div class="panel-title">远程验证记录</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-secondary btn-sm">&#x2699; 批量验证</button>
+            <button class="btn-primary btn-sm">&#x21bb; 刷新状态</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>实例</th><th>TEE类型</th><th>Quote哈希</th><th>验证时间</th><th>下次验证</th><th>状态</th><th>system-UUID</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-sgx-001</td>
+              <td><span class="badge badge-purple">SGX</span></td>
+              <td style="font-family:monospace;font-size:11px">0xa3f7...8b2c</td>
+              <td>2026-05-01 08:30</td>
+              <td>2026-05-02 08:30</td>
+              <td><span class="badge badge-pass">&#x2713; 已验证</span></td>
+              <td style="font-family:monospace;font-size:11px">4c4c45...3531</td>
+              <td><button class="btn-secondary btn-sm">详情</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-sgx-002</td>
+              <td><span class="badge badge-purple">SGX</span></td>
+              <td style="font-family:monospace;font-size:11px">0xb8e2...4d91</td>
+              <td>2026-05-01 09:15</td>
+              <td>2026-05-02 09:15</td>
+              <td><span class="badge badge-pass">&#x2713; 已验证</span></td>
+              <td style="font-family:monospace;font-size:11px">7a3b22...c9e0</td>
+              <td><button class="btn-secondary btn-sm">详情</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-tdx-001</td>
+              <td><span class="badge badge-blue">TDX</span></td>
+              <td style="font-family:monospace;font-size:11px">0xd5f1...7a3e</td>
+              <td>2026-05-01 07:45</td>
+              <td>2026-05-02 07:45</td>
+              <td><span class="badge badge-pass">&#x2713; 已验证</span></td>
+              <td style="font-family:monospace;font-size:11px">e2d844...1f7a</td>
+              <td><button class="btn-secondary btn-sm">详情</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-tdx-002</td>
+              <td><span class="badge badge-blue">TDX</span></td>
+              <td style="font-family:monospace;font-size:11px">0xc1a9...5b8f</td>
+              <td>2026-04-30 10:00</td>
+              <td style="color:#d97706;font-weight:600">2026-05-01 10:00</td>
+              <td><span class="badge badge-warn">&#x26a0; 即将过期</span></td>
+              <td style="font-family:monospace;font-size:11px">f4a711...3e2d</td>
+              <td><button class="btn-primary btn-sm">续期</button></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;color:var(--accent-coral)">ins-sev-001</td>
+              <td><span class="badge badge-high">SEV-SNP</span></td>
+              <td style="font-family:monospace;font-size:11px">0xe7c3...2d4a</td>
+              <td>2026-05-01 06:20</td>
+              <td>2026-05-02 06:20</td>
+              <td><span class="badge badge-pass">&#x2713; 已验证</span></td>
+              <td style="font-family:monospace;font-size:11px">9b5f88...d6c1</td>
+              <td><button class="btn-secondary btn-sm">详情</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Recent Attestation Events -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Attestation Events</div>
+            <div class="panel-title">近期验证事件</div>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 09:15:32</span>
+            <span class="badge badge-pass">验证成功</span>
+            <span class="badge badge-sys">ins-sgx-002</span>
+            <span class="badge badge-purple">SGX</span>
+          </div>
+          <div class="log-body">
+            Intel SGX DCAP远程验证通过。Quote签名验证成功，TCB状态正常，MRENCLAVE匹配白名单。<code>system-UUID: 7a3b22...c9e0</code> 身份绑定完成。访问授权有效期至2026-05-02 09:15。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 08:30:17</span>
+            <span class="badge badge-pass">验证成功</span>
+            <span class="badge badge-sys">ins-sgx-001</span>
+            <span class="badge badge-purple">SGX</span>
+          </div>
+          <div class="log-body">
+            Intel SGX DCAP远程验证通过。Quote签名验证成功，TCB状态正常，MRENCLAVE匹配白名单。<code>system-UUID: 4c4c45...3531</code> 身份绑定完成。此实例承载KMS密钥管理服务，安全等级: 极高。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 07:45:05</span>
+            <span class="badge badge-pass">验证成功</span>
+            <span class="badge badge-sys">ins-tdx-001</span>
+            <span class="badge badge-blue">TDX</span>
+          </div>
+          <div class="log-body">
+            Intel TDX远程验证通过。TD Quote签名验证成功，TCB状态正常，MRTD匹配预期值。EPC使用率68%。<code>system-UUID: e2d844...1f7a</code> 身份绑定完成。此实例承载高敏模型推理工作负载。
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-header">
+            <span class="log-time">2026-05-01 06:20:44</span>
+            <span class="badge badge-warn">验证即将过期</span>
+            <span class="badge badge-sys">ins-tdx-002</span>
+            <span class="badge badge-blue">TDX</span>
+          </div>
+          <div class="log-body">
+            Intel TDX远程验证将于2026-05-01 10:00过期，需及时续期。当前Quote签名仍有效，TCB状态正常。如未在过期前完成续期，系统将自动激活KubeArmor DefaultPosture block模式作为降级保护。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 5: 配置 ===================== -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+        <!-- TEE Configuration -->
+        <div class="config-section">
+          <div class="cs-title">TEE类型配置</div>
+          <div class="form-group">
+            <div class="form-label">默认TEE类型</div>
+            <select class="form-input">
+              <option value="sgx">Intel SGX (Enclave模式, 适合小型高敏计算)</option>
+              <option value="tdx" selected>Intel TDX (Trust Domain模式, 适合大型工作负载)</option>
+              <option value="sev">AMD SEV-SNP (VM级加密+完整性保护)</option>
+              <option value="tz">ARM TrustZone (边缘部署和移动端)</option>
+            </select>
+            <div class="form-hint">根据工作负载规模选择合适TEE类型。SGX适合密钥管理/特征加密等小型计算，TDX/SEV适合模型推理/RAG检索等大型工作负载。</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">EPC内存分配策略</div>
+            <select class="form-input">
+              <option value="static">静态分配 (固定EPC大小)</option>
+              <option value="dynamic" selected>动态分配 (SGX2 EAUG自动扩展)</option>
+              <option value="oversub">超额分配 (EPC换页，性能降级)</option>
+            </select>
+            <div class="form-hint">动态分配推荐SGX2+，支持ENCLS[EAUG]运行时添加EPC页面。超额分配模式仅在EPC不足时使用，会有性能降级。</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">默认EPC大小 (MB)</div>
+            <input class="form-input" type="number" value="512" placeholder="EPC大小(MB)">
+            <div class="form-hint">SGX EPC通常128MB-512MB, TDX/SEV无此限制(使用VM内存)。单个SGX Enclave最大EPC由硬件决定。</div>
+          </div>
+        </div>
+
+        <!-- Attestation Configuration -->
+        <div class="config-section">
+          <div class="cs-title">远程验证配置</div>
+          <div class="form-group">
+            <div class="form-label">验证频率</div>
+            <select class="form-input">
+              <option value="1h">每1小时</option>
+              <option value="6h">每6小时</option>
+              <option value="12h">每12小时</option>
+              <option value="24h" selected>每24小时</option>
+              <option value="7d">每7天</option>
+            </select>
+            <div class="form-hint">高敏工作负载建议24小时以内验证周期。验证越频繁安全性越高，但开销也越大。</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Quote验证服务</div>
+            <select class="form-input">
+              <option value="dcap" selected>Intel DCAP (Direct Attestation)</option>
+              <option value="ias">Intel IAS (Attestation Service)</option>
+              <option value="ask">AMD ASK/ARK (SEV验证)</option>
+              <option value="custom">自建验证服务</option>
+            </select>
+            <div class="form-hint">DCAP推荐生产环境使用，支持离线验证。IAS需互联网连接。SEV使用AMD ASK/ARK证书链。</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">验证超时 (秒)</div>
+            <input class="form-input" type="number" value="30" placeholder="超时秒数">
+            <div class="form-hint">Quote验证超时时间。超时后自动重试，最多重试2次。</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">验证失败重试次数</div>
+            <input class="form-input" type="number" value="2" min="0" max="5" placeholder="重试次数">
+          </div>
+        </div>
+
+        <!-- SecurityContext Template -->
+        <div class="config-section">
+          <div class="cs-title">SecurityContext模板 (TEE实例)</div>
+          <div style="font-family:monospace;font-size:12px;line-height:1.8;background:#faf7f4;border-radius:12px;padding:14px;color:var(--text)">
+            securityContext:<br>
+            &nbsp;&nbsp;runAsNonRoot: <span style="color:#059669">true</span><br>
+            &nbsp;&nbsp;runAsUser: <span style="color:#059669">1000</span><br>
+            &nbsp;&nbsp;fsGroup: <span style="color:#059669">2000</span><br>
+            &nbsp;&nbsp;readOnlyRootFilesystem: <span style="color:#059669">true</span><br>
+            &nbsp;&nbsp;allowPrivilegeEscalation: <span style="color:#dc2626">false</span><br>
+            &nbsp;&nbsp;seccompProfile:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;type: <span style="color:#059669">RuntimeDefault</span><br>
+            &nbsp;&nbsp;capabilities:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;drop: <span style="color:#059669">["ALL"]</span>
+          </div>
+          <div class="form-hint">TEE实例使用最高安全级别SecurityContext。当前ClawManager Instance模型SecurityContext为nil，需增强为上述模板。</div>
+        </div>
+
+        <!-- KubeArmor DefaultPosture Integration -->
+        <div class="config-section">
+          <div class="cs-title">KubeArmor DefaultPosture集成</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">TEE实例 - file DefaultPosture</div>
+              <div class="desc">TEE实例文件操作默认策略</div>
+            </div>
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce">block</div>
+              <div class="mode-btn">audit</div>
+              <div class="mode-btn">allow</div>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">TEE实例 - network DefaultPosture</div>
+              <div class="desc">TEE实例网络操作默认策略</div>
+            </div>
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce">block</div>
+              <div class="mode-btn">audit</div>
+              <div class="mode-btn">allow</div>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">TEE实例 - capabilities DefaultPosture</div>
+              <div class="desc">TEE实例Linux能力默认策略</div>
+            </div>
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce">block</div>
+              <div class="mode-btn">audit</div>
+              <div class="mode-btn">allow</div>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">TEE实例 - device DefaultPosture</div>
+              <div class="desc">TEE实例设备访问默认策略</div>
+            </div>
+            <div class="mode-selector">
+              <div class="mode-btn active-enforce">block</div>
+              <div class="mode-btn">audit</div>
+              <div class="mode-btn">allow</div>
+            </div>
+          </div>
+          <div class="form-hint">TEE实例建议全部使用block模式，实现最小权限。非TEE实例降级时自动切换为block。</div>
+        </div>
+
+        <!-- Fallback Policy -->
+        <div class="config-section">
+          <div class="cs-title">降级兜底策略</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">TEE不可用时自动降级</div>
+              <div class="desc">启用后，TEE实例不可用时自动切换至KubeArmor DefaultPosture block模式</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">降级时拒绝高敏工作负载</div>
+              <div class="desc">降级模式下拒绝处理极高安全等级工作负载，仅允许高/中等级</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">降级告警通知</div>
+              <div class="desc">降级发生时发送告警通知，提醒运维人员排查TEE故障</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <div class="form-label">降级最大持续时间 (分钟)</div>
+            <input class="form-input" type="number" value="60" placeholder="最大持续时间">
+            <div class="form-hint">超过此时间仍未恢复TEE，触发P1告警并建议人工介入。默认60分钟。</div>
+          </div>
+        </div>
+
+        <!-- Attestation Failure Response -->
+        <div class="config-section">
+          <div class="cs-title">验证失败响应</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">验证失败时拒绝工作负载</div>
+              <div class="desc">enforce模式：验证失败立即拒绝数据访问和计算任务</div>
+            </div>
+            <div style="display:flex;align-items:center">
+              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              <div class="mode-selector">
+                <div class="mode-btn active-enforce">enforce</div>
+                <div class="mode-btn">observe</div>
+              </div>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">验证失败时隔离实例</div>
+              <div class="desc">将验证失败实例从调度池移除，阻止新工作负载分配</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">验证失败时Data Sealing轮换</div>
+              <div class="desc">验证失败实例的Sealed Data密钥轮换，防止数据泄露</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <div class="form-label">最大验证失败次数 (触发实例隔离)</div>
+            <input class="form-input" type="number" value="3" min="1" max="10" placeholder="失败次数">
+            <div class="form-hint">连续验证失败超过此次数后自动隔离实例。默认3次。</div>
+          </div>
+        </div>
+
+        <!-- ModelArmor Integration -->
+        <div class="config-section">
+          <div class="cs-title">ModelArmor集成</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">ModelArmor pickle注入检测</div>
+              <div class="desc">在模型加载前检测pickle反序列化中的恶意载荷(os.system/subprocess等)</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">TEE内模型参数保护</div>
+              <div class="desc">模型推理在TEE加密内存中执行，推理参数和中间结果对宿主机不可见</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">模型文件Data Sealing</div>
+              <div class="desc">持久化模型文件使用Data Sealing加密，MRENCLAVE绑定确保只有授权Enclave可加载</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <div class="form-label">Sealing策略</div>
+            <select class="form-input">
+              <option value="mrenclave" selected>MRENCLAVE绑定 (仅同一Enclave代码可解封)</option>
+              <option value="mrsigner">MRSIGNER绑定 (同一签发者不同版本Enclave可解封)</option>
+            </select>
+            <div class="form-hint">MRENCLAVE绑定安全性更高，但Enclave代码更新后需重新Seal。MRSIGNER绑定支持版本升级，适合频繁迭代的模型。</div>
+          </div>
+        </div>
+
+        <!-- IMA Integration -->
+        <div class="config-section">
+          <div class="cs-title">KubeArmor IMA完整性集成</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">IMA完整性验证</div>
+              <div class="desc">KubeArmor IMA通过bprm_check_security LSM Hook和bpf_ima_file_hash()验证可执行文件完整性</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">IMA+TEE协同验证</div>
+              <div class="desc">IMA文件哈希与TEE MRENCLAVE度量值联合验证，确保代码完整性从文件到运行时全链路覆盖</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-hint">IMA在Enclave外部验证可执行文件完整性（软件级），MRENCLAVE在Enclave内部度量代码和初始数据（硬件级），两者形成纵深完整性保障。</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px">
+        <button class="btn-secondary">恢复默认配置</button>
+        <button class="btn-secondary">导出配置</button>
+        <button class="btn-primary">保存配置</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

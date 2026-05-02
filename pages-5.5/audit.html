@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-audit</title>
+<link rel="stylesheet" href="../css-5.5.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-audit">
+
+  <div class="subheader">
+    <span>&#x1f50d;</span><span style="opacity:.3">|</span>
+    <strong>环境安全审计报告</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-info">FR-28 ~ FR-33</span>
+  </div>
+  <div class="content-area">
+
+    <!-- Panel 1: 审计评分 -->
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Audit Score</div>
+          <div class="panel-title">审计评分</div>
+        </div>
+        <button class="btn-secondary btn-sm">重新评估</button>
+      </div>
+
+      <div class="flex items-center gap-16">
+        <div class="score-circle score-med">
+          <div class="score-num">78</div>
+          <div class="score-label">/ 100</div>
+        </div>
+        <div class="grid-3" style="flex:1;gap:12px">
+          <div class="stat-mini">
+            <div class="sm-val">6</div>
+            <div class="sm-label">FRs 总计</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#dc2626">3</div>
+            <div class="sm-label">P0 优先级</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#d97706">3</div>
+            <div class="sm-label">P1 优先级</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#059669">12</div>
+            <div class="sm-label">检查项通过</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:#dc2626">8</div>
+            <div class="sm-label">待修复项</div>
+          </div>
+          <div class="stat-mini">
+            <div class="sm-val" style="color:var(--text)">20</div>
+            <div class="sm-label">检查项总计</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 2: 合规对标 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Compliance Mapping</div>
+          <div class="panel-title">合规对标</div>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>合规项</th><th>名称</th><th>关联 FR</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="compliance-tag aia">AIA08</span></td>
+              <td>运行环境风险</td>
+              <td>
+                <span class="tag" style="margin:1px">FR-28</span>
+                <span class="tag" style="margin:1px">FR-29</span>
+                <span class="tag" style="margin:1px">FR-31</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag aia">AIA09</span></td>
+              <td>可追溯性失效</td>
+              <td>
+                <span class="tag" style="margin:1px">FR-33</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag asi">ASI05</span></td>
+              <td>意外代码执行</td>
+              <td>
+                <span class="tag" style="margin:1px">FR-28</span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="compliance-tag asi">ASI10</span></td>
+              <td>智能体越权</td>
+              <td>
+                <span class="tag" style="margin:1px">FR-29</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panel 3: 各FR合规状态 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">FR Compliance Status</div>
+          <div class="panel-title">各 FR 合规状态</div>
+        </div>
+        <button class="btn-secondary btn-sm">导出报告</button>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead><tr><th>FR</th><th>名称</th><th>优先级</th><th>检查项</th><th>通过</th><th>待修复</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>FR-28</code></td>
+              <td>沙盒环境隔离</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td>6</td>
+              <td style="color:#059669;font-weight:600">5</td>
+              <td style="color:#dc2626;font-weight:600">1</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-29</code></td>
+              <td>容器隔离与防逃逸</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td>5</td>
+              <td style="color:#059669;font-weight:600">3</td>
+              <td style="color:#dc2626;font-weight:600">2</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-30</code></td>
+              <td>宿主机安全加固</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td>38</td>
+              <td style="color:#059669;font-weight:600">23</td>
+              <td style="color:#dc2626;font-weight:600">15</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-31</code></td>
+              <td>主机异常行为检测</td>
+              <td><span class="badge badge-p0">P0</span></td>
+              <td>4</td>
+              <td style="color:#059669;font-weight:600">4</td>
+              <td style="color:#059669;font-weight:600">0</td>
+              <td><span style="color:#059669;font-weight:700">&#x2713;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-32</code></td>
+              <td>可信启动与完整性</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td>3</td>
+              <td style="color:#059669;font-weight:600">2</td>
+              <td style="color:#dc2626;font-weight:600">1</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+            <tr>
+              <td><code>FR-33</code></td>
+              <td>关键文件防篡改</td>
+              <td><span class="badge badge-p1">P1</span></td>
+              <td>4</td>
+              <td style="color:#059669;font-weight:600">3</td>
+              <td style="color:#dc2626;font-weight:600">1</td>
+              <td><span style="color:#d97706;font-weight:700">&#x26a0;&#xfe0f;</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panel 4: 优先修复建议 -->
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Remediation Priority</div>
+          <div class="panel-title">优先修复建议</div>
+        </div>
+        <button class="btn-primary btn-sm">生成修复计划</button>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p0">P0</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-29</div>
+          <div class="fi-desc">启用 Pod SecurityContext — <code>runAsNonRoot</code>, <code>drop ALL capabilities</code>，防止容器以 root 身份运行并限制权限提升</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p0">P0</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-29</div>
+          <div class="fi-desc">部署 KubeArmor <code>filelessExec</code> + <code>protectEnv</code> 预设策略，阻止无文件执行和进程环境变量泄露</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p0">P0</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-30</div>
+          <div class="fi-desc">修复 15 项基线不合规 (SSH MaxSessions, PAM 密码策略, 文件权限等)，参照 CIS Benchmark 标准</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p1">P1</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-32</div>
+          <div class="fi-desc">启用 KubeArmor IMA 度量 (<code>enableIMA=true</code>)，实现运行时二进制完整性校验</div>
+        </div>
+      </div>
+
+      <div class="fix-item">
+        <div class="fix-priority p1">P1</div>
+        <div class="fix-info">
+          <div class="fi-fr">FR-33</div>
+          <div class="fi-desc">部署 KubeArmor FIM <code>readOnly</code> 策略到所有命名空间，保护 <code>/bin/</code>, <code>/usr/bin/</code> 等系统关键目录</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /content-area -->
+<!-- /page-audit -->
+
+
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

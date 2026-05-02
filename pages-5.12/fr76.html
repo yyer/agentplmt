@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr76</title>
+<link rel="stylesheet" href="../css-5.12.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr76">
+
+  <div class="content-area">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="arch">模板架构</div>
+      <div class="tab" data-tab="templates">行业模板</div>
+      <div class="tab" data-tab="customize">参数定制</div>
+      <div class="tab" data-tab="ops">模板运营</div>
+      <div class="tab" data-tab="config">配置</div>
+    </div>
+
+    <!-- ===================== TAB 1: 模板架构 ===================== -->
+    <div class="tab-content active" id="tab-arch">
+
+      <!-- Overview Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">4</div>
+          <div class="sc-label">行业模板数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">3</div>
+          <div class="sc-label">已部署模板</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#6d28d9">12</div>
+          <div class="sc-label">覆盖实例数</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">87.5%</div>
+          <div class="sc-label">平均合规分</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">v1.2</div>
+          <div class="sc-label">模板版本</div>
+        </div>
+      </div>
+
+      <!-- Template Architecture -->
+      <div class="app-panel-warm">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Industry Template Architecture</div>
+            <div class="panel-title">高安全行业模板架构</div>
+          </div>
+          <span class="badge badge-pass">&#x2713; 已激活</span>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:20px">
+          高安全行业模板将安全能力按政务、金融、运营商、研发代码助手等场景打包为标准化模板。每个模板是一个完整的安全配置包，包含安全策略（ClawAegis防御模式 + KubeArmor DefaultPosture）、权限画像（RBAC矩阵）、合规基线（KSecure 38个基线脚本子集）、审计规则（事件采集深度与字段选择）和响应Playbook（自动化处置剧本）。模板支持参数化定制，可根据具体场景微调安全等级、合规严格度、网络隔离级别等参数，并一键部署到目标实例。
+        </p>
+
+        <!-- Template Composition -->
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#ef6b4a,#dc2626)">1</div>
+          <div class="flow-step-content">
+            <div class="fs-title">安全策略 Security Policies</div>
+            <div class="fs-desc">模板核心层。定义ClawAegis 12个防御模块的enforce/observe/off模式组合，配置KubeArmor DefaultPosture（file/network/capabilities/device的block/audit模式），设定Command Block 16个HIGH_RISK_COMMAND_PATTERNS的匹配策略，以及ClawManager RiskRule的Pattern/Severity/Action组合。不同行业模板的安全策略侧重不同：政务侧重国密合规与数据防泄漏，金融侧重交易审计与风控规则，运营商侧重高可用与异常检测，研发助手侧重代码安全与IP保护。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">ClawAegis Mode</span>
+              <span class="badge badge-sys">KubeArmor Posture</span>
+              <span class="badge badge-sys">Command Block</span>
+              <span class="badge badge-sys">RiskRule</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#f59e0b,#d97706)">2</div>
+          <div class="flow-step-content">
+            <div class="fs-title">权限画像 Permission Profiles</div>
+            <div class="fs-desc">定义RBAC权限矩阵。基于ClawManager InstanceCommand的17种命令类型，按角色（admin/operator/auditor/viewer）设定命令权限。政务模板严格审批链（admin批准+安全团队会签），金融模板双人审批（delete/transfer需2名admin批准），运营商模板分级授权（运维操作自动审批+高危操作人工审批），研发助手模板开发沙箱（代码执行限沙箱+IP敏感操作审计）。包含KubeArmor 38个Linux capabilities的分配策略和KSecure ProcessProtectType/ProcessBlackType进程权限控制。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">RBAC Matrix</span>
+              <span class="badge badge-sys">InstanceCommand</span>
+              <span class="badge badge-sys">Linux Capabilities</span>
+              <span class="badge badge-sys">ProcessProtect</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">3</div>
+          <div class="flow-step-content">
+            <div class="fs-title">合规基线 Compliance Baselines</div>
+            <div class="fs-desc">从KSecure 38个基线脚本（5大类别：认证安全、密码策略、文件权限、内核安全、网络安全）中选择行业适用的子集。政务模板适用等保2.0三级基线（28个脚本），金融模板适用银保监合规基线（32个脚本），运营商模板适用工信部安全基线（26个脚本），研发助手适用OWASP开发安全基线（18个脚本）。设定KSecure G_MODE级别：政务/金融强制s(strict)，运营商默认c(check)，研发助手默认b(baseline)。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">KSecure Scripts</span>
+              <span class="badge badge-sys">G_MODE</span>
+              <span class="badge badge-sys">CIS Benchmark</span>
+              <span class="badge badge-sys">等保2.0</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">4</div>
+          <div class="flow-step-content">
+            <div class="fs-title">审计规则 Audit Rules</div>
+            <div class="fs-desc">定义事件采集深度与日志字段选择。政务模板全量审计（所有InstanceCommand、ClawAegis拦截、KSecure检查结果均记录，含操作者证书签名），金融模板交易级审计（每次工具调用记录入参/出参/耗时/审批人，支持交易回溯），运营商模板关键路径审计（仅记录高危操作和安全事件），研发助手模板代码审计（记录代码执行路径、文件读写、网络请求，支持审计回放）。包含KubeArmor FIM文件完整性监控策略和NetworkPolicyEnforcer网络审计策略。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">审计深度</span>
+              <span class="badge badge-sys">FIM策略</span>
+              <span class="badge badge-sys">NetworkAudit</span>
+              <span class="badge badge-sys">日志字段</span>
+            </div>
+          </div>
+        </div>
+        <div class="flow-connector"></div>
+        <div class="flow-step">
+          <div class="flow-step-num" style="background:linear-gradient(135deg,#059669,#047857)">5</div>
+          <div class="flow-step-content">
+            <div class="fs-title">响应Playbook Response Playbooks</div>
+            <div class="fs-desc">预定义安全事件的自动化处置剧本。政务模板：数据泄漏触发实例隔离+证据保留+上级通报；金融模板：异常交易触发交易冻结+双人复核+监管报备；运营商模板：服务异常触发流量切换+根因分析+SLA记录；研发助手模板：代码泄露触发沙箱锁定+IP标记+审批解锁。每个Playbook关联ClawAegis防御模式切换、KubeArmor策略变更、KSecure基线检查等具体操作。响应级别可设定为自动(auto)或需审批(manual)。</div>
+            <div class="fs-tags">
+              <span class="badge badge-sys">自动响应</span>
+              <span class="badge badge-sys">Playbook</span>
+              <span class="badge badge-sys">隔离策略</span>
+              <span class="badge badge-sys">审批流程</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Mapping -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">System Integration</div>
+            <div class="panel-title">承载系统配置映射</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:16px">行业模板通过以下映射关系，将抽象的安全策略转化为具体的系统配置参数。每个模板参数的变化直接影响对应系统的配置行为。</p>
+        <div class="risk-matrix" style="grid-template-columns:220px repeat(4,1fr)">
+          <div class="rm-cell rm-header">模板参数</div>
+          <div class="rm-cell rm-header">ClawAegis</div>
+          <div class="rm-cell rm-header">KSecure</div>
+          <div class="rm-cell rm-header">KubeArmor</div>
+          <div class="rm-cell rm-header">ClawManager</div>
+
+          <div class="rm-cell rm-row-label">安全等级</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Defense Module<br>enforce/observe/off</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">G_MODE<br>c/s/b</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">DefaultPosture<br>block/audit</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">RiskRule<br>Action=enforce/log</div>
+
+          <div class="rm-cell rm-row-label">合规严格度</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Command Block<br>Pattern strictness</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Baseline scripts<br>subset selection</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">CIS/STIG policies<br>enforce/audit</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Instance Type<br>allowed types</div>
+
+          <div class="rm-cell rm-row-label">网络隔离</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">protectedPaths<br>access control</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Firewall-Default<br>baseline check</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">NetworkPolicy<br>deny-all/allow-specific</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">InstanceCommand<br>network ops approval</div>
+
+          <div class="rm-cell rm-row-label">审计深度</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Intercept logging<br>full/summary</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Baseline report<br>detail level</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">FIM policy scope<br>full/partial</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">InstanceCommand<br>log fields</div>
+
+          <div class="rm-cell rm-row-label">响应自动化</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Mode auto-switch<br>enforce&#x2192;observe</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Auto-remediate<br>G_MODE=s trigger</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Policy auto-apply<br>KSP/HSP/CSP</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Auto-approval<br>threshold rules</div>
+
+          <div class="rm-cell rm-row-label">加密算法</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">Data in transit<br>SM4/AES-256</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">FilePreType<br>encrypted paths</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">TLS policy<br>SM2/RSA cert</div>
+          <div class="rm-cell" style="font-family:monospace;font-size:11px">AI Gateway<br>encryption config</div>
+        </div>
+      </div>
+
+      <!-- Parameter Customization Points -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Customization Points</div>
+            <div class="panel-title">参数定制点概览</div>
+          </div>
+          <button class="btn-secondary btn-sm">查看参数Schema</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="param-group">
+            <div class="pg-title"><span style="color:#dc2626">&#x2699;</span> 安全等级</div>
+            <div class="param-row"><span class="param-name">ClawAegis Defense Module模式</span><span class="param-mapping">Module.mode</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>enforce</option><option>observe</option><option>off</option></select></span></div>
+            <div class="param-row"><span class="param-name">KSecure G_MODE</span><span class="param-mapping">G_MODE</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>s (strict)</option><option>c (check)</option><option>b (baseline)</option></select></span></div>
+            <div class="param-row"><span class="param-name">KubeArmor DefaultPosture</span><span class="param-mapping">DefaultPosture</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>block</option><option>audit</option></select></span></div>
+          </div>
+          <div class="param-group">
+            <div class="pg-title"><span style="color:#d97706">&#x1f512;</span> 加密算法</div>
+            <div class="param-row"><span class="param-name">签名算法</span><span class="param-mapping">SM2 / RSA</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>SM2 (国密)</option><option>RSA-4096</option></select></span></div>
+            <div class="param-row"><span class="param-name">哈希算法</span><span class="param-mapping">SM3 / SHA-256</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>SM3 (国密)</option><option>SHA-256</option></select></span></div>
+            <div class="param-row"><span class="param-name">对称加密</span><span class="param-mapping">SM4 / AES-256</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>SM4 (国密)</option><option>AES-256-GCM</option></select></span></div>
+          </div>
+          <div class="param-group">
+            <div class="pg-title"><span style="color:#6d28d9">&#x1f310;</span> 网络隔离</div>
+            <div class="param-row"><span class="param-name">出站默认策略</span><span class="param-mapping">NetworkPolicy</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>deny-all</option><option>allow-specific</option></select></span></div>
+            <div class="param-row"><span class="param-name">FIM监控范围</span><span class="param-mapping">FIM policy scope</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>full (all paths)</option><option>partial (sensitive only)</option></select></span></div>
+            <div class="param-row"><span class="param-name">Linux Capabilities</span><span class="param-mapping">Capabilities.drop</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>drop-all</option><option>drop-critical</option><option>minimal-drop</option></select></span></div>
+          </div>
+          <div class="param-group">
+            <div class="pg-title"><span style="color:#059669">&#x1f4dd;</span> 审计与响应</div>
+            <div class="param-row"><span class="param-name">审计日志级别</span><span class="param-mapping">Audit depth</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>full</option><option>summary</option><option>critical-only</option></select></span></div>
+            <div class="param-row"><span class="param-name">响应自动化级别</span><span class="param-mapping">Response level</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>auto</option><option>manual</option><option>hybrid</option></select></span></div>
+            <div class="param-row"><span class="param-name">审批链要求</span><span class="param-mapping">Approval chain</span><span class="param-control"><select class="form-select" style="font-size:11px;padding:4px 8px"><option>双人审批</option><option>单人审批</option><option>自动审批</option></select></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 2: 行业模板 ===================== -->
+    <div class="tab-content" id="tab-templates">
+
+      <!-- Government Template -->
+      <div class="template-card">
+        <div class="tc-stripe" style="background:linear-gradient(180deg,#1d4ed8,#3b82f6)"></div>
+        <div class="tc-header">
+          <div style="display:flex;align-items:center;gap:12px;padding-left:12px">
+            <span class="badge badge-gov">政务</span>
+            <span class="tc-title">政务行业安全模板</span>
+            <span class="badge badge-enforce">ENFORCE</span>
+            <span style="font-size:11px;color:#8f8681">v1.2 | 等保2.0三级</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-primary btn-sm">部署</button>
+            <button class="btn-secondary btn-sm">定制</button>
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+        <div class="tc-body" style="padding-left:12px">
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#dc2626">&#x2699;</span> 安全策略</div>
+            <div class="tc-section-body">
+              <strong>ClawAegis配置:</strong> 12个防御模块全部enforce模式，10-strategy pipeline全量启用。Command Block 16个HIGH_RISK_COMMAND_PATTERNS严格匹配。protectedPaths包含/etc/shadow、/etc/passwd、政务数据目录。skills和plugins需审批后加载。<br>
+              <strong>KubeArmor配置:</strong> DefaultPosture file=block, network=block, capabilities=block, device=block。38个Linux capabilities仅保留CAP_NET_BIND_SERVICE。CIS Benchmark Level 2策略全量启用。FIM监控覆盖/etc、/var/lib/openclaw、/data/gov。<br>
+              <strong>KSecure配置:</strong> G_MODE=s(strict)，自动修正模式。FilePreType标记政务数据目录为encrypted+readonly。ProcessProtectType保护openclaw-agent和claw-manager进程。ProcessBlackType禁止反向shell和调试器附加。eBPF LSM hooks监控所有文件操作。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#f59e0b">&#x1f510;</span> 权限画像</div>
+            <div class="tc-section-body">
+              <strong>RBAC矩阵:</strong> admin角色拥有全部17种InstanceCommand权限，但delete/stop/transfer需安全团队会签审批。operator角色仅可执行start/restart/logs/exec命令，且exec命令需审批。auditor角色只读权限，可查看所有日志和审计记录。viewer角色仅可查看运行状态。<br>
+              <strong>严格审批链:</strong> 高危操作（delete、stop、transfer、RiskRule修改）需要admin + 安全负责人双人会签。审批超时24小时自动拒绝。审批记录使用SM2签名，不可抵赖。审批日志保留5年，满足档案法要求。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#8b5cf6">&#x1f4ca;</span> 合规基线</div>
+            <div class="tc-section-body">
+              <strong>等保2.0三级基线:</strong> 28个KSecure脚本（认证安全8个、密码策略6个、文件权限7个、内核安全4个、网络安全3个）。包含SSH强制密钥认证、密码复杂度12位+特殊字符、文件权限0640/0750、内核模块加载限制、防火墙默认拒绝规则。合规偏差自动修正（G_MODE=s），修正前创建快照，修正后验证并记录审计日志。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#3b82f6">&#x1f4dd;</span> 审计规则</div>
+            <div class="tc-section-body">
+              <strong>全量审计:</strong> 所有InstanceCommand记录完整生命周期（创建/审批/分发/执行/结果/归档），包含操作者SM2证书签名。ClawAegis拦截事件全量记录含完整上下文。KSecure检查结果每日报告。KubeArmor告警实时推送。日志字段包含：trace_id、timestamp、operator、certificate_id、action、target、result、approval_chain。日志保留5年。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#059669">&#x26a1;</span> 响应Playbook</div>
+            <div class="tc-section-body">
+              <strong>数据泄漏:</strong> 自动触发实例隔离(quarantine) + 证据快照保留(ConfigRevision) + 上级安全主管通报(15分钟内)。<br>
+              <strong>未授权访问:</strong> 自动触发NetworkPolicy全出站拒绝 + 进程冻结 + 审批恢复流程。<br>
+              <strong>配置篡改:</strong> 自动触发SelfIntegrityRecord校验 + 配置回滚至期望态 + 审计追溯至操作者。<br>
+              <strong>TEE承载:</strong> 所有agent会话token使用SM2签名验证。高敏数据强制运行在TEE环境（SGX enclave），attestation quote定期验证。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Finance Template -->
+      <div class="template-card">
+        <div class="tc-stripe" style="background:linear-gradient(180deg,#d97706,#f59e0b)"></div>
+        <div class="tc-header">
+          <div style="display:flex;align-items:center;gap:12px;padding-left:12px">
+            <span class="badge badge-finance">金融</span>
+            <span class="tc-title">金融行业安全模板</span>
+            <span class="badge badge-enforce">ENFORCE</span>
+            <span style="font-size:11px;color:#8f8681">v1.2 | 银保监合规</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-primary btn-sm">部署</button>
+            <button class="btn-secondary btn-sm">定制</button>
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+        <div class="tc-body" style="padding-left:12px">
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#dc2626">&#x2699;</span> 安全策略</div>
+            <div class="tc-section-body">
+              <strong>ClawAegis配置:</strong> 12个防御模块全部enforce模式。Command Block额外添加交易相关高危命令（如涉及资金操作的API调用模式）。Dispatch Guard 4组全部enforce，金融API调用强制审批。Loop Guard阈值3次/5min（严格模式）。protectedPaths包含交易日志、风控数据库、密钥存储目录。<br>
+              <strong>KubeArmor配置:</strong> DefaultPosture file=block, network=block, capabilities=block, device=block。FIM策略覆盖交易日志和配置文件，任何变更实时告警。NetworkPolicyEnforcer限制仅允许金融业务网络访问。CIS Level 2 + 银保监附加策略。<br>
+              <strong>KSecure配置:</strong> G_MODE=s(strict)。32个基线脚本，额外包含金融专用检查：双因子认证配置、交易日志完整性、密钥轮换策略、审计日志不可删除验证。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#f59e0b">&#x1f510;</span> 权限画像</div>
+            <div class="tc-section-body">
+              <strong>双人审批:</strong> delete instance和transfer instance操作需2名admin角色同时批准。交易相关工具调用需操作员+风控专员双重授权。RiskRule修改需安全团队+合规团队会签。审批超时8小时自动拒绝（紧急响应窗口更短）。审批记录包含操作者数字签名和审批理由。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#8b5cf6">&#x1f4ca;</span> 合规基线</div>
+            <div class="tc-section-body">
+              <strong>银保监合规基线:</strong> 32个KSecure脚本。包含等保2.0三级全部要求 + 金融行业附加：交易审计日志保留7年、密钥轮换周期90天、密码复杂度16位+特殊字符、会话超时15分钟、登录失败5次锁定30分钟。合规偏差0容忍，发现偏差立即修正。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#3b82f6">&#x1f4dd;</span> 审计规则</div>
+            <div class="tc-section-body">
+              <strong>交易级审计:</strong> 每次工具调用记录入参/出参/耗时/审批人/交易ID，支持交易回溯。InstanceCommand完整生命周期审计。风控规则触发事件全量记录。日志保留7年（银保监要求）。审计日志使用RSA-SHA256签名防篡改，签名密钥季度轮换。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#059669">&#x26a1;</span> 响应Playbook</div>
+            <div class="tc-section-body">
+              <strong>异常交易:</strong> 自动触发交易冻结 + 双人复核 + 监管报备（4小时内）。<br>
+              <strong>风控规则触发:</strong> 自动标记风险交易 + 暂停后续操作 + 风控团队通知。<br>
+              <strong>密钥泄露:</strong> 自动触发密钥轮换 + 影响评估 + 监管报备。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Telecom Template -->
+      <div class="template-card">
+        <div class="tc-stripe" style="background:linear-gradient(180deg,#6d28d9,#8b5cf6)"></div>
+        <div class="tc-header">
+          <div style="display:flex;align-items:center;gap:12px;padding-left:12px">
+            <span class="badge badge-telecom">运营商</span>
+            <span class="tc-title">运营商行业安全模板</span>
+            <span class="badge badge-enforce">ENFORCE</span>
+            <span style="font-size:11px;color:#8f8681">v1.1 | 工信部安全基线</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-primary btn-sm">部署</button>
+            <button class="btn-secondary btn-sm">定制</button>
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+        <div class="tc-body" style="padding-left:12px">
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#dc2626">&#x2699;</span> 安全策略</div>
+            <div class="tc-section-body">
+              <strong>ClawAegis配置:</strong> 核心防御模块enforce（Command Block、Dispatch Guard Group1/3），辅助模块observe（Loop Guard、Dispatch Guard Group2/4）。Command Block 16模式严格匹配，额外添加网络设备配置命令模式。protectedPaths包含网络配置文件、设备证书目录。<br>
+              <strong>KubeArmor配置:</strong> DefaultPosture file=block, network=audit, capabilities=block, device=block。网络模式audit以避免影响高可用服务。FIM监控网络配置文件变更。NetworkPolicyEnforcer白名单模式，仅允许业务网段。CIS Level 1策略。<br>
+              <strong>KSecure配置:</strong> G_MODE=c(check)，偏差仅告警不自动修正（避免影响服务可用性）。26个基线脚本，侧重网络安全和服务稳定性检查。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#f59e0b">&#x1f510;</span> 权限画像</div>
+            <div class="tc-section-body">
+              <strong>分级授权:</strong> 运维操作（start/restart/logs）自动审批+事后审计。高危操作（delete/transfer/配置变更）人工审批，单人即可批准。SRE角色拥有紧急操作权限，可绕过审批链执行应急操作但需48小时内补审。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#8b5cf6">&#x1f4ca;</span> 合规基线</div>
+            <div class="tc-section-body">
+              <strong>工信部安全基线:</strong> 26个KSecure脚本。侧重网络安全（防火墙策略、端口暴露、网络分段）和服务可用性（进程监控、资源限制、心跳检测）。合规偏差仅告警，人工评估后修正。SLA保障要求99.99%可用性，安全策略不能影响服务连续性。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#059669">&#x26a1;</span> 响应Playbook</div>
+            <div class="tc-section-body">
+              <strong>服务异常:</strong> 自动触发流量切换 + 根因分析 + SLA记录。安全策略自动降级至observe模式避免影响服务。<br>
+              <strong>网络入侵:</strong> 自动触发NetworkPolicy出站限制 + 入侵分析 + 应急响应组通知。<br>
+              <strong>设备故障:</strong> 自动触发备份接管 + 故障隔离 + 修复窗口通知。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dev Assistant Template -->
+      <div class="template-card">
+        <div class="tc-stripe" style="background:linear-gradient(180deg,#059669,#10b981)"></div>
+        <div class="tc-header">
+          <div style="display:flex;align-items:center;gap:12px;padding-left:12px">
+            <span class="badge badge-dev">研发代码助手</span>
+            <span class="tc-title">研发代码助手安全模板</span>
+            <span class="badge badge-observe">OBSERVE</span>
+            <span style="font-size:11px;color:#8f8681">v1.0 | OWASP开发安全</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn-primary btn-sm">部署</button>
+            <button class="btn-secondary btn-sm">定制</button>
+            <button class="btn-secondary btn-sm">导出</button>
+          </div>
+        </div>
+        <div class="tc-body" style="padding-left:12px">
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#dc2626">&#x2699;</span> 安全策略</div>
+            <div class="tc-section-body">
+              <strong>ClawAegis配置:</strong> 核心防御enforce（Command Block危险命令rm -rf /、curl|sh），辅助防御observe（Dispatch Guard全部observe模式收集样本）。Loop Guard阈值6次/5min（宽松模式适配高频开发操作）。protectedPaths包含代码仓库、CI/CD配置、密钥文件。skills和plugins自由加载。<br>
+              <strong>KubeArmor配置:</strong> DefaultPosture file=audit, network=audit, capabilities=audit, device=block。沙箱执行环境使用独立KSP策略，限制文件系统和网络访问。CIS Level 1策略 + OWASP容器安全策略。FIM监控CI/CD配置文件。<br>
+              <strong>KSecure配置:</strong> G_MODE=b(baseline)，基础合规检查。18个基线脚本，侧重开发环境安全（SSH密钥认证、代码目录权限、依赖审计、容器安全配置）。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#f59e0b">&#x1f510;</span> 权限画像</div>
+            <div class="tc-section-body">
+              <strong>开发沙箱:</strong> developer角色可在沙箱内自由执行代码，沙箱外操作需审批。代码执行限于沙箱环境，网络访问限白名单。IP敏感操作（代码下载、文件外传）触发审计记录。admin角色可执行全部命令，delete需单人审批。代码审计回放功能支持查看开发者的完整操作序列。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#8b5cf6">&#x1f4ca;</span> 合规基线</div>
+            <div class="tc-section-body">
+              <strong>OWASP开发安全基线:</strong> 18个KSecure脚本。侧重：代码仓库访问控制、依赖漏洞扫描配置、容器镜像安全、密钥管理最佳实践。合规偏差告警但不强制修正，开发团队可自行决定修复优先级。
+            </div>
+          </div>
+          <div class="tc-section">
+            <div class="tc-section-title"><span style="color:#059669">&#x26a1;</span> 响应Playbook</div>
+            <div class="tc-section-body">
+              <strong>代码泄露:</strong> 自动触发沙箱锁定 + IP标记 + 审批解锁。沙箱内代码不可外传。<br>
+              <strong>恶意依赖:</strong> 自动触发依赖扫描 + 风险评估 + 开发者通知。<br>
+              <strong>沙箱逃逸:</strong> 自动触发实例隔离 + 进程冻结 + 安全团队通知。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 3: 参数定制 ===================== -->
+    <div class="tab-content" id="tab-customize">
+
+      <!-- Template Selector -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div class="panel-title">选择行业模板进行参数定制</div>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn-primary" id="btn-gov" onclick="selectTemplate('gov')">政务行业模板</button>
+          <button class="btn-secondary" id="btn-finance" onclick="selectTemplate('finance')">金融行业模板</button>
+          <button class="btn-secondary" id="btn-telecom" onclick="selectTemplate('telecom')">运营商行业模板</button>
+          <button class="btn-secondary" id="btn-dev" onclick="selectTemplate('dev')">研发代码助手模板</button>
+        </div>
+      </div>
+
+      <!-- Current: Government Template Customization -->
+      <div id="customize-panel">
+        <div class="app-panel-warm">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Template Customization: Government</div>
+              <div class="panel-title">政务行业模板 - 参数定制面板</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn-secondary btn-sm">恢复默认</button>
+              <button class="btn-secondary btn-sm">预览影响</button>
+              <button class="btn-primary btn-sm">应用定制</button>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:16px">修改以下参数将直接影响对应系统的配置。每个参数变更均记录审计日志，支持版本回滚。参数变更后需经过审批流程方可生效。</p>
+        </div>
+
+        <!-- Security Level -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Security Level</div>
+              <div class="panel-title">安全等级参数</div>
+            </div>
+            <span class="badge badge-enforce">严格模式</span>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>ClawAegis模块</th><th>默认模式</th><th>定制模式</th><th>配置映射</th><th>影响说明</th></tr></thead>
+            <tbody>
+              <tr><td>Dispatch Guard - Group 1</td><td><span class="badge badge-enforce">ENFORCE</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>enforce</option><option>observe</option><option>off</option></select></td><td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">DG1.mode</td><td>工具分发审批强制执行</td></tr>
+              <tr><td>Dispatch Guard - Group 2</td><td><span class="badge badge-enforce">ENFORCE</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>enforce</option><option>observe</option><option>off</option></select></td><td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">DG2.mode</td><td>API调用分发拦截</td></tr>
+              <tr><td>Dispatch Guard - Group 3</td><td><span class="badge badge-enforce">ENFORCE</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>enforce</option><option>observe</option><option>off</option></select></td><td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">DG3.mode</td><td>敏感工具调用拦截</td></tr>
+              <tr><td>Dispatch Guard - Group 4</td><td><span class="badge badge-enforce">ENFORCE</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>enforce</option><option>observe</option><option>off</option></select></td><td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">DG4.mode</td><td>高风险工具调用拦截</td></tr>
+              <tr><td>Command Block</td><td><span class="badge badge-enforce">ENFORCE</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>enforce</option><option>observe</option><option>off</option></select></td><td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">CB.mode</td><td>16个高危命令模式拦截</td></tr>
+              <tr><td>Loop Guard</td><td><span class="badge badge-enforce">ENFORCE</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>enforce</option><option>observe</option><option>off</option></select></td><td style="font-family:monospace;font-size:11px;color:var(--accent-coral)">LG.mode</td><td>循环命令检测与阻断</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Compliance Strictness -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Compliance Strictness</div>
+              <div class="panel-title">合规严格度参数</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="param-group">
+              <div class="pg-title">KSecure基线配置</div>
+              <div class="param-row"><span class="param-name">G_MODE运行模式</span><span class="param-mapping">G_MODE</span></div>
+              <div style="padding:8px 0">
+                <select class="form-select" style="width:100%">
+                  <option selected>s (strict) - 自动修正</option>
+                  <option>c (check) - 仅告警</option>
+                  <option>b (baseline) - 基础检查</option>
+                </select>
+                <div class="form-hint">政务模板默认strict模式，发现合规偏差立即自动修正</div>
+              </div>
+              <div class="param-row"><span class="param-name">基线脚本子集</span><span class="param-mapping">28/38 scripts</span></div>
+              <div style="padding:8px 0">
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <span class="badge badge-pass">认证安全(8)</span>
+                  <span class="badge badge-pass">密码策略(6)</span>
+                  <span class="badge badge-pass">文件权限(7)</span>
+                  <span class="badge badge-pass">内核安全(4)</span>
+                  <span class="badge badge-pass">网络安全(3)</span>
+                </div>
+              </div>
+            </div>
+            <div class="param-group">
+              <div class="pg-title">KubeArmor DefaultPosture</div>
+              <div class="param-row"><span class="param-name">文件默认策略</span><span class="param-mapping">DefaultPosture.file</span></div>
+              <div style="padding:8px 0">
+                <select class="form-select" style="width:100%">
+                  <option selected>block - 默认拒绝</option>
+                  <option>audit - 默认审计</option>
+                </select>
+              </div>
+              <div class="param-row"><span class="param-name">网络默认策略</span><span class="param-mapping">DefaultPosture.network</span></div>
+              <div style="padding:8px 0">
+                <select class="form-select" style="width:100%">
+                  <option selected>block - 默认拒绝</option>
+                  <option>audit - 默认审计</option>
+                </select>
+              </div>
+              <div class="param-row"><span class="param-name">Capabilities默认策略</span><span class="param-mapping">DefaultPosture.capabilities</span></div>
+              <div style="padding:8px 0">
+                <select class="form-select" style="width:100%">
+                  <option selected>block - 默认拒绝</option>
+                  <option>audit - 默认审计</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Network Isolation -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Network Isolation</div>
+              <div class="panel-title">网络隔离参数</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">出站网络策略</label>
+            <select class="form-select">
+              <option selected>deny-all - 全部拒绝（仅允许白名单）</option>
+              <option>allow-specific - 允许指定网段</option>
+              <option>audit-only - 仅审计不阻断</option>
+            </select>
+            <div class="form-hint">政务模板默认全部拒绝出站，需逐条添加白名单规则</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">FIM文件完整性监控范围</label>
+            <select class="form-select">
+              <option selected>full - 全路径监控(/etc, /var/lib/openclaw, /data/gov)</option>
+              <option>partial - 敏感路径监控(/etc, /data/gov)</option>
+              <option>minimal - 关键配置(/etc/ssh, /etc/pam.d)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Linux Capabilities策略</label>
+            <select class="form-select">
+              <option selected>drop-all - 丢弃全部38个capabilities</option>
+              <option>drop-critical - 丢弃高危capabilities(保留NET_BIND_SERVICE等)</option>
+              <option>minimal-drop - 最小丢弃(仅丢弃SYS_ADMIN, NET_ADMIN等)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Audit Depth -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Audit Depth</div>
+              <div class="panel-title">审计深度参数</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">审计日志级别</label>
+            <select class="form-select">
+              <option selected>full - 全量审计（所有操作+完整字段）</option>
+              <option>summary - 摘要审计（关键操作+核心字段）</option>
+              <option>critical-only - 仅高危操作</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">日志字段选择</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> trace_id</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> timestamp</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> operator</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> certificate_id</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> action</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> target</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> result</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> approval_chain</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> source_ip</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox"> user_agent</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox"> request_body</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Encryption -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Encryption</div>
+              <div class="panel-title">加密算法参数</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+            <div class="form-group">
+              <label class="form-label">签名算法</label>
+              <select class="form-select">
+                <option selected>SM2 (国密)</option>
+                <option>RSA-4096</option>
+                <option>ECDSA-P384</option>
+              </select>
+              <div class="form-hint">政务模板强制使用国密SM2</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">哈希算法</label>
+              <select class="form-select">
+                <option selected>SM3 (国密)</option>
+                <option>SHA-256</option>
+                <option>SHA-512</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">对称加密</label>
+              <select class="form-select">
+                <option selected>SM4 (国密)</option>
+                <option>AES-256-GCM</option>
+                <option>ChaCha20-Poly1305</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Response Automation -->
+        <div class="app-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-eyebrow">Response Automation</div>
+              <div class="panel-title">响应自动化参数</div>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>触发场景</th><th>响应动作</th><th>自动化级别</th><th>定制</th></tr></thead>
+            <tbody>
+              <tr><td>数据泄漏</td><td>实例隔离+证据保留+通报</td><td><span class="badge badge-enforce">auto</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>auto</option><option>manual</option></select></td></tr>
+              <tr><td>未授权访问</td><td>网络阻断+进程冻结</td><td><span class="badge badge-enforce">auto</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>auto</option><option>manual</option></select></td></tr>
+              <tr><td>配置篡改</td><td>校验+回滚+追溯</td><td><span class="badge badge-enforce">auto</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option selected>auto</option><option>manual</option></select></td></tr>
+              <tr><td>TEE验证失败</td><td>实例隔离+告警</td><td><span class="badge badge-observe">manual</span></td><td><select class="form-select" style="font-size:11px;padding:4px 8px;width:auto"><option>auto</option><option selected>manual</option></select></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Apply Actions -->
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+          <button class="btn-secondary">&#x21bb; 恢复默认参数</button>
+          <button class="btn-secondary">&#x1f4ca; 预览变更影响</button>
+          <button class="btn-primary">&#x2713; 提交审批并应用</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 4: 模板运营 ===================== -->
+    <div class="tab-content" id="tab-ops">
+
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="sc-value" style="color:#059669">3</div>
+          <div class="sc-label">已部署模板</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:var(--text-h)">12</div>
+          <div class="sc-label">使用模板实例</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#d97706">87.5%</div>
+          <div class="sc-label">平均合规分</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#dc2626">2</div>
+          <div class="sc-label">合规偏差</div>
+        </div>
+        <div class="stat-card">
+          <div class="sc-value" style="color:#6d28d9">2026-05-01</div>
+          <div class="sc-label">最近更新</div>
+        </div>
+      </div>
+
+      <!-- Deployment Table -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Template Deployment Tracking</div>
+            <div class="panel-title">模板部署追踪</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" style="width:200px" placeholder="搜索实例...">
+            <button class="btn-secondary btn-sm">&#x21bb; 刷新</button>
+            <button class="btn-primary btn-sm">+ 新建部署</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>实例ID</th><th>行业模板</th><th>关键参数</th><th>合规分</th><th>偏差数</th><th>最近审计</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">instance-gov-01</td>
+              <td><span class="badge badge-gov">政务</span></td>
+              <td style="font-size:11px">ENFORCE, G_MODE=s, SM2/3/4</td>
+              <td style="color:#059669;font-weight:700">92</td>
+              <td>0</td>
+              <td>2026-05-01</td>
+              <td><span class="badge badge-pass">&#x2713; 合规</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">instance-gov-02</td>
+              <td><span class="badge badge-gov">政务</span></td>
+              <td style="font-size:11px">ENFORCE, G_MODE=s, SM2/3/4</td>
+              <td style="color:#d97706;font-weight:700">78</td>
+              <td>2</td>
+              <td>2026-05-01</td>
+              <td><span class="badge badge-warn">&#x26a0; 偏差</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">instance-fin-01</td>
+              <td><span class="badge badge-finance">金融</span></td>
+              <td style="font-size:11px">ENFORCE, G_MODE=s, 双人审批</td>
+              <td style="color:#059669;font-weight:700">95</td>
+              <td>0</td>
+              <td>2026-05-01</td>
+              <td><span class="badge badge-pass">&#x2713; 合规</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">instance-fin-02</td>
+              <td><span class="badge badge-finance">金融</span></td>
+              <td style="font-size:11px">ENFORCE, G_MODE=s, 双人审批</td>
+              <td style="color:#059669;font-weight:700">91</td>
+              <td>0</td>
+              <td>2026-05-01</td>
+              <td><span class="badge badge-pass">&#x2713; 合规</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">instance-fin-03</td>
+              <td><span class="badge badge-finance">金融</span></td>
+              <td style="font-size:11px">ENFORCE, G_MODE=s, RSA/AES</td>
+              <td style="color:#059669;font-weight:700">88</td>
+              <td>0</td>
+              <td>2026-04-30</td>
+              <td><span class="badge badge-pass">&#x2713; 合规</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">instance-tel-01</td>
+              <td><span class="badge badge-telecom">运营商</span></td>
+              <td style="font-size:11px">HYBRID, G_MODE=c, network=audit</td>
+              <td style="color:#059669;font-weight:700">86</td>
+              <td>0</td>
+              <td>2026-04-30</td>
+              <td><span class="badge badge-pass">&#x2713; 合规</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">instance-tel-02</td>
+              <td><span class="badge badge-telecom">运营商</span></td>
+              <td style="font-size:11px">HYBRID, G_MODE=c, network=audit</td>
+              <td style="color:#d97706;font-weight:700">83</td>
+              <td>1</td>
+              <td>2026-04-30</td>
+              <td><span class="badge badge-warn">&#x26a0; 偏差</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:monospace;font-weight:600;color:var(--accent-coral)">instance-dev-01</td>
+              <td><span class="badge badge-dev">研发代码助手</span></td>
+              <td style="font-size:11px">OBSERVE, G_MODE=b, sandbox</td>
+              <td style="color:#059669;font-weight:700">90</td>
+              <td>0</td>
+              <td>2026-04-30</td>
+              <td><span class="badge badge-pass">&#x2713; 合规</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Operations Summary</div>
+            <div class="panel-title">模板运营汇总</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div class="rule-card" style="border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#059669"></div>
+            <div style="padding-left:12px"><div style="font-size:28px;font-weight:800;color:#059669">3</div><div style="font-size:12px;color:var(--text);margin-top:4px">活跃模板数</div><div style="font-size:11px;color:#8f8681;margin-top:2px">政务、金融、运营商</div></div>
+          </div>
+          <div class="rule-card" style="border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--text-h)"></div>
+            <div style="padding-left:12px"><div style="font-size:28px;font-weight:800;color:var(--text-h)">12</div><div style="font-size:12px;color:var(--text);margin-top:4px">覆盖实例数</div><div style="font-size:11px;color:#8f8681;margin-top:2px">2政务 + 3金融 + 2运营商 + 1研发 + 4其他</div></div>
+          </div>
+          <div class="rule-card" style="border-radius:16px;border:1px solid #f1e7e1;background:rgba(255,255,255,0.88);padding:20px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#d97706"></div>
+            <div style="padding-left:12px"><div style="font-size:28px;font-weight:800;color:#d97706">87.5%</div><div style="font-size:12px;color:var(--text);margin-top:4px">平均合规分</div><div style="font-size:11px;color:#8f8681;margin-top:2px">2个实例存在偏差待修复</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operations Log -->
+      <div class="app-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-eyebrow">Operations Log</div>
+            <div class="panel-title">模板运营日志</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>时间</th><th>事件</th><th>模板</th><th>详情</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:monospace;font-size:12px">2026-05-01 14:30</td><td><span class="badge badge-pass">模板部署</span></td><td><span class="badge badge-finance">金融</span></td><td>金融行业模板已部署到3个实例(instance-fin-01/02/03)</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">2026-05-01 13:15</td><td><span class="badge badge-warn">参数定制</span></td><td><span class="badge badge-finance">金融</span></td><td>instance-fin-03加密算法从SM2/3/4调整为RSA/AES-256（非国密场景）</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">2026-05-01 11:22</td><td><span class="badge badge-fail">合规偏差</span></td><td><span class="badge badge-gov">政务</span></td><td>instance-gov-02偏离模板baseline: SSH配置PermitEmptyPasswords未设为no</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">2026-05-01 10:00</td><td><span class="badge badge-pass">模板更新</span></td><td><span class="badge badge-telecom">运营商</span></td><td>运营商模板v1.1发布: 更新网络隔离策略，修复network=audit模式FIM遗漏</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">2026-04-30 16:45</td><td><span class="badge badge-warn">合规偏差</span></td><td><span class="badge badge-telecom">运营商</span></td><td>instance-tel-02偏离模板baseline: 内核模块加载策略不一致</td></tr>
+            <tr><td style="font-family:monospace;font-size:12px">2026-04-30 09:00</td><td><span class="badge badge-pass">模板部署</span></td><td><span class="badge badge-gov">政务</span></td><td>政务行业模板部署到instance-gov-01，参数全量默认</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================== TAB 5: 配置 ===================== -->
+    <div class="tab-content" id="tab-config">
+
+      <div class="config-grid">
+
+        <!-- Template Versioning -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4be; 模板版本管理</div>
+          <div class="form-group">
+            <label class="form-label">版本号格式</label>
+            <select class="form-select">
+              <option selected>Semantic (Major.Minor.Patch)</option>
+              <option>Calendar (YYYY.MM.DD)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">版本保留数量</label>
+            <input class="form-input" type="number" value="10" min="3" max="50">
+            <div class="form-hint">保留最近N个版本以支持回滚</div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">变更自动版本化</div>
+              <div class="desc">模板参数变更自动生成新版本号</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-tpl-ver" checked>
+              <label class="toggle-slider" for="cfg-tpl-ver"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deployment Workflow -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f680; 部署工作流</div>
+          <div class="form-group">
+            <label class="form-label">部署审批要求</label>
+            <select class="form-select">
+              <option selected>双人审批（安全+运维）</option>
+              <option>单人审批</option>
+              <option>自动审批（仅低风险参数变更）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">部署策略</label>
+            <select class="form-select">
+              <option selected>灰度发布（10% &#x2192; 50% &#x2192; 100%）</option>
+              <option>蓝绿部署</option>
+              <option>全量部署</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">部署后验证</label>
+            <select class="form-select">
+              <option selected>自动合规验证 + 72小时监控</option>
+              <option>仅自动合规验证</option>
+              <option>手动验证</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Compliance Validation -->
+        <div class="config-section">
+          <div class="cs-title">&#x2705; 合规验证规则</div>
+          <div class="form-group">
+            <label class="form-label">偏差告警阈值</label>
+            <input class="form-input" type="number" value="5" min="0" max="20">
+            <div class="form-hint">合规分低于模板基线多少分时触发偏差告警</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">自动修正策略</label>
+            <select class="form-select">
+              <option selected>发现偏差自动修正（G_MODE=s模板）</option>
+              <option>仅告警，人工修正</option>
+              <option>偏差修复需审批</option>
+            </select>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <div class="name">偏差自动通知</div>
+              <div class="desc">发现模板偏差时通知安全团队</div>
+            </div>
+            <div class="toggle-switch">
+              <input type="checkbox" id="cfg-dev-alert" checked>
+              <label class="toggle-slider" for="cfg-dev-alert"></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export/Import -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4e4; 导出/导入格式</div>
+          <div class="form-group">
+            <label class="form-label">模板导出格式</label>
+            <select class="form-select">
+              <option selected>YAML (Kubernetes原生)</option>
+              <option>JSON</option>
+              <option>TOML</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">模板打包内容</label>
+            <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> 安全策略配置</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> 权限画像(RBAC)</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> 合规基线脚本</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> 审计规则</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" checked> 响应Playbook</label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox"> 实例绑定关系</label>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn-secondary btn-sm">导入模板</button>
+            <button class="btn-secondary btn-sm">导出模板</button>
+          </div>
+        </div>
+
+        <!-- RBAC for Template Management -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6e1; 模板管理RBAC</div>
+          <div class="form-group">
+            <label class="form-label">模板创建权限</label>
+            <select class="form-select">
+              <option selected>仅admin角色</option>
+              <option>admin + security角色</option>
+              <option>所有角色</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">模板修改权限</label>
+            <select class="form-select">
+              <option>仅admin角色</option>
+              <option selected>admin + security角色</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">模板部署权限</label>
+            <select class="form-select">
+              <option>仅admin角色</option>
+              <option selected>admin + operator角色</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- System Integration -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f517; 系统集成配置</div>
+          <div class="form-group">
+            <label class="form-label">KSecure基线集成</label>
+            <select class="form-select">
+              <option selected>按模板选择基线脚本子集</option>
+              <option>全量基线（所有模板）</option>
+              <option>自定义基线集</option>
+            </select>
+            <div class="form-hint">不同模板使用不同KSecure基线脚本子集</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">KubeArmor策略包集成</label>
+            <select class="form-select">
+              <option selected>按模板生成KSP/HSP/CSP策略包</option>
+              <option>统一策略包</option>
+            </select>
+            <div class="form-hint">每个模板生成对应的KubeArmor 4 CRD策略包</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ClawAegis模式预设集成</label>
+            <select class="form-select">
+              <option selected>按模板配置Defense Module模式</option>
+              <option>统一模式预设</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Template Marketplace -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f6d2; 模板市场概念</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.7">
+            <p style="margin-bottom:8px">模板市场允许安全团队共享和复用行业模板。社区模板经审核后可发布到市场，其他租户可订阅使用。</p>
+            <div class="form-group">
+              <label class="form-label">市场状态</label>
+              <select class="form-select">
+                <option>开发中（预计v2.0发布）</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+              <span class="badge badge-sys">模板共享</span>
+              <span class="badge badge-sys">版本兼容</span>
+              <span class="badge badge-sys">审核发布</span>
+              <span class="badge badge-sys">订阅更新</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parameter Schema -->
+        <div class="config-section">
+          <div class="cs-title">&#x1f4d0; 参数Schema</div>
+          <div style="font-size:12px;font-family:monospace;color:var(--text);line-height:1.8;background:#faf7f4;padding:12px;border-radius:10px;overflow-x:auto">
+            <div style="color:var(--accent-coral)">security_level:</div>
+            <div>&nbsp;&nbsp;claw_aegis_mode: [enforce|observe|off]</div>
+            <div>&nbsp;&nbsp;ksecure_g_mode: [s|c|b]</div>
+            <div>&nbsp;&nbsp;kubearmor_posture: [block|audit]</div>
+            <div style="color:var(--accent-coral)">compliance:</div>
+            <div>&nbsp;&nbsp;baseline_scripts: [1..38]</div>
+            <div>&nbsp;&nbsp;auto_remediate: boolean</div>
+            <div style="color:var(--accent-coral)">encryption:</div>
+            <div>&nbsp;&nbsp;signature: [SM2|RSA-4096|ECDSA]</div>
+            <div>&nbsp;&nbsp;hash: [SM3|SHA-256|SHA-512]</div>
+            <div>&nbsp;&nbsp;symmetric: [SM4|AES-256|ChaCha20]</div>
+            <div style="color:var(--accent-coral)">network:</div>
+            <div>&nbsp;&nbsp;default_egress: [deny-all|allow-specific]</div>
+            <div>&nbsp;&nbsp;fim_scope: [full|partial|minimal]</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Save Actions -->
+      <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end">
+        <button class="btn-secondary">&#x21bb; 重置默认</button>
+        <button class="btn-primary">&#x1f4be; 保存配置</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

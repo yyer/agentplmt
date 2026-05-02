@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr29</title>
+<link rel="stylesheet" href="../css-5.5.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr29">
+
+      <div class="subheader">
+  <div class="subheader-left">
+    <div class="eyebrow">5.5 执行隔离与防篡改</div>
+    <div class="page-title">FR-29 | 容器隔离与防逃逸 | <span class="badge badge-p0">P0 优先级</span></div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn-secondary btn-sm">导出配置</button>
+    <button class="btn-primary btn-sm">应用策略</button>
+  </div>
+</div>
+
+<div class="content-area">
+
+  <div class="tabs" data-tabgroup="fr29">
+    <div class="tab active" data-tab="fr29-config">容器安全配置</div>
+    <div class="tab" data-tab="fr29-capability">Capability策略</div>
+    <div class="tab" data-tab="fr29-escape">逃逸检测</div>
+    <div class="tab" data-tab="fr29-log">容器日志</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- Tab 1: 容器安全配置                          -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="tab-content active" id="fr29-config">
+
+    <!-- 面板1: KubeArmor DefaultPosture -->
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">KubeArmor</div>
+          <div class="panel-title">DefaultPosture 全局默认动作</div>
+        </div>
+        <span class="badge badge-observe">当前模式: Audit</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <div class="name">FileAction</div>
+          <div class="desc">文件系统操作的默认动作 — 文件读/写/执行未匹配任何策略时的处理方式</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="mode-selector">
+            <span class="mode-btn active-observe" onclick="toggleMode(this,'observe')">Audit</span>
+            <span class="mode-btn" onclick="toggleMode(this,'enforce')">Block</span>
+          </span>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <div class="name">NetworkAction</div>
+          <div class="desc">网络操作的默认动作 — 网络连接/监听未匹配任何策略时的处理方式</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="mode-selector">
+            <span class="mode-btn active-observe" onclick="toggleMode(this,'observe')">Audit</span>
+            <span class="mode-btn" onclick="toggleMode(this,'enforce')">Block</span>
+          </span>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <div class="name">CapabilitiesAction</div>
+          <div class="desc">Linux Capabilities的默认动作 — 容器请求的capability未匹配任何策略时的处理方式</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="mode-selector">
+            <span class="mode-btn active-observe" onclick="toggleMode(this,'observe')">Audit</span>
+            <span class="mode-btn" onclick="toggleMode(this,'enforce')">Block</span>
+          </span>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <div class="name">DeviceAction</div>
+          <div class="desc">设备访问的默认动作 — 容器访问设备节点未匹配任何策略时的处理方式</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="mode-selector">
+            <span class="mode-btn active-observe" onclick="toggleMode(this,'observe')">Audit</span>
+            <span class="mode-btn" onclick="toggleMode(this,'enforce')">Block</span>
+          </span>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:12px 16px;border-radius:14px;background:rgba(255,251,235,0.6);border:1px dashed #d97706;font-size:12px;color:#92400e">
+        切换至 <strong>Block</strong> 模式将使所有未明确允许的操作被拒绝。生产环境建议逐步从 Audit 过渡到 Block，避免误阻断正常业务。
+      </div>
+    </div>
+
+    <!-- 面板2: Pod安全上下文模板 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Kubernetes SecurityContext</div>
+          <div class="panel-title">Pod 安全上下文模板</div>
+        </div>
+        <button class="btn-secondary btn-sm">复制 YAML</button>
+      </div>
+      <div class="warn-banner">
+        ClawManager 当前未实现，以下为建议配置。可通过 Kubernetes SecurityContext 和 PodSecurityPolicy 强制应用。
+      </div>
+      <div class="config-row">
+        <span class="config-key">runAsNonRoot</span>
+        <span class="config-val">true</span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">runAsUser</span>
+        <span class="config-val">1000</span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">fsGroup</span>
+        <span class="config-val">2000</span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">allowPrivilegeEscalation</span>
+        <span class="config-val">false</span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">readOnlyRootFilesystem</span>
+        <span class="config-val">false</span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">seccompProfile</span>
+        <span class="config-val">RuntimeDefault</span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">droppedCapabilities</span>
+        <span class="config-val">ALL</span>
+      </div>
+      <div class="config-row">
+        <span class="config-key">addedCapabilities</span>
+        <span class="config-val" style="color:#8f8681">(none)</span>
+      </div>
+      <div style="margin-top:16px">
+        <div class="panel-eyebrow" style="margin-bottom:8px">对应 YAML 片段</div>
+        <div class="code-block"><span class="kw">securityContext:</span>
+  <span class="fn">runAsNonRoot:</span> <span class="str">true</span>
+  <span class="fn">runAsUser:</span> <span class="num">1000</span>
+  <span class="fn">fsGroup:</span> <span class="num">2000</span>
+  <span class="fn">allowPrivilegeEscalation:</span> <span class="str">false</span>
+  <span class="fn">readOnlyRootFilesystem:</span> <span class="str">false</span>
+  <span class="fn">seccompProfile:</span>
+    <span class="fn">type:</span> <span class="str">RuntimeDefault</span>
+  <span class="fn">capabilities:</span>
+    <span class="fn">drop:</span>
+      - <span class="str">ALL</span>
+    <span class="fn">add:</span> []</div>
+      </div>
+    </div>
+
+    <!-- 面板3: AppArmor非特权容器拒绝规则 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">AppArmor Profile</div>
+          <div class="panel-title">非特权容器拒绝规则</div>
+        </div>
+        <span class="badge badge-enforce">Enforce</span>
+      </div>
+      <div class="code-block" style="font-size:11px;line-height:2"><span class="cm"># 阻止容器访问关键 /proc 条目</span>
+<span class="kw">deny</span> <span class="str">/proc/mem</span> rwklx
+<span class="kw">deny</span> <span class="str">/proc/kmem</span> rwklx
+<span class="kw">deny</span> <span class="str">/proc/kcore</span> rwklx
+<span class="kw">deny</span> <span class="str">/proc/sysrq-trigger</span> rwklx
+<span class="kw">deny</span> <span class="str">/proc/{*,**^[0-9*],sys/kernel/shm*}</span> wkx
+
+<span class="cm"># 阻止挂载操作</span>
+<span class="kw">deny</span> <span class="str">mount</span>
+
+<span class="cm"># 阻止 /sys 写入与固件访问</span>
+<span class="kw">deny</span> <span class="str">/sys/[^f]*/**</span> wklx
+<span class="kw">deny</span> <span class="str">/sys/firmware/efi/efivars/**</span> rwklx
+<span class="kw">deny</span> <span class="str">/sys/kernel/security/**</span> rwklx</div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <span class="tag">/proc/mem — 内核内存映像</span>
+        <span class="tag">/proc/kmem — 内核虚拟设备</span>
+        <span class="tag">/proc/kcore — 内核ELF转储</span>
+        <span class="tag">sysrq-trigger — 魔术SysRq</span>
+        <span class="tag">mount — 挂载系统调用</span>
+        <span class="tag">efivars — UEFI固件变量</span>
+        <span class="tag">security/* — LSM接口</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- Tab 2: Capability策略                       -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="tab-content" id="fr29-capability">
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Linux Capabilities</div>
+          <div class="panel-title">容器 Capability 策略矩阵</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <span class="badge badge-critical">高危 7</span>
+          <span class="badge badge-high">中危 7</span>
+          <span class="badge badge-medium">低危 8</span>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>风险等级</th>
+            <th>说明</th>
+            <th>策略</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 高危 -->
+          <tr style="background:rgba(254,226,226,0.3)">
+            <td colspan="4" style="padding:6px 14px">
+              <div class="cap-group-label"><span class="badge badge-critical" style="font-size:10px">高危</span> 必须阻断</div>
+            </td>
+          </tr>
+          <tr>
+            <td><code>sys_admin</code></td>
+            <td><span class="badge badge-critical">Critical</span></td>
+            <td>系统管理 — 挂载文件系统、管理namespace、配置Hostname等</td>
+            <td><span class="badge badge-blocked">Block</span></td>
+          </tr>
+          <tr>
+            <td><code>sys_module</code></td>
+            <td><span class="badge badge-critical">Critical</span></td>
+            <td>内核模块加载 — 可加载恶意内核模块，直接接管内核</td>
+            <td><span class="badge badge-blocked">Block</span></td>
+          </tr>
+          <tr>
+            <td><code>sys_ptrace</code></td>
+            <td><span class="badge badge-critical">Critical</span></td>
+            <td>进程调试/注入 — 可ptrace附加其他进程，读取/修改内存</td>
+            <td><span class="badge badge-blocked">Block</span></td>
+          </tr>
+          <tr>
+            <td><code>sys_rawio</code></td>
+            <td><span class="badge badge-critical">Critical</span></td>
+            <td>原始IO端口访问 — 直接访问硬件I/O端口，可绕过内核保护</td>
+            <td><span class="badge badge-blocked">Block</span></td>
+          </tr>
+          <tr>
+            <td><code>sys_boot</code></td>
+            <td><span class="badge badge-critical">Critical</span></td>
+            <td>系统重启 — 可执行reboot()系统调用，导致DoS</td>
+            <td><span class="badge badge-blocked">Block</span></td>
+          </tr>
+          <tr>
+            <td><code>net_admin</code></td>
+            <td><span class="badge badge-critical">Critical</span></td>
+            <td>网络配置修改 — 可修改路由表、iptables、网络接口配置</td>
+            <td><span class="badge badge-blocked">Block</span></td>
+          </tr>
+          <tr>
+            <td><code>dac_override</code></td>
+            <td><span class="badge badge-critical">Critical</span></td>
+            <td>DAC权限覆盖 — 绕过文件权限检查，可读写任意文件</td>
+            <td><span class="badge badge-blocked">Block</span></td>
+          </tr>
+
+          <!-- 中危 -->
+          <tr style="background:rgba(255,237,213,0.3)">
+            <td colspan="4" style="padding:6px 14px">
+              <div class="cap-group-label"><span class="badge badge-high" style="font-size:10px">中危</span> 建议限制</div>
+            </td>
+          </tr>
+          <tr>
+            <td><code>net_raw</code></td>
+            <td><span class="badge badge-high">High</span></td>
+            <td>原始套接字 — 可构造/嗅探原始网络包，进行网络攻击</td>
+            <td><span class="badge badge-observed">Restrict</span></td>
+          </tr>
+          <tr>
+            <td><code>sys_chroot</code></td>
+            <td><span class="badge badge-high">High</span></td>
+            <td>chroot切换 — 可改变进程根目录，可能用于逃逸</td>
+            <td><span class="badge badge-observed">Restrict</span></td>
+          </tr>
+          <tr>
+            <td><code>sys_nice</code></td>
+            <td><span class="badge badge-high">High</span></td>
+            <td>进程优先级 — 可提升自身优先级，干扰其他进程调度</td>
+            <td><span class="badge badge-observed">Restrict</span></td>
+          </tr>
+          <tr>
+            <td><code>sys_resource</code></td>
+            <td><span class="badge badge-high">High</span></td>
+            <td>资源限制 — 可修改资源限制配置，绕过cgroup约束</td>
+            <td><span class="badge badge-observed">Restrict</span></td>
+          </tr>
+          <tr>
+            <td><code>sys_time</code></td>
+            <td><span class="badge badge-high">High</span></td>
+            <td>系统时钟 — 可修改系统时间，影响日志与证书验证</td>
+            <td><span class="badge badge-observed">Restrict</span></td>
+          </tr>
+          <tr>
+            <td><code>ipc_lock</code></td>
+            <td><span class="badge badge-high">High</span></td>
+            <td>内存锁定 — 可锁定内存页防止交换，影响系统内存</td>
+            <td><span class="badge badge-observed">Restrict</span></td>
+          </tr>
+          <tr>
+            <td><code>mknod</code></td>
+            <td><span class="badge badge-high">High</span></td>
+            <td>设备节点创建 — 可创建字符/块设备节点，访问硬件</td>
+            <td><span class="badge badge-observed">Restrict</span></td>
+          </tr>
+
+          <!-- 低危 -->
+          <tr style="background:rgba(209,250,229,0.3)">
+            <td colspan="4" style="padding:6px 14px">
+              <div class="cap-group-label"><span class="badge badge-low" style="font-size:10px">低危</span> 允许使用</div>
+            </td>
+          </tr>
+          <tr>
+            <td><code>chown</code></td>
+            <td><span class="badge badge-low">Low</span></td>
+            <td>修改文件所有者</td>
+            <td><span class="badge badge-allowed">Allow</span></td>
+          </tr>
+          <tr>
+            <td><code>fowner</code></td>
+            <td><span class="badge badge-low">Low</span></td>
+            <td>绕过文件属主检查</td>
+            <td><span class="badge badge-allowed">Allow</span></td>
+          </tr>
+          <tr>
+            <td><code>fsetid</code></td>
+            <td><span class="badge badge-low">Low</span></td>
+            <td>修改文件set-id位</td>
+            <td><span class="badge badge-allowed">Allow</span></td>
+          </tr>
+          <tr>
+            <td><code>kill</code></td>
+            <td><span class="badge badge-low">Low</span></td>
+            <td>向其他进程发送信号</td>
+            <td><span class="badge badge-allowed">Allow</span></td>
+          </tr>
+          <tr>
+            <td><code>setgid</code></td>
+            <td><span class="badge badge-low">Low</span></td>
+            <td>修改进程GID</td>
+            <td><span class="badge badge-allowed">Allow</span></td>
+          </tr>
+          <tr>
+            <td><code>setuid</code></td>
+            <td><span class="badge badge-low">Low</span></td>
+            <td>修改进程UID</td>
+            <td><span class="badge badge-allowed">Allow</span></td>
+          </tr>
+          <tr>
+            <td><code>net_bind_service</code></td>
+            <td><span class="badge badge-low">Low</span></td>
+            <td>绑定1024以下端口</td>
+            <td><span class="badge badge-allowed">Allow</span></td>
+          </tr>
+          <tr>
+            <td><code>audit_write</code></td>
+            <td><span class="badge badge-low">Low</span></td>
+            <td>写入审计日志</td>
+            <td><span class="badge badge-allowed">Allow</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        <div class="stat-mini" style="background:rgba(254,226,226,0.3);border-radius:14px">
+          <div class="value" style="color:#b91c1c">7</div>
+          <div class="label">高危阻断</div>
+        </div>
+        <div class="stat-mini" style="background:rgba(255,237,213,0.4);border-radius:14px">
+          <div class="value" style="color:#c2410c">7</div>
+          <div class="label">中危限制</div>
+        </div>
+        <div class="stat-mini" style="background:rgba(209,250,229,0.4);border-radius:14px">
+          <div class="value" style="color:#065f46">8</div>
+          <div class="label">低危允许</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- Tab 3: 逃逸检测                             -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="tab-content" id="fr29-escape">
+
+    <!-- 面板1: 特权容器检测 -->
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Container Runtime</div>
+          <div class="panel-title">特权容器检测</div>
+        </div>
+        <span class="badge badge-enforce">实时监控</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="app-panel" style="margin-bottom:0">
+          <div class="panel-eyebrow">Container.Privileged</div>
+          <div style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.8">
+            <code style="background:#f5f1ed;padding:2px 8px;border-radius:6px;font-size:11px">Container.Privileged bool</code>
+            <div style="margin-top:8px">运行时跟踪每个容器的特权状态。当 <code>Privileged=true</code> 时，容器拥有宿主机所有设备访问权限。</div>
+          </div>
+        </div>
+        <div class="app-panel" style="margin-bottom:0">
+          <div class="panel-eyebrow">K8sPod.PrivilegedContainers</div>
+          <div style="font-size:12px;color:var(--text);margin-top:8px;line-height:1.8">
+            <code style="background:#f5f1ed;padding:2px 8px;border-radius:6px;font-size:11px">K8sPod.PrivilegedContainers map[string]ContainerEnd</code>
+            <div style="margin-top:8px">Pod级别维护特权容器映射表，关联Pod与其中所有特权容器的端点信息。</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-eyebrow" style="margin-bottom:8px">特权容器额外权限（容器逃逸主要路径）</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <span class="tag" style="border-color:#fecaca;background:rgba(254,226,226,0.5)"><strong>mount</strong> — 挂载宿主机文件系统</span>
+        <span class="tag" style="border-color:#fecaca;background:rgba(254,226,226,0.5)"><strong>signal</strong> — 向宿主机进程发送信号</span>
+        <span class="tag" style="border-color:#fecaca;background:rgba(254,226,226,0.5)"><strong>unix</strong> — Unix域套接字通信</span>
+        <span class="tag" style="border-color:#fecaca;background:rgba(254,226,226,0.5)"><strong>ptrace</strong> — 进程调试与注入</span>
+      </div>
+    </div>
+
+    <!-- 面板2: KubeArmor 5个预设策略 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">KubeArmor Preset Policies</div>
+          <div class="panel-title">逃逸检测预设策略</div>
+        </div>
+        <span class="badge badge-sys">5 rules</span>
+      </div>
+
+      <!-- Policy 1: anonymousMapExec -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <span class="rule-flag">anonymousMapExec</span>
+            <span class="badge badge-blocked" style="margin-left:8px">Block</span>
+          </div>
+          <span class="badge badge-critical">Critical</span>
+        </div>
+        <div class="rule-desc">
+          <div style="margin-bottom:6px"><strong>LSM Hook:</strong> <code style="background:#f5f1ed;padding:2px 8px;border-radius:6px;font-size:11px">security_mmap_file</code></div>
+          <div><strong>检测逻辑:</strong> 检测通过 <code>mmap</code> 创建的匿名内存页 (MAP_ANONYMOUS) 同时带有 <code>PROT_EXEC</code> 执行权限的映射 — 典型的shellcode注入/无文件恶意代码执行模式。</div>
+        </div>
+      </div>
+
+      <!-- Policy 2: filelessExec -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <span class="rule-flag">filelessExec</span>
+            <span class="badge badge-blocked" style="margin-left:8px">Block</span>
+          </div>
+          <span class="badge badge-critical">Critical</span>
+        </div>
+        <div class="rule-desc">
+          <div style="margin-bottom:6px"><strong>LSM Hook:</strong> <code style="background:#f5f1ed;padding:2px 8px;border-radius:6px;font-size:11px">security_bprm_check</code></div>
+          <div><strong>检测逻辑:</strong> 拦截从非持久化存储路径执行的二进制文件 — 包括 <code>memfd:</code> (内存文件描述符)、<code>/dev/shm/*</code> (共享内存)、<code>/run/shm/*</code> (临时内存文件系统)。这些路径是fileless恶意软件的常见执行载体。</div>
+        </div>
+      </div>
+
+      <!-- Policy 3: protectEnv -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <span class="rule-flag">protectEnv</span>
+            <span class="badge badge-blocked" style="margin-left:8px">Block</span>
+          </div>
+          <span class="badge badge-high">High</span>
+        </div>
+        <div class="rule-desc">
+          <div style="margin-bottom:6px"><strong>LSM Hook:</strong> <code style="background:#f5f1ed;padding:2px 8px;border-radius:6px;font-size:11px">security_file_open</code></div>
+          <div><strong>检测逻辑:</strong> 阻止跨进程读取 <code>/proc/&lt;pid&gt;/environ</code> — 容器内一个进程读取其他进程的环境变量，可能泄露密钥、Token等敏感信息。仅允许进程读取自身的 <code>/proc/self/environ</code>。</div>
+        </div>
+      </div>
+
+      <!-- Policy 4: exec -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <span class="rule-flag">exec</span>
+            <span class="badge badge-observed" style="margin-left:8px">Audit</span>
+          </div>
+          <span class="badge badge-medium">Medium</span>
+        </div>
+        <div class="rule-desc">
+          <div style="margin-bottom:6px"><strong>LSM Hook:</strong> <code style="background:#f5f1ed;padding:2px 8px;border-radius:6px;font-size:11px">security_bprm_check</code></div>
+          <div><strong>检测逻辑:</strong> 审计容器内所有进程执行事件。记录每次 <code>execve</code>/<code>execveat</code> 调用，用于事后安全分析和异常进程行为溯源。不影响正常执行，仅记录审计日志。</div>
+        </div>
+      </div>
+
+      <!-- Policy 5: protectProc -->
+      <div class="rule-card">
+        <div class="rule-header">
+          <div>
+            <span class="rule-flag">protectProc</span>
+            <span class="badge badge-blocked" style="margin-left:8px">Block</span>
+          </div>
+          <span class="badge badge-high">High</span>
+        </div>
+        <div class="rule-desc">
+          <div style="margin-bottom:6px"><strong>LSM Hook:</strong> <code style="background:#f5f1ed;padding:2px 8px;border-radius:6px;font-size:11px">security_file_open</code></div>
+          <div><strong>检测逻辑:</strong> 阻止跨进程访问 <code>/proc/&lt;pid&gt;/*</code> — 防止容器内进程读取其他进程的 <code>cmdline</code>、<code>maps</code>、<code>stat</code>、<code>fd/</code> 等敏感信息，降低信息泄露与逃逸风险。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 面板3: 网络隔离策略 -->
+    <div class="app-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Network Isolation</div>
+          <div class="panel-title">网络隔离策略</div>
+        </div>
+        <span class="badge badge-enforce">Enforce</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="panel-eyebrow" style="margin-bottom:10px">ClawManager NetworkPolicy</div>
+          <div class="network-rule">
+            <div class="nr-label">DNS Resolution</div>
+            <div>DNS (UDP+TCP:53) → <code>kube-system</code> namespace</div>
+          </div>
+          <div class="network-rule">
+            <div class="nr-label">System Services</div>
+            <div>TCP: 80, 443, 8443, 9001, 3128 → <code>system</code> namespace</div>
+          </div>
+        </div>
+        <div>
+          <div class="panel-eyebrow" style="margin-bottom:10px">KubeArmor nftables</div>
+          <div class="network-rule">
+            <div class="nr-label">Container Network Filter</div>
+            <div>nftables <code>ip kubearmor</code> 表 — INPUT/OUTPUT 链容器级网络过滤</div>
+          </div>
+          <div class="network-rule">
+            <div class="nr-label">Default Deny</div>
+            <div>未匹配任何允许规则的流量默认拒绝 (DefaultDeny)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- Tab 4: 容器日志                             -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="tab-content" id="fr29-log">
+    <div class="app-panel-warm">
+      <div class="panel-header">
+        <div>
+          <div class="panel-eyebrow">Container Escape Logs</div>
+          <div class="panel-title">容器逃逸检测日志</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary btn-sm">刷新</button>
+          <button class="btn-secondary btn-sm">导出</button>
+        </div>
+      </div>
+
+      <!-- Log 1 -->
+      <div class="log-entry" style="border-left:4px solid #dc2626">
+        <div class="log-header">
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="log-time">2026-04-30 14:23:17.482</span>
+          <span class="log-id">ESC-001</span>
+        </div>
+        <div class="log-body">
+          特权容器创建尝试 — Pod <code>test-pod-d8f7x</code> 在 namespace <code>default</code> 中以 <code>privileged: true</code> 创建容器，被安全策略拦截。容器尝试获取全部宿主机设备访问权限。
+        </div>
+        <div class="log-detail">
+hostName: node-03
+namespaceName: default
+podName: test-pod-d8f7x
+containerName: test-container
+operation: Capabilities
+resource: CAP_SYS_ADMIN
+action: Block
+source: KubeArmor policy: privileged-container-deny
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">Pod Create</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step">Privileged Check</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca">BLOCKED</span>
+        </div>
+      </div>
+
+      <!-- Log 2 -->
+      <div class="log-entry" style="border-left:4px solid #dc2626">
+        <div class="log-header">
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="log-time">2026-04-30 14:18:05.193</span>
+          <span class="log-id">ESC-002</span>
+        </div>
+        <div class="log-body">
+          无文件执行检测 — 容器 <code>web-app-6c9b2</code> 尝试从 <code>/dev/shm/bash</code> 执行二进制文件，触发 <code>filelessExec</code> 预设策略，已阻断。此为典型fileless恶意软件行为。
+        </div>
+        <div class="log-detail">
+hostName: node-01
+namespaceName: production
+podName: web-app-6c9b2-m4k7p
+containerName: web-app
+processName: /dev/shm/bash
+parentProcessName: /bin/sh
+operation: Process
+resource: /dev/shm/bash
+action: Block
+source: KubeArmor preset: filelessExec
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">execve /dev/shm/bash</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step">security_bprm_check</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step">filelessExec Match</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca">BLOCKED</span>
+        </div>
+      </div>
+
+      <!-- Log 3 -->
+      <div class="log-entry" style="border-left:4px solid #d97706">
+        <div class="log-header">
+          <span class="badge badge-observed">AUDIT</span>
+          <span class="log-time">2026-04-30 13:47:22.631</span>
+          <span class="log-id">ESC-003</span>
+        </div>
+        <div class="log-body">
+          匿名内存映射执行审计 — 容器 <code>data-proc-3a1f</code> 通过 <code>mmap(PROT_EXEC | PROT_WRITE)</code> 从匿名内存页创建可执行映射，触发 <code>anonymousMapExec</code> 预设策略审计告警。可能为JIT编译器正常行为，需人工确认。
+        </div>
+        <div class="log-detail">
+hostName: node-02
+namespaceName: production
+podName: data-proc-3a1f-k8n2q
+containerName: data-processor
+processName: /usr/local/bin/node
+parentProcessName: /usr/local/bin/node
+operation: Network
+resource: mmap(PROT_EXEC, MAP_ANONYMOUS|MAP_PRIVATE)
+action: Audit
+source: KubeArmor preset: anonymousMapExec
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">mmap PROT_EXEC</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step">security_mmap_file</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step">anonymousMapExec Match</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step" style="background:#fef3c7;color:#92400e;border-color:#fde68a">AUDIT</span>
+        </div>
+      </div>
+
+      <!-- Log 4 -->
+      <div class="log-entry" style="border-left:4px solid #dc2626">
+        <div class="log-header">
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="log-time">2026-04-30 13:12:48.907</span>
+          <span class="log-id">ESC-004</span>
+        </div>
+        <div class="log-body">
+          跨进程环境变量读取 — 容器 <code>api-svc-5d2e</code> 中进程 <code>curl</code> (PID 2847) 尝试读取 <code>/proc/1201/environ</code>，触发 <code>protectEnv</code> 预设策略，已阻断。PID 1201 为同容器内 <code>auth-service</code> 进程，环境变量可能包含数据库连接密钥。
+        </div>
+        <div class="log-detail">
+hostName: node-01
+namespaceName: production
+podName: api-svc-5d2e-p9q3r
+containerName: api-server
+processName: /usr/bin/curl
+parentProcessName: /bin/bash
+operation: File
+resource: /proc/1201/environ
+action: Block
+source: KubeArmor preset: protectEnv
+        </div>
+        <div class="log-chain">
+          <span class="log-chain-step">open /proc/1201/environ</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step">security_file_open</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step">protectEnv Match</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step">PID ≠ self</span>
+          <span class="log-chain-arrow">→</span>
+          <span class="log-chain-step" style="background:#fee2e2;color:#b91c1c;border-color:#fecaca">BLOCKED</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /content-area -->
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

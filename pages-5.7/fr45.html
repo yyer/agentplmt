@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr45</title>
+<link rel="stylesheet" href="../css-5.7.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr45">
+
+  <div class="content-area">
+
+<!-- Acceptance Criteria -->
+<div class="app-panel-warm">
+  <div class="panel-header">
+    <div>
+      <div class="panel-eyebrow">Acceptance Criteria</div>
+      <div class="panel-title">验收标准</div>
+    </div>
+    <span class="badge badge-sys">ClawManager + ClawAegis</span>
+  </div>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <div class="check-item" style="flex:1;min-width:240px;border-bottom:none">
+      <div class="check-icon pass">&#10003;</div>
+      <div class="check-info"><div class="check-name">调用链深度可监控</div><div class="check-id">AC-1</div><div class="check-detail">通过 ClawManager InstanceCommand 生命周期追踪（pending&#8594;dispatched&#8594;running&#8594;succeeded/failed）及 Agent 心跳状态，实时构建代理调用树并显示深度指标</div></div>
+    </div>
+    <div class="check-item" style="flex:1;min-width:240px;border-bottom:none">
+      <div class="check-icon pass">&#10003;</div>
+      <div class="check-info"><div class="check-name">循环调用可检测</div><div class="check-id">AC-2</div><div class="check-detail">基于 ClawAegis Loop Guard（allow_count=3, TTL=300000ms）检测 write/edit/apply_patch/exec/bash/memory_store 的重复调用，结合调用链拓扑检测代理间 ping-pong 循环</div></div>
+    </div>
+    <div class="check-item" style="flex:1;min-width:240px;border-bottom:none">
+      <div class="check-icon pass">&#10003;</div>
+      <div class="check-info"><div class="check-name">异常频率超阈值触发告警</div><div class="check-id">AC-3</div><div class="check-detail">集成 ClawAegis Exfiltration Guard（source/transform/sink 信号追踪）和 Dispatch Guard（4 模式组），异常事件频率超过配置阈值时自动触发告警通知</div></div>
+    </div>
+  </div>
+  <div class="config-summary">
+    <div class="config-stat"><div class="val" style="color:#1d4ed8">17</div><div class="lbl">命令类型</div></div>
+    <div class="config-stat"><div class="val" style="color:#c2410c">15s</div><div class="lbl">心跳间隔</div></div>
+    <div class="config-stat"><div class="val" style="color:#b91c1c">3</div><div class="lbl">循环允许次数</div></div>
+    <div class="config-stat"><div class="val" style="color:#7c3aed">5min</div><div class="lbl">循环 TTL</div></div>
+    <div class="config-stat"><div class="val" style="color:#059669">4</div><div class="lbl">Dispatch 模式组</div></div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" data-tab="tab-chain">调用链监控</div>
+  <div class="tab" data-tab="tab-loop">循环检测</div>
+  <div class="tab" data-tab="tab-anomaly">异常模式</div>
+  <div class="tab" data-tab="tab-live">实时监控</div>
+  <div class="tab" data-tab="tab-config">配置</div>
+</div>
+
+<!-- ==================== Tab 1: 调用链监控 ==================== -->
+<div class="tab-content active" id="tab-chain">
+
+  <!-- Architecture Panel -->
+  <div class="app-panel-warm">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Call Chain Architecture</div>
+        <div class="panel-title">多代理调用链追踪架构</div>
+      </div>
+      <span class="badge badge-sys">InstanceCommand Tracking</span>
+    </div>
+    <div class="flow-diagram">
+      <div class="flow-node hub">用户请求<div class="flow-desc">Task Dispatch</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node agent">Agent-A<div class="flow-desc">主控代理</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node agent">Agent-B<div class="flow-desc">执行代理</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node guard">Loop Guard<div class="flow-desc">循环检测</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node guard">Exfil Guard<div class="flow-desc">外泄检测</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flow-node ok">&#10003; 正常完成</div>
+        <div class="flow-node warn">&#9888; 异常告警</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:var(--text);line-height:1.7">
+      基于 ClawManager <code>InstanceCommand</code> 的完整生命周期追踪: <code>pending</code> &#8594; <code>dispatched</code> &#8594; <code>running</code> &#8594; <code>succeeded</code>/<code>failed</code>。
+      每个 Command 包含 <code>instance_id</code>、<code>agent_id</code>、<code>command_type</code>、<code>idempotency_key</code> 及时间戳（<code>issued_at</code>、<code>dispatched_at</code>、<code>started_at</code>、<code>finished_at</code>），
+      结合 <code>InstanceRuntimeStatus</code> 的 <code>OpenClawStatus</code>、<code>AgentStatus</code>、<code>CurrentConfigRevisionID</code> 实时构建调用拓扑。
+    </div>
+  </div>
+
+  <!-- Call Chain Tree Visualization -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Active Call Tree</div>
+        <div class="panel-title">活跃调用链拓扑</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span class="badge badge-running">运行中: 4</span>
+        <span class="badge badge-pending">待处理: 2</span>
+      </div>
+    </div>
+    <div class="chain-tree">
+      <div class="chain-node root">[Agent:alpha-7] InstanceID=12 (calls: 8, status: running)</div>
+      <div style="padding-left:28px">
+        <div><span class="chain-edge">&#9500;&#9472;&#9472;</span> <span class="chain-node child">[Agent:beta-3] InstanceID=15 (calls: 3, status: running)</span></div>
+        <div style="padding-left:28px">
+          <div><span class="chain-edge">&#9492;&#9472;&#9472;</span> <span class="chain-node leaf">[Agent:gamma-1] InstanceID=18 (calls: 1, status: pending)</span></div>
+        </div>
+        <div><span class="chain-edge">&#9500;&#9472;&#9472;</span> <span class="chain-node child">[Agent:delta-9] InstanceID=22 (calls: 5, status: running)</span></div>
+        <div style="padding-left:28px">
+          <div><span class="chain-edge">&#9500;&#9472;&#9472;</span> <span class="chain-node leaf">[Agent:epsilon-2] InstanceID=25 (calls: 2, status: running)</span></div>
+          <div><span class="chain-edge">&#9492;&#9472;&#9472;</span> <span class="chain-node leaf" style="border-color:#f59e0b;color:#92400e;background:#fffbeb">[Agent:zeta-4] InstanceID=28 (calls: 7, status: warn) &#9888; loop-detected</span></div>
+        </div>
+        <div><span class="chain-edge">&#9492;&#9472;&#9472;</span> <span class="chain-node child">[Agent:eta-6] InstanceID=30 (calls: 1, status: pending)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Call Chains Table -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Active Chains</div>
+        <div class="panel-title">活跃调用链数据</div>
+      </div>
+      <button class="btn-secondary btn-sm">导出 CSV</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>Chain ID</th><th>深度</th><th>涉及代理</th><th>开始时间</th><th>持续时间</th><th>状态</th><th>命令数</th><th>风险</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><code>CH-20260501-001</code></td><td>3</td><td>alpha-7, beta-3, gamma-1</td><td>14:23:15</td><td>4m 32s</td><td><span class="badge badge-running">running</span></td><td>12</td><td><span class="badge badge-green">低</span></td></tr>
+          <tr><td><code>CH-20260501-002</code></td><td>4</td><td>alpha-7, delta-9, epsilon-2, zeta-4</td><td>14:18:42</td><td>9m 05s</td><td><span class="badge badge-warn">warn</span></td><td>22</td><td><span class="badge badge-medium">中</span></td></tr>
+          <tr><td><code>CH-20260501-003</code></td><td>2</td><td>theta-5, iota-8</td><td>14:25:08</td><td>2m 39s</td><td><span class="badge badge-running">running</span></td><td>5</td><td><span class="badge badge-green">低</span></td></tr>
+          <tr><td><code>CH-20260501-004</code></td><td>5</td><td>kappa-1, lambda-3, mu-7, nu-2, xi-9</td><td>14:10:33</td><td>17m 14s</td><td><span class="badge badge-high">high</span></td><td>38</td><td><span class="badge badge-high">高</span></td></tr>
+          <tr><td><code>CH-20260501-005</code></td><td>2</td><td>alpha-7, eta-6</td><td>14:26:51</td><td>56s</td><td><span class="badge badge-pending">pending</span></td><td>1</td><td><span class="badge badge-green">低</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Command Lifecycle & Agent Status -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Command Lifecycle</div>
+        <div class="panel-title">命令生命周期追踪 (InstanceCommand)</div>
+      </div>
+      <span class="badge badge-sys">17 Command Types</span>
+    </div>
+    <div class="flow-diagram">
+      <div class="flow-node hub">pending<div class="flow-desc">issued_at</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node agent">dispatched<div class="flow-desc">dispatched_at</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node agent">running<div class="flow-desc">started_at</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flow-node ok">succeeded<div class="flow-desc">finished_at</div></div>
+        <div class="flow-node guard">failed<div class="flow-desc">error_message</div></div>
+      </div>
+    </div>
+    <div style="margin-top:14px;font-size:12px;color:var(--text);line-height:1.7">
+      <strong>Agent 心跳状态字段</strong> (15s 间隔): <code>OpenClawStatus</code>, <code>AgentStatus</code>, <code>CurrentConfigRevisionID</code>, <code>Summary</code><br>
+      <strong>InstanceRuntimeStatus</strong>: <code>InfraStatus</code>, <code>OpenClawPID</code>, <code>OpenClawVersion</code>, <code>SummaryJSON</code>, <code>SystemInfoJSON</code>, <code>HealthJSON</code>, <code>LastReportedAt</code>
+    </div>
+  </div>
+
+  <!-- Threshold Config Panel -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Chain Thresholds</div>
+        <div class="panel-title">调用链阈值配置</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">最大链深度</label>
+        <input type="number" class="form-input" value="6" min="2" max="20">
+        <div class="form-hint">单条调用链的最大代理跳数，超过触发告警</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">单链最大代理数</label>
+        <input type="number" class="form-input" value="8" min="2" max="32">
+        <div class="form-hint">单条调用链涉及的最大代理数量</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">最大并发链数</label>
+        <input type="number" class="form-input" value="20" min="5" max="100">
+        <div class="form-hint">系统中同时活跃的调用链上限</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">链超时阈值 (秒)</label>
+        <input type="number" class="form-input" value="600" min="60" max="7200">
+        <div class="form-hint">调用链持续运行超时秒数，默认 10 分钟</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- InstanceCommand detail: Recent Commands -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Recent InstanceCommands</div>
+        <div class="panel-title">近期命令追踪明细</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>ID</th><th>InstanceID</th><th>AgentID</th><th>CommandType</th><th>Status</th><th>IdempotencyKey</th><th>IssuedAt</th><th>Timeout</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>1042</td><td>12</td><td><code>alpha-7</code></td><td><code>config_update</code></td><td><span class="badge badge-running">running</span></td><td><code>ik-a7-cfg-001</code></td><td>14:23:15</td><td>300s</td></tr>
+          <tr><td>1043</td><td>15</td><td><code>beta-3</code></td><td><code>skill_invoke</code></td><td><span class="badge badge-running">running</span></td><td><code>ik-b3-skl-002</code></td><td>14:23:18</td><td>120s</td></tr>
+          <tr><td>1044</td><td>22</td><td><code>delta-9</code></td><td><code>restart</code></td><td><span class="badge badge-allowed">succeeded</span></td><td><code>ik-d9-rst-003</code></td><td>14:20:05</td><td>180s</td></tr>
+          <tr><td>1045</td><td>28</td><td><code>zeta-4</code></td><td><code>exec</code></td><td><span class="badge badge-blocked">failed</span></td><td><code>ik-z4-exec-004</code></td><td>14:22:44</td><td>60s</td></tr>
+          <tr><td>1046</td><td>30</td><td><code>eta-6</code></td><td><code>reload_config</code></td><td><span class="badge badge-pending">pending</span></td><td><code>ik-e6-rcf-005</code></td><td>14:26:51</td><td>120s</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-chain -->
+
+<!-- ==================== Tab 2: 循环检测 ==================== -->
+<div class="tab-content" id="tab-loop">
+
+  <!-- Loop Guard Overview -->
+  <div class="app-panel-warm">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Loop Guard Integration</div>
+        <div class="panel-title">ClawAegis Loop Guard 集成</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="badge badge-enforce">enforce 模式</span>
+        <span class="badge badge-sys">Strategy #10</span>
+      </div>
+    </div>
+    <div class="flow-diagram">
+      <div class="flow-node hub">工具调用<div class="flow-desc">write/edit/patch/exec/bash/memory</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node guard">buildStableArgsKey<div class="flow-desc">sessionKey|runId|stableArgsKey</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div class="flow-node guard">incrementLoopCounter<div class="flow-desc">count &lt;= ALLOW_COUNT?</div></div>
+      <div class="flow-arrow">&#10140;</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="flow-node ok">within_budget<div class="flow-desc">count &lt;= 3</div></div>
+        <div class="flow-node guard">blocked<div class="flow-desc">count &gt; 3, BLOCK_REASON_LOOP</div></div>
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:var(--text);line-height:1.7">
+      <strong>Loop Guard 核心参数</strong>: <code>LOOP_GUARD_ALLOW_COUNT=3</code>（每个 sessionKey+runId+stableArgsKey 组合允许 3 次重复调用），
+      <code>LOOP_GUARD_TTL_MS=300000</code>（5 分钟滑动窗口后计数器自动重置）。
+      <br><strong>StableArgsKey 构建逻辑</strong>: 对 <code>read</code>/<code>write</code>/<code>edit</code> 基于路径（path-based），对 <code>exec</code>/<code>bash</code> 基于哈希（hash-based），对 <code>apply_patch</code> 基于路径+内容哈希，对 <code>memory_store</code> 基于 category+text 哈希。
+      <br><strong>适用工具集</strong>: <code>write</code>, <code>edit</code>, <code>apply_patch</code>, <code>exec</code>, <code>bash</code>, <code>memory_store</code>
+    </div>
+    <div class="config-summary">
+      <div class="config-stat"><div class="val" style="color:#b91c1c">3</div><div class="lbl">允许重复次数</div></div>
+      <div class="config-stat"><div class="val" style="color:#7c3aed">300s</div><div class="lbl">TTL 窗口</div></div>
+      <div class="config-stat"><div class="val" style="color:#1d4ed8">6</div><div class="lbl">监控工具数</div></div>
+      <div class="config-stat"><div class="val" style="color:#059669">2</div><div class="lbl">Key 构建策略</div></div>
+    </div>
+  </div>
+
+  <!-- Loop Detection Rule Cards -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Detection Rules</div>
+        <div class="panel-title">循环检测规则</div>
+      </div>
+    </div>
+
+    <!-- Simple Loop -->
+    <div class="rule-card">
+      <div class="rule-header">
+        <div><span class="rule-flag">LOOP-SIMPLE</span> <span class="rule-title" style="margin-left:8px">简单循环 - 同工具同参数重复</span></div>
+        <div style="display:flex;gap:6px"><span class="badge badge-enforce">强制</span><span class="badge badge-high">高危</span></div>
+      </div>
+      <div class="rule-desc">同一代理在 LOOP_GUARD_TTL_MS (300000ms) 窗口内对同一工具使用相同参数重复调用超过 LOOP_GUARD_ALLOW_COUNT (3) 次。ClawAegis Loop Guard 直接通过 <code>sessionKey|runId|stableArgsKey</code> 键值对计数检测。</div>
+      <div class="rule-patterns">
+        <span class="rule-pattern">write</span><span class="rule-pattern">edit</span><span class="rule-pattern">apply_patch</span><span class="rule-pattern">exec</span><span class="rule-pattern">bash</span><span class="rule-pattern">memory_store</span>
+      </div>
+      <div class="rule-meta">
+        <div class="rule-meta-item">&#9201; TTL: 300000ms</div>
+        <div class="rule-meta-item">&#128284; 阈值: 3 次</div>
+        <div class="rule-meta-item">&#128274; 动作: BLOCK_REASON_LOOP</div>
+        <div class="rule-meta-item">&#128230; Key: path-based (read/write/edit)</div>
+      </div>
+      <div class="code-block" style="margin-top:10px"><span class="cmt">// ClawAegis security-strategies.ts - Strategy #10 loop_guard</span>
+<span class="kw">if</span> (count > LOOP_GUARD_ALLOW_COUNT) {
+  <span class="kw">return</span> { ...<span class="fn">resolveMatchedResult</span>(mode, BLOCK_REASON_LOOP, { count }),
+    emitResultLog: !<span class="fn">isModeEnforced</span>(mode), level: <span class="str">"warn"</span> };
+}</div>
+    </div>
+
+    <!-- Cross-tool Loop -->
+    <div class="rule-card">
+      <div class="rule-header">
+        <div><span class="rule-flag">LOOP-CROSS-TOOL</span> <span class="rule-title" style="margin-left:8px">跨工具循环 - write&#8594;read&#8594;write 模式</span></div>
+        <div style="display:flex;gap:6px"><span class="badge badge-observe">观察</span><span class="badge badge-medium">中危</span></div>
+      </div>
+      <div class="rule-desc">代理在短时间内执行 write &#8594; read &#8594; write 的跨工具循环模式，即先写入文件、再读取同一文件、又修改同一文件，形成语义上的循环。此类跨工具循环需要结合 InstanceCommand 时间序列分析，当前为观察模式。</div>
+      <div class="rule-patterns">
+        <span class="rule-pattern">write&#8594;read&#8594;write</span><span class="rule-pattern">edit&#8594;read&#8594;edit</span><span class="rule-pattern">apply_patch&#8594;read&#8594;apply_patch</span>
+      </div>
+      <div class="rule-meta">
+        <div class="rule-meta-item">&#9201; 窗口: 60s</div>
+        <div class="rule-meta-item">&#128284; 阈值: 2 轮</div>
+        <div class="rule-meta-item">&#128065; 动作: 记录并告警</div>
+        <div class="rule-meta-item">&#128270; 检测: 命令序列模式匹配</div>
+      </div>
+    </div>
+
+    <!-- Agent Ping-Pong -->
+    <div class="rule-card">
+      <div class="rule-header">
+        <div><span class="rule-flag">LOOP-PING-PONG</span> <span class="rule-title" style="margin-left:8px">代理乒乓 - AgentA&#8594;AgentB&#8594;AgentA 往返</span></div>
+        <div style="display:flex;gap:6px"><span class="badge badge-enforce">强制</span><span class="badge badge-critical">严重</span></div>
+      </div>
+      <div class="rule-desc">两个或多个代理之间形成互相调用链，如 AgentA 调用 AgentB、AgentB 又回调 AgentA，形成乒乓式循环。通过调用链拓扑分析检测闭环路径。当检测到 AgentA &#8594; AgentB &#8594; AgentA 的闭环时立即触发阻断，避免无限递归消耗资源。</div>
+      <div class="rule-patterns">
+        <span class="rule-pattern">A&#8594;B&#8594;A</span><span class="rule-pattern">A&#8594;B&#8594;C&#8594;A</span><span class="rule-pattern">A&#8594;B&#8594;A&#8594;B</span>
+      </div>
+      <div class="rule-meta">
+        <div class="rule-meta-item">&#9201; 窗口: 300s</div>
+        <div class="rule-meta-item">&#128284; 阈值: 1 次闭环</div>
+        <div class="rule-meta-item">&#128274; 动作: 阻断并告警</div>
+        <div class="rule-meta-item">&#128270; 检测: 有向图环检测</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-time Loop Counter -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Loop Counters</div>
+        <div class="panel-title">实时循环计数器</div>
+      </div>
+      <span class="badge badge-sys">sessionKey | runId | stableArgsKey</span>
+    </div>
+    <div style="margin-bottom:12px;font-size:12px;color:var(--text)">当前活跃的 Loop Guard 计数器（显示每个 sessionKey+runId+stableArgsKey 组合的调用计数，阈值 = 3）:</div>
+
+    <div class="loop-counter-bar">
+      <span class="tag" style="min-width:200px;font-family:monospace;font-size:10px">sess-01|r-042|write:/app/config.yaml</span>
+      <div class="loop-counter-track"><div class="loop-counter-fill green" style="width:33%"></div></div>
+      <span class="loop-counter-label">1/3</span>
+      <span class="badge badge-green">正常</span>
+    </div>
+    <div class="loop-counter-bar">
+      <span class="tag" style="min-width:200px;font-family:monospace;font-size:10px">sess-01|r-042|edit:/src/index.ts</span>
+      <div class="loop-counter-track"><div class="loop-counter-fill yellow" style="width:67%"></div></div>
+      <span class="loop-counter-label">2/3</span>
+      <span class="badge badge-warn">接近阈值</span>
+    </div>
+    <div class="loop-counter-bar">
+      <span class="tag" style="min-width:200px;font-family:monospace;font-size:10px">sess-02|r-018|exec:sha256:a3f2...</span>
+      <div class="loop-counter-track"><div class="loop-counter-fill red" style="width:100%"></div></div>
+      <span class="loop-counter-label">4/3</span>
+      <span class="badge badge-blocked">已阻断</span>
+    </div>
+    <div class="loop-counter-bar">
+      <span class="tag" style="min-width:200px;font-family:monospace;font-size:10px">sess-03|r-007|memory_store:sha256:7bc1...</span>
+      <div class="loop-counter-track"><div class="loop-counter-fill green" style="width:33%"></div></div>
+      <span class="loop-counter-label">1/3</span>
+      <span class="badge badge-green">正常</span>
+    </div>
+    <div class="loop-counter-bar">
+      <span class="tag" style="min-width:200px;font-family:monospace;font-size:10px">sess-01|r-042|bash:sha256:e9d4...</span>
+      <div class="loop-counter-track"><div class="loop-counter-fill yellow" style="width:67%"></div></div>
+      <span class="loop-counter-label">2/3</span>
+      <span class="badge badge-warn">接近阈值</span>
+    </div>
+  </div>
+
+  <!-- Loop Detection Toggle Panel -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Detection Controls</div>
+        <div class="panel-title">循环检测控制</div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">简单循环检测 (LOOP-SIMPLE)</div>
+        <div class="desc">同一工具+同一参数的重复调用检测，基于 ClawAegis Loop Guard</div>
+      </div>
+      <div style="display:flex;align-items:center">
+        <div class="mode-selector">
+          <div class="mode-btn active-enforce">强制</div>
+          <div class="mode-btn">观察</div>
+          <div class="mode-btn">关闭</div>
+        </div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">跨工具循环检测 (LOOP-CROSS-TOOL)</div>
+        <div class="desc">write&#8594;read&#8594;write 等跨工具循环模式检测</div>
+      </div>
+      <div style="display:flex;align-items:center">
+        <div class="mode-selector">
+          <div class="mode-btn">强制</div>
+          <div class="mode-btn active-observe">观察</div>
+          <div class="mode-btn">关闭</div>
+        </div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">代理乒乓检测 (LOOP-PING-PONG)</div>
+        <div class="desc">AgentA&#8594;AgentB&#8594;AgentA 闭环调用检测</div>
+      </div>
+      <div style="display:flex;align-items:center">
+        <div class="mode-selector">
+          <div class="mode-btn active-enforce">强制</div>
+          <div class="mode-btn">观察</div>
+          <div class="mode-btn">关闭</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:16px">
+      <div class="form-group">
+        <label class="form-label">循环阈值 (允许重复次数)</label>
+        <select class="form-select">
+          <option value="3" selected>3 次 (默认)</option>
+          <option value="5">5 次</option>
+          <option value="10">10 次</option>
+        </select>
+        <div class="form-hint">对应 LOOP_GUARD_ALLOW_COUNT，超过此值触发阻断/告警</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">TTL 窗口 (毫秒)</label>
+        <select class="form-select">
+          <option value="300000" selected>300000ms (5 分钟, 默认)</option>
+          <option value="600000">600000ms (10 分钟)</option>
+          <option value="120000">120000ms (2 分钟)</option>
+        </select>
+        <div class="form-hint">对应 LOOP_GUARD_TTL_MS，窗口过后计数器自动重置</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- StableArgsKey Building Logic Detail -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Key Building Logic</div>
+        <div class="panel-title">StableArgsKey 构建逻辑</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>工具名</th><th>Key 构建策略</th><th>示例 Key</th><th>去重逻辑</th></tr></thead>
+        <tbody>
+          <tr><td><code>read</code></td><td>Path-based</td><td><code>read:/app/src/main.ts</code></td><td>基于文件路径规范化去重</td></tr>
+          <tr><td><code>write</code></td><td>Path + Content Hash</td><td><code>write:/app/cfg.yaml:a3f2b8...</code></td><td>路径+内容哈希，同路径不同内容视为不同调用</td></tr>
+          <tr><td><code>edit</code></td><td>Path + Content Hash</td><td><code>edit:/src/index.ts:e9d4c1...</code></td><td>基于 newText 内容哈希</td></tr>
+          <tr><td><code>apply_patch</code></td><td>Paths Hash + Content Hash</td><td><code>apply_patch:7bc1d3...</code></td><td>所有涉及路径+完整 patch 内容联合哈希</td></tr>
+          <tr><td><code>exec</code> / <code>bash</code></td><td>Hash-based</td><td><code>exec:sha256:e9d4...</code></td><td>workdir+规范化命令文本联合哈希</td></tr>
+          <tr><td><code>memory_store</code></td><td>Content Hash</td><td><code>memory_store:sha256:f1a2...</code></td><td>category+text 内容联合哈希</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-loop -->
+
+<!-- ==================== Tab 3: 异常模式 ==================== -->
+<div class="tab-content" id="tab-anomaly">
+
+  <!-- Anomaly Overview -->
+  <div class="app-panel-warm">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Anomaly Detection Engine</div>
+        <div class="panel-title">异常协同模式检测引擎</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <span class="badge badge-sys">Exfiltration Guard</span>
+        <span class="badge badge-sys">Dispatch Guard</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text);line-height:1.7">
+      异常检测引擎综合使用 ClawAegis 的 Exfiltration Guard（追踪 <code>sourceSignals</code>、<code>transformSignals</code>、<code>sinkSignals</code> 信号流）、
+      Dispatch Guard（4 模式组: openclaw-cli、destructive-path、destructive-intent、bypass-tool-call）以及
+      调用链拓扑分析，检测以下五类协同异常模式。每类模式包含检测逻辑、阈值配置、严重级别和自动化响应动作。
+    </div>
+  </div>
+
+  <!-- Rule Card 1: Fan-out Explosion -->
+  <div class="rule-card">
+    <div class="rule-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="anomaly-severity critical"></span>
+        <span class="rule-flag">ANOMALY-FANOUT</span>
+        <span class="rule-title" style="margin-left:8px">扇出爆炸 - 1&#8594;N&#8594;N&#178; 调用扩散</span>
+      </div>
+      <div style="display:flex;gap:6px"><span class="badge badge-critical">严重</span><span class="badge badge-enforce">强制</span></div>
+    </div>
+    <div class="rule-desc">单个代理在短时间内向大量下游代理发起并行调用，且下游代理各自继续扩散，形成指数级扇出。这通常由失控的任务分解或恶意代理的拒绝服务攻击引起，可导致系统资源耗尽。检测方式: 监控每个代理的出度（out-degree）和调用链树的总节点数增长率。</div>
+    <div class="rule-patterns">
+      <span class="rule-pattern">out-degree &gt; 8</span><span class="rule-pattern">tree-size &gt; 50</span><span class="rule-pattern">growth-rate &gt; 10/min</span>
+    </div>
+    <div class="rule-meta">
+      <div class="rule-meta-item">&#128270; 检测: 单代理出度 + 树总节点数 + 增长率</div>
+      <div class="rule-meta-item">&#128284; 阈值: 出度&gt;8, 节点&gt;50</div>
+      <div class="rule-meta-item">&#9888; 严重性: Critical</div>
+      <div class="rule-meta-item">&#128274; 动作: 阻断新增调用 + 告警</div>
+    </div>
+    <div class="code-block" style="margin-top:10px"><span class="cmt">// 检测逻辑伪代码</span>
+<span class="kw">if</span> (agent.outDegree > FANOUT_LIMIT || chainTreeNodeCount > TREE_SIZE_LIMIT) {
+  <span class="fn">blockNewCalls</span>(agent.id, <span class="str">"fan-out-explosion"</span>);
+  <span class="fn">emitAlert</span>(<span class="str">"ANOMALY-FANOUT"</span>, severity=<span class="str">"critical"</span>);
+}</div>
+  </div>
+
+  <!-- Rule Card 2: Conflict Escalation -->
+  <div class="rule-card">
+    <div class="rule-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="anomaly-severity high"></span>
+        <span class="rule-flag">ANOMALY-CONFLICT</span>
+        <span class="rule-title" style="margin-left:8px">冲突升级 - 矛盾命令发送至同一代理</span>
+      </div>
+      <div style="display:flex;gap:6px"><span class="badge badge-high">高危</span><span class="badge badge-enforce">强制</span></div>
+    </div>
+    <div class="rule-desc">多个上游代理向同一目标代理发送相互矛盾的命令（如一个要求 start、另一个要求 stop），导致目标代理状态混乱或反复重启。通过 InstanceCommand 的 <code>idempotency_key</code> 和 <code>command_type</code> 冲突检测，结合 <code>CurrentConfigRevisionID</code> 版本不一致分析。</div>
+    <div class="rule-patterns">
+      <span class="rule-pattern">conflicting-commands</span><span class="rule-pattern">revision-mismatch</span><span class="rule-pattern">status-flapping</span>
+    </div>
+    <div class="rule-meta">
+      <div class="rule-meta-item">&#128270; 检测: 相同 InstanceID 的矛盾 command_type</div>
+      <div class="rule-meta-item">&#128284; 阈值: 矛盾命令 &gt;= 2 对</div>
+      <div class="rule-meta-item">&#9888; 严重性: High</div>
+      <div class="rule-meta-item">&#128274; 动作: 暂停目标代理 + 人工审批</div>
+    </div>
+    <div class="log-detail" style="margin-top:10px">
+冲突检测示例: InstanceID=22 同时收到<br>
+  [delta-9] command_type=restart, idempotency_key=ik-d9-rst<br>
+  [epsilon-2] command_type=stop, idempotency_key=ik-e2-stp<br>
+&#8594; 检测到 restart vs stop 矛盾对，触发 CONFLICT 告警
+    </div>
+  </div>
+
+  <!-- Rule Card 3: Deadlock -->
+  <div class="rule-card">
+    <div class="rule-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="anomaly-severity high"></span>
+        <span class="rule-flag">ANOMALY-DEADLOCK</span>
+        <span class="rule-title" style="margin-left:8px">死锁 - 代理间互相等待</span>
+      </div>
+      <div style="display:flex;gap:6px"><span class="badge badge-high">高危</span><span class="badge badge-enforce">强制</span></div>
+    </div>
+    <div class="rule-desc">两个或多个代理形成循环等待依赖，如 AgentA 等待 AgentB 的返回、AgentB 又等待 AgentA 的返回，导致所有涉及代理永久阻塞。通过 InstanceCommand 的 <code>status=running</code> 但无 <code>finished_at</code> 的超时检测，结合等待图（wait-for graph）的环检测算法分析。</div>
+    <div class="rule-patterns">
+      <span class="rule-pattern">circular-wait</span><span class="rule-pattern">timeout-no-finish</span><span class="rule-pattern">wait-for-cycle</span>
+    </div>
+    <div class="rule-meta">
+      <div class="rule-meta-item">&#128270; 检测: Wait-for graph 环检测 + 超时</div>
+      <div class="rule-meta-item">&#128284; 阈值: 环检测 1 次 + 超时 300s</div>
+      <div class="rule-meta-item">&#9888; 严重性: High</div>
+      <div class="rule-meta-item">&#128274; 动作: 中断最年轻等待 + 告警</div>
+    </div>
+  </div>
+
+  <!-- Rule Card 4: Resource Starvation -->
+  <div class="rule-card">
+    <div class="rule-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="anomaly-severity medium"></span>
+        <span class="rule-flag">ANOMALY-STARVATION</span>
+        <span class="rule-title" style="margin-left:8px">资源饥饿 - 单代理消耗全部令牌</span>
+      </div>
+      <div style="display:flex;gap:6px"><span class="badge badge-medium">中危</span><span class="badge badge-observe">观察</span></div>
+    </div>
+    <div class="rule-desc">某个代理持续发起大量工具调用或消耗大量 token，导致其他代理因配额不足而无法执行任务。结合 ClawManager 的 Quota 系统和 CostRecord 追踪，当单个代理的资源消耗占比超过阈值时触发告警。Exfiltration Guard 的信号追踪也可辅助识别异常资源消耗模式。</div>
+    <div class="rule-patterns">
+      <span class="rule-pattern">token-ratio &gt; 80%</span><span class="rule-pattern">call-rate &gt; 30/min</span><span class="rule-pattern">quota-exhausted</span>
+    </div>
+    <div class="rule-meta">
+      <div class="rule-meta-item">&#128270; 检测: 单代理 token 占比 + 调用频率</div>
+      <div class="rule-meta-item">&#128284; 阈值: 占比&gt;80%, 频率&gt;30/min</div>
+      <div class="rule-meta-item">&#9888; 严重性: Medium</div>
+      <div class="rule-meta-item">&#128065; 动作: 记录 + 速率限制建议</div>
+    </div>
+  </div>
+
+  <!-- Rule Card 5: Cascading Failure -->
+  <div class="rule-card">
+    <div class="rule-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="anomaly-severity critical"></span>
+        <span class="rule-flag">ANOMALY-CASCADE</span>
+        <span class="rule-title" style="margin-left:8px">级联故障 - 错误沿调用链传播</span>
+      </div>
+      <div style="display:flex;gap:6px"><span class="badge badge-critical">严重</span><span class="badge badge-enforce">强制</span></div>
+    </div>
+    <div class="rule-desc">调用链中某个代理失败（InstanceCommand status=failed + error_message 非空），错误沿调用链向上游传播导致更多代理失败。结合 Exfiltration Guard 的 runtimeRiskFlags 和 Dispatch Guard 的 blocked 标记，追踪错误在调用树中的传播路径。当一条链中连续 2 个以上代理失败时触发级联故障告警。</div>
+    <div class="rule-patterns">
+      <span class="rule-pattern">chain-failures &gt;= 2</span><span class="rule-pattern">error-propagation</span><span class="rule-pattern">runtimeRiskFlags accumulation</span>
+    </div>
+    <div class="rule-meta">
+      <div class="rule-meta-item">&#128270; 检测: 调用链连续失败节点 + runtimeRiskFlags</div>
+      <div class="rule-meta-item">&#128284; 阈值: 连续失败 &gt;= 2 节点</div>
+      <div class="rule-meta-item">&#9888; 严重性: Critical</div>
+      <div class="rule-meta-item">&#128274; 动作: 隔离失败子树 + 降级</div>
+    </div>
+    <div class="code-block" style="margin-top:10px"><span class="cmt">// Exfiltration Guard runtimeRiskFlags 追踪</span>
+<span class="kw">const</span> runtimeRiskFlags = [
+  <span class="str">"sensitive-source-transform-sink-chain"</span>,
+  <span class="str">"encoded-secret-outbound-chain"</span>,
+  <span class="str">"legacy-service-script-chain"</span>,
+  <span class="str">"encoded-outbound-chain-risk"</span>,
+  <span class="str">"suspicious-outbound-service-script"</span>
+];</div>
+  </div>
+
+  <!-- Dispatch Guard Integration -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Dispatch Guard Patterns</div>
+        <div class="panel-title">Dispatch Guard 模式组集成</div>
+      </div>
+      <span class="badge badge-enforce">enforce 模式</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>模式组</th><th>检测模式</th><th>标志</th><th>严重性</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>openclaw-cli</code></td><td><code>openclaw reset|uninstall|remove</code></td><td>openclaw-cli-command</td><td><span class="badge badge-high">高危</span></td><td>检测对 OpenClaw CLI 控制命令的调用</td></tr>
+          <tr><td><code>destructive-path</code></td><td><code>rm .openclaw/*</code></td><td>destructive-path-command</td><td><span class="badge badge-high">高危</span></td><td>检测对受保护路径的破坏性操作</td></tr>
+          <tr><td><code>destructive-intent</code></td><td>删除 skill/插件/配置</td><td>destructive-intent</td><td><span class="badge badge-medium">中危</span></td><td>检测中文语境的破坏性意图</td></tr>
+          <tr><td><code>bypass-tool-call</code></td><td>绕过 tool call / hook</td><td>bypass-tool-call</td><td><span class="badge badge-medium">中危</span></td><td>检测绕过标准工具调用的请求</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-anomaly -->
+
+<!-- ==================== Tab 4: 实时监控 ==================== -->
+<div class="tab-content" id="tab-live">
+
+  <!-- Health Score + Stats Row -->
+  <div style="display:flex;gap:22px;margin-bottom:22px;flex-wrap:wrap">
+    <div class="app-panel-warm" style="flex:0 0 auto;display:flex;align-items:center;gap:24px;padding:22px 32px">
+      <div class="score-circle score-med">
+        <span class="score-num">72</span>
+        <span class="score-label">交互健康</span>
+      </div>
+      <div>
+        <div style="font-size:1.05rem;font-weight:700;color:var(--text-h)">交互健康评分</div>
+        <div style="font-size:12px;color:var(--text);margin-top:4px;line-height:1.5">
+          综合评分基于: 调用链深度分布、循环检测命中率、<br>异常模式频率、命令成功率、心跳延迟
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <span class="badge badge-warn">中等</span>
+          <span class="badge badge-sys">最近 5 分钟</span>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+      <div class="app-panel" style="padding:16px;text-align:center">
+        <div class="stat-mini"><div class="value" style="color:#1d4ed8">5</div><div class="label">活跃链</div></div>
+      </div>
+      <div class="app-panel" style="padding:16px;text-align:center">
+        <div class="stat-mini"><div class="value" style="color:#c2410c">5</div><div class="label">最大深度</div></div>
+      </div>
+      <div class="app-panel" style="padding:16px;text-align:center">
+        <div class="stat-mini"><div class="value" style="color:#b91c1c">3</div><div class="label">检测循环</div></div>
+      </div>
+      <div class="app-panel" style="padding:16px;text-align:center">
+        <div class="stat-mini"><div class="value" style="color:#92400e">2</div><div class="label">异常告警</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Additional Stats Row -->
+  <div class="config-summary" style="margin-bottom:22px">
+    <div class="config-stat"><div class="val" style="color:#059669">87%</div><div class="lbl">命令成功率</div></div>
+    <div class="config-stat"><div class="val" style="color:#1d4ed8">14.2s</div><div class="lbl">平均心跳延迟</div></div>
+    <div class="config-stat"><div class="val" style="color:#c2410c">38</div><div class="lbl">活跃命令数</div></div>
+    <div class="config-stat"><div class="val" style="color:#7c3aed">12</div><div class="lbl">监控代理数</div></div>
+    <div class="config-stat"><div class="val" style="color:#b91c1c">1</div><div class="lbl">阻断操作数</div></div>
+    <div class="config-stat"><div class="val" style="color:#059669">0</div><div class="lbl">死锁检测</div></div>
+  </div>
+
+  <!-- Real-time Event Log -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Live Event Stream</div>
+        <div class="panel-title">实时交互事件流</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary btn-sm">暂停</button>
+        <button class="btn-secondary btn-sm">清除</button>
+        <button class="btn-secondary btn-sm">过滤</button>
+      </div>
+    </div>
+    <div class="event-log-panel">
+      <div class="event-row">
+        <span class="event-ts">14:27:33</span>
+        <span class="event-badge"><span class="badge badge-running">agent-call</span></span>
+        <span class="event-msg"><code>alpha-7</code> &#8594; <code>beta-3</code>: 调用 skill_invoke (InstanceID=15)</span>
+        <span class="event-chain">CH-001 d:2</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:31</span>
+        <span class="event-badge"><span class="badge badge-allowed">dispatch</span></span>
+        <span class="event-msg"><code>eta-6</code>: command <code>reload_config</code> 状态变更 pending &#8594; dispatched</span>
+        <span class="event-chain">CH-005 d:1</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:28</span>
+        <span class="event-badge"><span class="badge badge-blocked">loop</span></span>
+        <span class="event-msg"><code>zeta-4</code>: Loop Guard 阻断 exec 调用 (count=4, key=sess-02|r-018|exec:sha256:a3f2...)</span>
+        <span class="event-chain">CH-002 d:4</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:25</span>
+        <span class="event-badge"><span class="badge badge-warn">anomaly</span></span>
+        <span class="event-msg"><code>kappa-1</code>: 扇出超过阈值 (out-degree=9, limit=8), 触发 ANOMALY-FANOUT</span>
+        <span class="event-chain">CH-004 d:5</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:22</span>
+        <span class="event-badge"><span class="badge badge-allowed">dispatch</span></span>
+        <span class="event-msg"><code>delta-9</code>: command <code>restart</code> 状态变更 running &#8594; succeeded (took 73s)</span>
+        <span class="event-chain">CH-002 d:3</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:18</span>
+        <span class="event-badge"><span class="badge badge-warn">anomaly</span></span>
+        <span class="event-msg"><code>kappa-1</code> &#8594; <code>lambda-3</code> &#8594; <code>mu-7</code> &#8594; <code>nu-2</code> &#8594; <code>xi-9</code>: 调用链深度 5 超过建议值</span>
+        <span class="event-chain">CH-004 d:5</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:15</span>
+        <span class="event-badge"><span class="badge badge-running">agent-call</span></span>
+        <span class="event-msg"><code>beta-3</code> &#8594; <code>gamma-1</code>: 调用 read (InstanceID=18)</span>
+        <span class="event-chain">CH-001 d:3</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:12</span>
+        <span class="event-badge"><span class="badge badge-allowed">heartbeat</span></span>
+        <span class="event-msg"><code>alpha-7</code>: 心跳上报 (OpenClawStatus=running, AgentStatus=active, ConfigRev=42)</span>
+        <span class="event-chain">--</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:08</span>
+        <span class="event-badge"><span class="badge badge-blocked">loop</span></span>
+        <span class="event-msg"><code>zeta-4</code> &#8594; <code>epsilon-2</code> &#8594; <code>zeta-4</code>: 检测到乒乓循环 (LOOP-PING-PONG), 已阻断</span>
+        <span class="event-chain">CH-002 d:4</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:05</span>
+        <span class="event-badge"><span class="badge badge-warn">dispatch</span></span>
+        <span class="event-msg">Dispatch Guard 检测到 <code>openclaw reset</code> 意图 (flag: openclaw-cli-command), 已拦截</span>
+        <span class="event-chain">--</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:27:01</span>
+        <span class="event-badge"><span class="badge badge-running">status</span></span>
+        <span class="event-msg"><code>zeta-4</code>: InstanceCommand #1045 exec 状态变更 running &#8594; failed (error: BLOCK_REASON_LOOP)</span>
+        <span class="event-chain">CH-002 d:4</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:26:55</span>
+        <span class="event-badge"><span class="badge badge-allowed">heartbeat</span></span>
+        <span class="event-msg"><code>delta-9</code>: 心跳上报 (OpenClawStatus=running, AgentStatus=active, ConfigRev=39)</span>
+        <span class="event-chain">--</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:26:51</span>
+        <span class="event-badge"><span class="badge badge-running">agent-call</span></span>
+        <span class="event-msg"><code>alpha-7</code> &#8594; <code>eta-6</code>: 发起 reload_config (idempotency_key=ik-e6-rcf-005)</span>
+        <span class="event-chain">CH-005 d:1</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:26:44</span>
+        <span class="event-badge"><span class="badge badge-warn">exfil</span></span>
+        <span class="event-msg"><code>theta-5</code>: Exfiltration Guard 检测到部分链路 (source+transform, no sink), 观察模式记录</span>
+        <span class="event-chain">CH-003 d:2</span>
+      </div>
+      <div class="event-row">
+        <span class="event-ts">14:26:38</span>
+        <span class="event-badge"><span class="badge badge-allowed">heartbeat</span></span>
+        <span class="event-msg"><code>beta-3</code>: 心跳上报 (OpenClawStatus=running, AgentStatus=active, OpenClawPID=28451, ConfigRev=40)</span>
+        <span class="event-chain">--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Status Grid -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Agent Health Grid</div>
+        <div class="panel-title">代理健康状态网格 (InstanceRuntimeStatus)</div>
+      </div>
+      <span class="badge badge-sys">15s Heartbeat</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>AgentID</th><th>InstanceID</th><th>InfraStatus</th><th>AgentStatus</th><th>OpenClawStatus</th><th>PID</th><th>ConfigRev</th><th>LastReported</th><th>健康</th></tr></thead>
+        <tbody>
+          <tr><td><code>alpha-7</code></td><td>12</td><td>running</td><td>active</td><td>running</td><td>28410</td><td>42</td><td>14:27:12</td><td><span class="badge badge-green">良好</span></td></tr>
+          <tr><td><code>beta-3</code></td><td>15</td><td>running</td><td>active</td><td>running</td><td>28451</td><td>40</td><td>14:26:38</td><td><span class="badge badge-green">良好</span></td></tr>
+          <tr><td><code>delta-9</code></td><td>22</td><td>running</td><td>active</td><td>running</td><td>28390</td><td>39</td><td>14:26:55</td><td><span class="badge badge-green">良好</span></td></tr>
+          <tr><td><code>zeta-4</code></td><td>28</td><td>running</td><td>warn</td><td>running</td><td>28520</td><td>38</td><td>14:26:02</td><td><span class="badge badge-warn">告警</span></td></tr>
+          <tr><td><code>kappa-1</code></td><td>35</td><td>running</td><td>overloaded</td><td>running</td><td>28480</td><td>41</td><td>14:25:50</td><td><span class="badge badge-high">异常</span></td></tr>
+          <tr><td><code>theta-5</code></td><td>40</td><td>running</td><td>active</td><td>running</td><td>28370</td><td>37</td><td>14:26:20</td><td><span class="badge badge-green">良好</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-live -->
+
+<!-- ==================== Tab 5: 配置 ==================== -->
+<div class="tab-content" id="tab-config">
+
+  <!-- Chain Depth Config -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Chain Configuration</div>
+        <div class="panel-title">调用链配置</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">最大链深度</label>
+        <input type="number" class="form-input" value="6" min="2" max="20">
+        <div class="form-hint">单条调用链最大代理跳数，超过触发告警 (默认 6)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">单链最大代理数</label>
+        <input type="number" class="form-input" value="8" min="2" max="32">
+        <div class="form-hint">单条链涉及的最大代理数量 (默认 8)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">最大并发链数</label>
+        <input type="number" class="form-input" value="20" min="5" max="100">
+        <div class="form-hint">系统同时活跃的调用链上限 (默认 20)</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">链超时阈值 (秒)</label>
+        <input type="number" class="form-input" value="600" min="60" max="7200">
+        <div class="form-hint">调用链持续运行超时秒数，默认 600s (10 分钟)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">心跳超时阈值 (秒)</label>
+        <input type="number" class="form-input" value="45" min="15" max="300">
+        <div class="form-hint">代理心跳超时阈值，默认 45s (3 倍心跳间隔)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loop Guard Config -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Loop Guard Configuration</div>
+        <div class="panel-title">循环检测参数</div>
+      </div>
+      <span class="badge badge-sys">ClawAegis</span>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">允许重复次数 (LOOP_GUARD_ALLOW_COUNT)</label>
+        <input type="number" class="form-input" value="3" min="1" max="20">
+        <div class="form-hint">每个 sessionKey+runId+stableArgsKey 组合的允许调用次数，默认 3</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">TTL 窗口 (LOOP_GUARD_TTL_MS)</label>
+        <input type="number" class="form-input" value="300000" min="60000" max="3600000" step="60000">
+        <div class="form-hint">滑动窗口毫秒数，窗口过后计数器重置，默认 300000 (5 分钟)</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Loop Guard 模式</label>
+        <select class="form-select">
+          <option value="enforce" selected>enforce (强制阻断)</option>
+          <option value="observe">observe (仅观察)</option>
+          <option value="off">off (关闭)</option>
+        </select>
+        <div class="form-hint">Loop Guard 的防御模式，enforce 时超过阈值自动阻断</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">适用工具集</label>
+        <input type="text" class="form-input" value="write, edit, apply_patch, exec, bash, memory_store" readonly style="background:#f5f1ed">
+        <div class="form-hint">Loop Guard 监控的工具名称集合 (LOOP_GUARD_TOOL_NAMES)</div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">跨工具循环检测</div>
+        <div class="desc">检测 write&#8594;read&#8594;write 等跨工具循环模式</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">代理乒乓检测</div>
+        <div class="desc">检测 AgentA&#8594;AgentB&#8594;AgentA 闭环调用</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="form-group">
+        <label class="form-label">跨工具循环窗口 (秒)</label>
+        <input type="number" class="form-input" value="60" min="10" max="300">
+        <div class="form-hint">检测跨工具循环的滑动时间窗口</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">乒乓检测窗口 (秒)</label>
+        <input type="number" class="form-input" value="300" min="30" max="1800">
+        <div class="form-hint">检测代理乒乓循环的滑动时间窗口</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anomaly Threshold Config -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Anomaly Thresholds</div>
+        <div class="panel-title">异常阈值配置</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">扇出限制 (单代理出度)</label>
+        <input type="number" class="form-input" value="8" min="2" max="32">
+        <div class="form-hint">单个代理最大并行调用数，超过触发 ANOMALY-FANOUT (默认 8)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">调用树节点上限</label>
+        <input type="number" class="form-input" value="50" min="10" max="200">
+        <div class="form-hint">单条调用链最大节点数，超过触发 ANOMALY-FANOUT (默认 50)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">冲突升级阈值</label>
+        <input type="number" class="form-input" value="2" min="1" max="10">
+        <div class="form-hint">同一代理收到矛盾命令的对数阈值 (默认 2)</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">死锁超时 (秒)</label>
+        <input type="number" class="form-input" value="300" min="30" max="3600">
+        <div class="form-hint">代理运行无 finished_at 的超时秒数，用于死锁检测 (默认 300)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">资源饥饿比例 (%)</label>
+        <input type="number" class="form-input" value="80" min="50" max="99">
+        <div class="form-hint">单代理 token 消耗占比超过此值触发 ANOMALY-STARVATION (默认 80%)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">级联故障阈值</label>
+        <input type="number" class="form-input" value="2" min="1" max="10">
+        <div class="form-hint">调用链中连续失败节点数阈值 (默认 2)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monitoring Interval & Alert Config -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Monitoring & Alerts</div>
+        <div class="panel-title">监控间隔与告警配置</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">监控轮询间隔 (秒)</label>
+        <input type="number" class="form-input" value="15" min="5" max="60">
+        <div class="form-hint">调用链和异常检测的轮询间隔，默认与心跳间隔 15s 一致</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">告警静默期 (秒)</label>
+        <input type="number" class="form-input" value="300" min="60" max="3600">
+        <div class="form-hint">同一告警类型触发后的静默期，避免重复通知 (默认 300s)</div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">Critical 告警通知</div>
+        <div class="desc">扇出爆炸、级联故障等严重异常立即发送通知</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">High 告警通知</div>
+        <div class="desc">冲突升级、死锁等高危异常发送通知</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">Medium 告警通知</div>
+        <div class="desc">资源饥饿等中等异常发送通知</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">Loop 阻断通知</div>
+        <div class="desc">Loop Guard 阻断操作时发送通知</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">Dispatch Guard 拦截通知</div>
+        <div class="desc">Dispatch Guard 拦截危险操作时发送通知</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="form-group">
+        <label class="form-label">告警通知渠道</label>
+        <select class="form-select">
+          <option value="webhook" selected>Webhook</option>
+          <option value="email">Email</option>
+          <option value="slack">Slack</option>
+          <option value="dingtalk">钉钉</option>
+        </select>
+        <div class="form-hint">告警通知的投递渠道</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Webhook URL</label>
+        <input type="text" class="form-input" placeholder="https://hooks.example.com/alerts">
+        <div class="form-hint">告警通知的 Webhook 接收地址</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exfiltration Guard Config -->
+  <div class="app-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-eyebrow">Exfiltration Guard</div>
+        <div class="panel-title">外泄守卫配置</div>
+      </div>
+      <span class="badge badge-sys">source/transform/sink</span>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Exfiltration Guard 模式</label>
+        <select class="form-select">
+          <option value="enforce" selected>enforce (强制阻断)</option>
+          <option value="observe">observe (仅观察)</option>
+          <option value="off">off (关闭)</option>
+        </select>
+        <div class="form-hint">外泄链路检测的防御模式</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">信号追踪深度</label>
+        <input type="number" class="form-input" value="16" min="4" max="64">
+        <div class="form-hint">每个 run 追踪的 previous tool calls 最大数量 (默认 16)</div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">sourceSignals 追踪</div>
+        <div class="desc">追踪敏感数据来源信号 (secret-reference, sensitive-path, secret-variant-match)</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">transformSignals 追踪</div>
+        <div class="desc">追踪编码转换信号 (base64, base32, hex, url-encoding, Buffer.from)</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <div class="name">sinkSignals 追踪</div>
+        <div class="desc">追踪数据外泄目标信号 (curl, fetch, wget, nc, ssh, web_fetch)</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+
+  <!-- Save Button -->
+  <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:8px">
+    <button class="btn-secondary">重置为默认值</button>
+    <button class="btn-primary">保存配置</button>
+  </div>
+
+</div><!-- /tab-config -->
+
+</div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

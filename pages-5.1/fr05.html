@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr05</title>
+<link rel="stylesheet" href="../css-5.1.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr05">
+
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">FR-05 &middot; P0</div>
+      <div class="page-title">提示词注入后系统级兜底阻断</div>
+    </div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel-warm">
+      <div style="font-size:13px;font-weight:700;color:var(--text-h);margin-bottom:8px;">兜底阻断机制说明</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        当 LLM 侧护栏（Prompt Guard）失效时，系统级策略作为最后防线，在 <code>before_tool_call</code> 阶段拦截高危动作。<br>
+        防御顺序：应用层 ClawAegis（10 个策略优先级排序）→ 内核层 KSecure/KubeArmor（eBPF LSM 强制）<br>
+        任一层拦截均有效，双层互补确保零遗漏。
+      </div>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Defense Pipeline</div><div class="panel-title">应用层执行控制防御链（before_tool_call）</div></div><span class="badge-sys">claw-aegis</span></div>
+      <table class="data-table">
+        <thead><tr><th>优先级</th><th>策略 ID</th><th>阻断内容</th><th>模式来源</th><th>阻断消息</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:700;color:#dc2626;">1</td><td style="font-family:monospace;font-weight:600;">self_protection_guard</td><td>对受保护对象的违规操作</td><td>selfProtection</td><td>"已阻止对受保护对象的自保护违规操作"</td></tr>
+          <tr><td style="font-weight:700;color:#dc2626;">2</td><td style="font-family:monospace;font-weight:600;">workspace_delete_guard</td><td>workspace 外路径删除</td><td>selfProtection</td><td>"已阻止删除 workspace 外路径"</td></tr>
+          <tr><td style="font-weight:700;color:#dc2626;">3</td><td style="font-family:monospace;font-weight:600;">protected_path_guard</td><td>受保护路径访问</td><td>selfProtection</td><td>"已阻止访问受保护路径"</td></tr>
+          <tr><td style="font-weight:700;color:#dc2626;">4</td><td style="font-family:monospace;font-weight:600;">command_obfuscation_guard</td><td>编码/混淆执行命令</td><td>commandBlock + encodingGuard</td><td>"已阻止编码或混淆执行命令"</td></tr>
+          <tr><td style="font-weight:700;color:#dc2626;">5</td><td style="font-family:monospace;font-weight:600;">command_block</td><td>高风险 Shell 命令</td><td>commandBlock</td><td>"已阻止高风险命令"</td></tr>
+          <tr><td style="font-weight:700;color:#dc2626;">6</td><td style="font-family:monospace;font-weight:600;">inline_execution_guard</td><td>内联执行请求</td><td>selfProtection + commandBlock</td><td>"已阻止内联执行请求"</td></tr>
+          <tr><td style="font-weight:700;color:#d59a22;">7</td><td style="font-family:monospace;font-weight:600;">memory_guard</td><td>高风险记忆写入</td><td>memoryGuard</td><td>"已阻止高风险记忆写入"</td></tr>
+          <tr><td style="font-weight:700;color:#d59a22;">8</td><td style="font-family:monospace;font-weight:600;">script_provenance_guard</td><td>高风险脚本执行</td><td>scriptProvenanceGuard</td><td>"已阻止高风险脚本产物的后续执行"</td></tr>
+          <tr><td style="font-weight:700;color:#d59a22;">9</td><td style="font-family:monospace;font-weight:600;">exfiltration_guard</td><td>SSRF/数据外泄链</td><td>exfiltrationGuard</td><td>"已阻止疑似 SSRF 或数据外泄工具调用链"</td></tr>
+          <tr><td style="font-weight:700;color:#6366f1;">10</td><td style="font-family:monospace;font-weight:600;">loop_guard</td><td>重复高风险变更</td><td>loopGuard</td><td>"已阻止重复的高风险变更工具调用"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Thresholds -->
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Thresholds</div><div class="panel-title">检测阈值配置</div></div></div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">循环检测容许次数 <code style="font-size:11px;color:#8f8681;">LOOP_GUARD_ALLOW_COUNT</code></div>
+          <input type="number" class="form-input" value="3" min="1" max="10">
+          <div class="form-hint">同一 run 内允许的重复变更工具调用次数（超出触发 loop_guard）</div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">内联执行文本上限 <code style="font-size:11px;color:#8f8681;">INLINE_EXEC_TEXT_MAX_CHARS</code></div>
+          <input type="number" class="form-input" value="8192">
+          <div class="form-hint">字符数，超出此长度的内联执行文本将被标记</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">记忆写入字符上限 <code style="font-size:11px;color:#8f8680;">MEMORY_WRITE_MAX_CHARS</code></div>
+          <input type="number" class="form-input" value="8192">
+          <div class="form-hint">超出此大小的记忆写入将被拒绝</div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">记忆写入行数上限 <code style="font-size:11px;color:#8f8680;">MEMORY_WRITE_MAX_LINES</code></div>
+          <input type="number" class="form-input" value="200">
+          <div class="form-hint">超出此行数的记忆写入将被拒绝</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Turn 状态 TTL <code style="font-size:11px;color:#8f8680;">TURN_STATE_TTL_MS</code></div>
+          <input type="number" class="form-input" value="300000">
+          <div class="form-hint">毫秒（默认 5 分钟），超时后安全状态自动清除</div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">循环计数 TTL <code style="font-size:11px;color:#8f8680;">LOOP_GUARD_TTL_MS</code></div>
+          <input type="number" class="form-input" value="300000">
+          <div class="form-hint">毫秒（默认 5 分钟），超时后循环计数器重置</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kernel-level fallback -->
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Kernel-Level Fallback</div><div class="panel-title">内核层兜底策略（KSecure / KubeArmor）</div></div><span class="badge-sys">ksecure / kubearmor</span></div>
+      <table class="data-table">
+        <thead><tr><th>策略类型</th><th>控制维度</th><th>执行机制</th><th>覆盖场景</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600;">进程白名单</td><td>哪些二进制可执行</td><td>eBPF LSM inode_unlink / file_open</td><td>阻断 rm、wget、curl 等未授权命令</td></tr>
+          <tr><td style="font-weight:600;">文件保护</td><td>哪些文件可读写</td><td>eBPF LSM file_open</td><td>保护 .env、credentials、配置文件</td></tr>
+          <tr><td style="font-weight:600;">网络策略</td><td>哪些外联允许</td><td>nftables / eBPF LSM connect</td><td>阻断未授权外联和数据外泄</td></tr>
+          <tr><td style="font-weight:600;">容器隔离</td><td>Capability / Namespace</td><td>BPF-LSM / AppArmor</td><td>防止容器逃逸到宿主机</td></tr>
+          <tr><td style="font-weight:600;">诱饵检测</td><td>勒索软件行为</td><td>eBPF LSM unlink/rename</td><td>检测并阻断批量加密/删除行为</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

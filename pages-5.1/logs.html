@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FR-logs</title>
+<link rel="stylesheet" href="../css-5.1.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-logs">
+
+  <div class="subheader">
+    <div class="subheader-left">
+      <div class="eyebrow">Security Event Log</div>
+      <div class="page-title">安全事件日志</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-secondary btn-sm">导出日志</button>
+      <button class="btn-primary btn-sm">刷新</button>
+    </div>
+  </div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+        <select class="form-input" style="max-width:200px;padding:7px 12px;font-size:12px;">
+          <option>全部防御模块</option>
+          <option>User Risk Scan</option>
+          <option>Dispatch Guard</option>
+          <option>Tool Result Scan</option>
+          <option>Command Block</option>
+          <option>Encoding Guard</option>
+          <option>Exfiltration Guard</option>
+          <option>Memory Guard</option>
+          <option>Self Protection</option>
+          <option>Loop Guard</option>
+        </select>
+        <select class="form-input" style="max-width:140px;padding:7px 12px;font-size:12px;">
+          <option>全部动作</option>
+          <option>BLOCKED</option>
+          <option>OBSERVED</option>
+          <option>ALLOWED</option>
+        </select>
+        <select class="form-input" style="max-width:140px;padding:7px 12px;font-size:12px;">
+          <option>全部严重性</option>
+          <option>CRITICAL</option>
+          <option>HIGH</option>
+          <option>MEDIUM</option>
+          <option>LOW</option>
+        </select>
+        <input type="text" class="form-input" placeholder="搜索事件内容..." style="max-width:260px;padding:7px 12px;font-size:12px;">
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 15:12:07</span>
+          <span class="log-id">commandBlock</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="log-body">已阻止高风险命令：<code>rm -rf /</code>。Agent 尝试通过 Bash 工具执行递归删除根目录。</div>
+        <div class="log-detail">
+          hook: before_tool_call | strategy: command_block | tool: bash<br>
+          command: "rm -rf /" | action: BLOCK | mode: enforce<br>
+          runId: run-abc123 | sessionKey: user-session-456
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 15:10:33</span>
+          <span class="log-id">exfiltrationGuard</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-critical">CRITICAL</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="log-body">检测到疑似数据外泄链路：先读取 <code>.env</code> 文件，随后发起 <code>curl POST</code> 请求。</div>
+        <div class="log-chain">
+          <span class="log-chain-step">ReadFile(.env)</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="border-color:#dc2626;color:#dc2626;">curl POST (外泄信号)</span>
+          <span class="log-chain-arrow">&#x2192;</span>
+          <span class="log-chain-step" style="background:#fee2e2;border-color:#fecaca;color:#b91c1c;">BLOCK</span>
+        </div>
+        <div class="log-detail">
+          hook: before_tool_call | strategy: exfiltration_guard<br>
+          matchedConditions: ["priorSecretRead", "outboundCall"] | sourceSignals: 1 | sinkSignals: 1<br>
+          matchedSecretVariantCount: 1 | previousCallCount: 3
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 14:55:21</span>
+          <span class="log-id">encodingGuard</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="log-body">检测到 base64 编码的恶意载荷：<code>echo "cm0gLXJmIC8=" | base64 -d | bash</code>（解码后为 <code>rm -rf /</code>）</div>
+        <div class="log-detail">
+          hook: before_tool_call | strategy: command_obfuscation_guard<br>
+          encoding: base64 | decoded: "rm -rf /" | depth: 1 | action: BLOCK
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 14:48:09</span>
+          <span class="log-id">loopGuard</span>
+          <span class="badge badge-observed">OBSERVED</span>
+          <span class="badge badge-medium">MEDIUM</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="log-body">检测到重复变更工具调用（第 4 次），已超出容许次数 3。observe 模式下已放行并告警。</div>
+        <div class="log-detail">
+          hook: before_tool_call | strategy: loop_guard | tool: edit<br>
+          count: 4/3 | mode: observe | runId: run-xyz789
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="log-header">
+          <span class="log-time">2026-04-30 14:32:18</span>
+          <span class="log-id">memoryGuard</span>
+          <span class="badge badge-blocked">BLOCKED</span>
+          <span class="badge badge-high">HIGH</span>
+          <span class="badge-sys">claw-aegis</span>
+        </div>
+        <div class="log-body">已拒绝高风险记忆写入：尝试向 <code>SOUL.md</code> 写入 15,000 字符内容（超出 8,192 上限），疑似提示词注入。</div>
+        <div class="log-detail">
+          hook: before_tool_call | strategy: memory_guard | target: SOUL.md<br>
+          contentChars: 15000 | maxChars: 8192 | contentLines: 380 | maxLines: 200<br>
+          action: BLOCK
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:16px;">
+        <button class="btn-secondary btn-sm">&larr; 上一页</button>
+        <span style="padding:6px 12px;font-size:12px;color:var(--text);">第 1 / 24 页</span>
+        <button class="btn-secondary btn-sm">下一页 &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>fr08</title>
+<link rel="stylesheet" href="../css-5.2.css">
+</head>
+<body>
+<div class="main-content">
+<div class="page-section" id="page-fr08">
+
+  <div class="subheader"><div class="subheader-left"><div class="eyebrow">FR-08 &middot; P0</div><div class="page-title">细粒度动态访问控制</div></div></div>
+  <div class="content-area">
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">Dynamic Access Control</div><div class="panel-title">动态访问控制规则</div></div><button class="btn-secondary btn-sm">+ 添加规则</button></div>
+      <table class="data-table">
+        <thead><tr><th>规则名称</th><th>主体</th><th>资源</th><th>目的</th><th>上下文条件</th><th>动作</th><th>优先级</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600;">凭据文件保护</td>
+            <td><span class="badge badge-blue">所有 Agent</span></td>
+            <td><span class="code">.env, credentials/</span></td>
+            <td>读取</td>
+            <td>无限制（始终生效）</td>
+            <td><span class="badge badge-enforce">阻断</span></td>
+            <td style="font-weight:700;color:#dc2626;">1</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">安全配置保护</td>
+            <td><span class="badge badge-blue">所有 Agent</span></td>
+            <td><span class="code">openclaw.json</span></td>
+            <td>写入/删除</td>
+            <td>无限制</td>
+            <td><span class="badge badge-enforce">阻断</span></td>
+            <td style="font-weight:700;color:#dc2626;">2</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">高危命令需审批</td>
+            <td><span class="badge badge-purple">运维型 Agent</span></td>
+            <td><span class="code">sudo, chmod 777</span></td>
+            <td>执行</td>
+            <td>需人工确认</td>
+            <td><span class="badge badge-observe">需审批</span></td>
+            <td style="font-weight:700;color:#d59a22;">3</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">外联白名单</td>
+            <td><span class="badge badge-blue">所有 Agent</span></td>
+            <td><span class="code">非白名单域名</span></td>
+            <td>网络请求</td>
+            <td>egressAllowlistEnabled=true</td>
+            <td><span class="badge badge-enforce">阻断</span></td>
+            <td style="font-weight:700;color:#dc2626;">4</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;">高风险上下文降权</td>
+            <td><span class="badge badge-blue">所有 Agent</span></td>
+            <td>AI Gateway 请求</td>
+            <td>模型路由</td>
+            <td>风险评分 ≥ 60</td>
+            <td><span class="badge badge-observe">路由安全模型</span></td>
+            <td style="font-weight:700;color:#d59a22;">5</td>
+            <td><label class="toggle-switch" style="margin:0;"><input type="checkbox" checked><span class="toggle-slider"></span></label></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="app-panel">
+      <div class="panel-header"><div><div class="panel-eyebrow">AI Gateway Routing</div><div class="panel-title">AI Gateway 风险路由逻辑</div></div><span class="badge-sys">clawmanager</span></div>
+      <div class="log-chain" style="justify-content:center;gap:8px;padding:8px 0;">
+        <div class="log-chain-step" style="padding:6px 14px;">LLM 请求</div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div class="log-chain-step" style="padding:6px 14px;border-color:#ef6b4a;">风险规则扫描</div>
+        <span class="log-chain-arrow">&#x2192;</span>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="log-chain-step" style="padding:4px 12px;font-size:11px;background:#d1fae5;border-color:#86efac;color:#065f46;">无敏感内容 → 原模型放行</div>
+          <div class="log-chain-step" style="padding:4px 12px;font-size:11px;background:#fef3c7;border-color:#fde68a;color:#92400e;">中等风险 → 路由安全模型 (is_secure=true)</div>
+          <div class="log-chain-step" style="padding:4px 12px;font-size:11px;background:#fee2e2;border-color:#fecaca;color:#b91c1c;">高风险/阻断 → BLOCK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script>
+
+// Tab switching (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('tab')) {
+    var tabId = e.target.getAttribute('data-tab');
+    if (!tabId) return;
+    var tabContainer = e.target.parentElement;
+    tabContainer.querySelectorAll('.tab').forEach(function(t) {
+      t.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    var contentParent = tabContainer.parentElement;
+    contentParent.querySelectorAll('.tab-content').forEach(function(tc) {
+      tc.classList.remove('active');
+    });
+    var targetContent = document.getElementById('tab-' + tabId);
+    if (targetContent) targetContent.classList.add('active');
+  }
+});
+
+// Mode selector (event delegation)
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('mode-btn')) {
+    var selector = e.target.parentElement;
+    selector.querySelectorAll('.mode-btn').forEach(function(b) {
+      b.classList.remove('active-enforce', 'active-observe', 'active-off');
+    });
+    var mode = e.target.getAttribute('data-mode');
+    if (mode === 'enforce') e.target.classList.add('active-enforce');
+    else if (mode === 'observe') e.target.classList.add('active-observe');
+    else if (mode === 'off') e.target.classList.add('active-off');
+  }
+});
+
+</script>
+</body>
+</html>
